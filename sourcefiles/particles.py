@@ -92,18 +92,17 @@ class ParticleCollection:
                 self.euler_angles.append([alpha, beta, gamma])
                 break
         else:
-            self.specs_list.append(
-                {'shape': 'finite cylinder', 'cylinder radius': cylinder_radius, 'cylinder height': cylinder_height,
-                 'refractive index': refractive_index})
+            self.specs_list.append({'shape': 'finite cylinder', 'cylinder radius': cylinder_radius,
+                                    'cylinder height': cylinder_height, 'refractive index': refractive_index})
             self.specs_indices.append(len(self.specs_list) - 1)
             self.positions.append([x, y, z])
             self.euler_angles.append([alpha, beta, gamma])
 
     def remove_particle(self, i):
         """Remove i-th particle from collection"""
-        del(self.specs_indices[i])
-        del(self.positions[i])
-        del(self.euler_angles[i])
+        del self.specs_indices[i]
+        del self.positions[i]
+        del self.euler_angles[i]
 
     def particle_specs(self, i):
         """Return particle specs of particle i"""
