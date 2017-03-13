@@ -2,7 +2,7 @@
 """Test spherical_functions"""
 
 import unittest
-import smuthi
+import smuthi.spherical_functions
 import numpy as np
 
 
@@ -15,7 +15,7 @@ class SphericalFunctionsTest(unittest.TestCase):
         kz[kz.imag < 0] = -kz[kz.imag < 0]
         ct = kz / omega
         st = kp / omega
-        plm, pilm, taulm = smuthi.legendre_normalized(ct, st, lmax)
+        plm, pilm, taulm = smuthi.spherical_functions.legendre_normalized(ct, st, lmax)
 
         # P_3^0
         self.assertAlmostEqual(plm[3][0][0], 1.870267465826245)

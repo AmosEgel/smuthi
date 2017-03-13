@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import scipy.special
 
 
 def legendre_normalized(ct, st, lmax):
@@ -57,7 +58,58 @@ def legendre_normalized(ct, st, lmax):
     return plm, pilm, taulm
 
 
+def spherical_bessel(n, x):
+    """Return the spherical Bessel function.
+
+    As soon as some bug for complex arguments is resolved, this can be replaced by scipy.special.spherical_jn.
+    https://github.com/ContinuumIO/anaconda-issues/issues/1415
+
+    Input:
+    n   Int: Order of spherical Bessel function
+    x   Complex or float array: Argument for Bessel function
+    """
+    sphj = scipy.special.sph_jn
+    j_n = np.array([sphj(n, v)[0][n] for v in x])
+    return j_n
+
+
+def spherical_hankel(n, x):
+    """Return the spherical Hankel function of first kind.
+
+    Input:
+    n   Int: Order of spherical Hankel function
+    x   Complex or float array: Argument for spherical Hankel function
+    """
+    sphj = scipy.special.sph_jn
+    sphy = scipy.special.sph_yn
+    h_n = np.array([(sphj(n, v)[0][n] + 1j * sphy(n, v)[0][n]) for v in x])
+    return h_n
+
+
+def dx_xj(n, x):
+    """Return the derivative of x*j_n(x), where j_n(x) is the spherical Bessel function.
+
+    Input:
+    n   Int (n>0): Order of spherical Bessel function
+    x   Complex or float array: Argument for spherical Hankel function
+    """
+    res = x * spherical_bessel(n - 1, x) - n * spherical_bessel(n, x)
+    return res
+
+
+def dx_xh(n, x):
+    """Return the derivative of x*h_n(x), where h_n(x) is the spherical Hankel function of first kind.
+
+    Input:
+    n   Int (n>0): Order of spherical Bessel function
+    x   Complex or float array: Argument for spherical Hankel function
+    """
+    res = x * spherical_hankel(n - 1, x) - n * spherical_hankel(n, x)
+    return res
+
+
 def factorial(n):
+    """Return factorial."""
     if n == 0:
         return 1
     else:
@@ -65,6 +117,7 @@ def factorial(n):
 
 
 def double_factorial(n):
+    """Return double factorial."""
     if n in (0, 1):
         return 1
     else:

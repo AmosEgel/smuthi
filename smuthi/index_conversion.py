@@ -17,7 +17,7 @@ def multi2single(tau, l, m, lmax, mmax=None, particle_number=0, index_arrangemen
                         'stlm' (default), which stands for 1. particle number, 2. tau, 3. l, 4. m
                         (Other choices are not implemented at the moment.)
     """
-    if mmax == None:
+    if mmax is None:
         mmax = lmax
 
     if index_arrangement == 'stlm':

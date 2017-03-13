@@ -2,12 +2,12 @@
 """Test the ParticleCollection class"""
 
 import unittest
-import particles
+import smuthi.particles
 
 
 class ParticleCollectionTest(unittest.TestCase):
     def test_adding_particles(self):
-        pcln = particles.ParticleCollection()
+        pcln = smuthi.particles.ParticleCollection()
 
         pcln.add_sphere(radius=200, refractive_index=3 + 2j, x=200.55, y=400.11, z=-100.33)
         pcln.add_sphere(radius=200, refractive_index=3 + 2j, x=200.55, y=-400.11, z=-100.33)

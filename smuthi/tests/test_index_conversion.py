@@ -2,7 +2,7 @@
 """Test the index_conversion module"""
 
 import unittest
-import index_conversion
+import smuthi.index_conversion
 
 
 class IndexConversionTest(unittest.TestCase):
@@ -13,7 +13,7 @@ class IndexConversionTest(unittest.TestCase):
             for tau in range(2):
                 for l in range(1, lmax + 1):
                     for m in range(-l, l + 1):
-                        idcs.append(index_conversion.multi2single(particle_number=s, tau=tau, l=l, m=m, lmax=lmax))
+                        idcs.append(smuthi.index_conversion.multi2single(particle_number=s, tau=tau, l=l, m=m, lmax=lmax))
         self.assertEqual(idcs, list(range(len(idcs))))
 
         idcs = []
@@ -25,7 +25,7 @@ class IndexConversionTest(unittest.TestCase):
                     mlim = min(l, mmax)
                     for m in range(-mlim, mlim + 1):
                         idcs.append(
-                            index_conversion.multi2single(particle_number=s, tau=tau, l=l, m=m, lmax=lmax, mmax=mmax))
+                            smuthi.index_conversion.multi2single(particle_number=s, tau=tau, l=l, m=m, lmax=lmax, mmax=mmax))
         self.assertEqual(idcs, list(range(len(idcs))))
 
 
