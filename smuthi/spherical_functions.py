@@ -69,7 +69,10 @@ def spherical_bessel(n, x):
     x   Complex or float array: Argument for Bessel function
     """
     sphj = scipy.special.sph_jn
-    j_n = np.array([sphj(n, v)[0][n] for v in x])
+    if hasattr(x, "__iter__"):
+        j_n = np.array([sphj(n, v)[0][n] for v in x])
+    else:
+        j_n = sphj(n, x)[0][n]
     return j_n
 
 
@@ -82,7 +85,10 @@ def spherical_hankel(n, x):
     """
     sphj = scipy.special.sph_jn
     sphy = scipy.special.sph_yn
-    h_n = np.array([(sphj(n, v)[0][n] + 1j * sphy(n, v)[0][n]) for v in x])
+    if hasattr(x, "__iter__"):
+        h_n = np.array([(sphj(n, v)[0][n] + 1j * sphy(n, v)[0][n]) for v in x])
+    else:
+        h_n = sphj(n, x)[0][n] + 1j * sphy(n, x)[0][n]
     return h_n
 
 
