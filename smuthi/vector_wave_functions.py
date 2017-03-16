@@ -92,18 +92,18 @@ def spherical_vector_wave_function(x, y, z, k, nu, tau, l, m):
 
     cos_thet = np.cos(theta)
     sin_thet = np.sin(theta)
-    plm_list, pilm_list, taulm_list = smuthi.legendre_normalized(cos_thet, sin_thet, l)
+    plm_list, pilm_list, taulm_list = smuthi.spherical_functions.legendre_normalized(cos_thet, sin_thet, l)
     plm = plm_list[l][abs(m)]
     pilm = pilm_list[l][abs(m)]
     taulm = taulm_list[l][abs(m)]
 
     kr = k * r
     if nu == 1:
-        bes = smuthi.spherical_bessel(l, kr)
-        dxxz = smuthi.dx_xj(l, kr)
+        bes = smuthi.spherical_functions.spherical_bessel(l, kr)
+        dxxz = smuthi.spherical_functions.dx_xj(l, kr)
     elif nu == 3:
-        bes = smuthi.spherical_hankel(l, kr)
-        dxxz = smuthi.dx_xh(l, kr)
+        bes = smuthi.spherical_functions.spherical_hankel(l, kr)
+        dxxz = smuthi.spherical_functions.dx_xh(l, kr)
     else:
         raise ValueError('nu must be 1 (regular SVWF) or 3 (outgoing SVWF)')
 
@@ -146,7 +146,7 @@ def transformation_coefficients_VWF(tau, l, m, pol, kp=None, kz=None, pilm_list=
         k = np.sqrt(kp**2 + kz**2)
         ct = kz / k
         st = kp / k
-        plm_list, pilm_list, taulm_list = smuthi.legendre_normalized(ct, st, l)
+        plm_list, pilm_list, taulm_list = smuthi.spherical_functions.legendre_normalized(ct, st, l)
 
     if tau == pol:
         sphfun = taulm_list[l][abs(m)]

@@ -4,7 +4,6 @@
 import unittest
 import numpy as np
 import smuthi.vector_wave_functions
-import matplotlib.pyplot as plt
 
 class VWFtest(unittest.TestCase):
     def setUp(self):

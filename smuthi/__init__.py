@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from .layerresponse_mp import *
-from .index_conversion import *
-from .layers import *
-from .particles import *
-from .spherical_functions import *
+import smuthi.layerresponse_mp
+import smuthi.index_conversion
+import smuthi.layers
+import smuthi.particles
+import smuthi.spherical_functions
