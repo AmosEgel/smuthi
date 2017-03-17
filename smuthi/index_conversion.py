@@ -36,3 +36,20 @@ def multi2single(tau, l, m, lmax, mmax=None, particle_number=0, index_arrangemen
             n += mmax * (mmax + 2) + (l - 1 - mmax) * (2 * mmax + 1)
         n += m + min(l, mmax)
         return n
+
+
+def max_index(lmax, mmax=None, number_of_particles=1, index_arrangement='stlm'):
+    """Return the total number of indices.
+
+    input:
+    lmax:                truncation degree of SVWF expansion
+    mmax:                (optional) truncation order of SVWF expansion, i.e., |m|<=mmax, default: mmax=lmax
+    number_of_particles: (optional) total number of particles (1,2,...), default=1
+    index_arrangement:   (optional) string to specify the order according to which the indices are arranged
+                         Possible choices are:
+                         'stlm' (default), which stands for 1. particle number, 2. tau, 3. l, 4. m
+                         (Other choices are not implemented at the moment.)
+    """
+    if mmax is None:
+        mmax = lmax
+    return multi2single(1, lmax, mmax, lmax, mmax, number_of_particles - 1, index_arrangement)
