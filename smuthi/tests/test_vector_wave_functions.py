@@ -5,6 +5,7 @@ import unittest
 import numpy as np
 import smuthi.vector_wave_functions
 
+
 class VWFtest(unittest.TestCase):
     def setUp(self):
         self.tau = 0
