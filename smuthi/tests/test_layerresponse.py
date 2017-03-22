@@ -52,6 +52,21 @@ class LayerResponseTest(unittest.TestCase):
                               [-0.182951011363592 + 0.138158890222525j, 0.215395950986834 - 0.057346289106977j]])
         np.testing.assert_almost_equal(lmat, lmat_TSPL)
 
+    def test_layerresponse_for_kpar_arrays(self):
+        pol = 1
+        fromlayer = 2
+        tolayer = 1
+        kpar = np.linspace(0, self.kpar)
+        lmat_vec = smuthi.layers.layersystem_response_matrix(pol, self.layer_d, self.layer_n, kpar, self.omega,
+                                                             fromlayer, tolayer)
+        lmat = smuthi.layers.layersystem_response_matrix(pol, self.layer_d, self.layer_n, self.kpar, self.omega,
+                                                         fromlayer, tolayer)
+        lmat0 = smuthi.layers.layersystem_response_matrix(pol, self.layer_d, self.layer_n, 0, self.omega,
+                                                         fromlayer, tolayer)
+
+        np.testing.assert_almost_equal(lmat, lmat_vec[-1, :, :])
+        np.testing.assert_almost_equal(lmat0, lmat_vec[0, :, :])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -4,16 +4,12 @@ import numpy as np
 
 class ComplexContour:
     """Trajectory of n_effective in the complex plane for the evaluation of Sommerfeld integrals."""
-
-    # n_effective waypoints, that is, points through which the contour goes (linear between them)
-    # k_parallel = n_effective * omega
-    neff_waypoints = []
-
-    # Discretization between the waypoints. Either as an array or as a scalar (uniform for all segments)
-    neff_discretization = []
-
     def __init__(self, neff_waypoints=[0, 1], neff_discretization=1e-2):
+        # n_effective waypoints, that is, points through which the contour goes (linear between them)
+        # k_parallel = n_effective * omega
         self.neff_waypoints = neff_waypoints
+
+        # Discretization between the waypoints. Either as an array or as a scalar (uniform for all segments)
         self.neff_discretization = neff_discretization
 
     def neff(self):

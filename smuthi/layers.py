@@ -209,11 +209,13 @@ def layersystem_scattering_matrix(pol, layer_d, layer_n, kpar, omega):
 def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, tolayer, precision=None):
     """Return the layer system response matrix of a planarly layered medium.
 
+    If kpar is specified as an array with length N, return N 2x2 matrices as an Nx2x2 ndarray.
+
     Input:
     pol         polarization(0=TE, 1=TM)
     layer_d     list of layer thicknesses
     layer_n     list of complex layer refractive indices
-    kpar        in-plane wavenumber
+    kpar        (complex float or array-like) in-plane wavenumber
     omega       angular frequency in units of c=1: omega=2*pi/lambda
     fromlayer   number of layer where the excitation is located
     tolayer     number of layer where the response is evaluated
@@ -228,6 +230,13 @@ def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, t
         sympy.mpmath.mp.dps = precision
         matrix_format = sympy.mpmath.matrix
         math_module = sympy.mpmath
+
+    if hasattr(kpar, "__len__"):    # is kpar an array? then use recursive call to fill an N x 2 x 2 ndarray
+        result = np.zeros((len(kpar), 2, 2), dtype=complex)
+        for i, kp in enumerate(kpar):
+            result[i, :, :] = layersystem_response_matrix(pol, layer_d, layer_n, kp, omega, fromlayer, tolayer,
+                                                          precision)
+        return result
 
     layer_d_above = [0] + layer_d[fromlayer:]
     layer_n_above = [layer_n[fromlayer]] + layer_n[fromlayer:]
