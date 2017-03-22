@@ -46,12 +46,44 @@ def t_matrix_sphere(k_medium, k_particle, radius, lmax, mmax=None, index_arrange
     index_arrangement:  (optional) string to specify the order according to which the indices are arranged
                         See smuthi.index_conversion for explanation. Default: 'stlm'
     """
-    nmax = smuthi.index_conversion.max_index(lmax, mmax, 1, index_arrangement)
-    t = np.zeros((nmax+1, nmax+1), dtype=complex)
+    if mmax is None:
+        mmax = lmax
+    blocksize = smuthi.index_conversion.block_size(lmax, mmax, 1, index_arrangement)
+    t = np.zeros((blocksize, blocksize), dtype=complex)
     for tau in range(2):
-        for l in range(1, lmax+1):
-            for m in range(-l, l + 1):
+        for m in range(-mmax, mmax + 1):
+            for l in range(max(1, abs(m)), lmax+1):
                 n = smuthi.index_conversion.multi2single(tau, l, m, lmax, mmax, index_arrangement=index_arrangement)
                 t[n, n] = mie_coefficient(tau, l, k_medium, k_particle, radius)
+
+    return t
+
+
+def t_matrix(vacuum_wavelength, n_medium, particle_specs, lmax, mmax=None, index_arrangement='stlm',
+             euler_angles=[0, 0, 0]):
+    """Return the T-matrix of a particle.
+
+    NOT TESTED
+
+    Input
+    vacuum_wavelength   float: (length units)
+    n_medium            float or complex: refractive index of surrounding medium
+    particle_specs      dictionary containing the particle parameters. the entries should at least contain:
+                        'shape' ('sphere')
+                        'refractive index'
+                        'radius'
+    lmax:               truncation degree of SVWF expansion
+    mmax:               (optional) truncation order of SVWF expansion, i.e., |m|<=mmax, default: mmax=lmax
+    index_arrangement:  (optional) string to specify the order according to which the indices are arranged
+                        See smuthi.index_conversion for explanation. Default: 'stlm'
+    euler_angles:       For rotated particles, in the format [alpha,beta,gamma] (radian)
+    """
+    if particle_specs['shape'] == 'sphere':
+        k_medium = 2 * np.pi / vacuum_wavelength * n_medium
+        k_particle = 2 * np.pi / vacuum_wavelength * particle_specs['refractive index']
+        radius = particle_specs['radius']
+        t = t_matrix_sphere(k_medium, k_particle, radius, lmax, mmax=mmax, index_arrangement=index_arrangement)
+    else:
+        raise ValueError('T-matrix for ' + particle_specs['shape'] + ' currently not implemented.')
 
     return t
