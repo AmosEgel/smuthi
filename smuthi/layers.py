@@ -12,7 +12,6 @@ math_module = np
 
 class LayerSystem:
     """Stack of planar layers."""
-
     def __init__(self, thicknesses=[0, 0], refractive_indices=[1, 1]):
         """Initialize
 
