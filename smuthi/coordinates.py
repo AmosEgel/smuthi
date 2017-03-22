@@ -51,7 +51,7 @@ def k_z(k_parallel=None, n_effective=None, k=None, omega=None, vacuum_wavelength
         k = refractive_index * omega
 
     kz = np.sqrt(k ** 2 - k_parallel ** 2 + 0j)
-    kz[kz.imag < 0] = -kz[kz.imag < 0]  # Branch cut such to prohibit negative imaginary
+    kz = (kz.imag >= 0) * kz + (kz.imag < 0) * (-kz)  # Branch cut such to prohibit negative imaginary
     return kz
 
 

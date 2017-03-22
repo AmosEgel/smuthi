@@ -39,7 +39,7 @@ def multi2single(tau, l, m, lmax, mmax=None, particle_number=0, index_arrangemen
 
 
 def max_index(lmax, mmax=None, number_of_particles=1, index_arrangement='stlm'):
-    """Return the total number of indices.
+    """Return the highest index that occurs which is the number of indices minus 1.
 
     input:
     lmax:                truncation degree of SVWF expansion
@@ -52,4 +52,20 @@ def max_index(lmax, mmax=None, number_of_particles=1, index_arrangement='stlm'):
     """
     if mmax is None:
         mmax = lmax
-    return multi2single(1, lmax, mmax, lmax, mmax, number_of_particles - 1, index_arrangement)
+    return multi2single(tau=1, l=lmax, m=mmax, lmax=lmax, mmax=mmax, particle_number=number_of_particles - 1,
+                        index_arrangement=index_arrangement)
+
+def block_size(lmax, mmax=None, number_of_particles=1, index_arrangement='stlm'):
+    """Return the total number of indices which is the maximal index plus 1.
+
+    input:
+    lmax:                truncation degree of SVWF expansion
+    mmax:                (optional) truncation order of SVWF expansion, i.e., |m|<=mmax, default: mmax=lmax
+    number_of_particles: (optional) total number of particles (1,2,...), default=1
+    index_arrangement:   (optional) string to specify the order according to which the indices are arranged
+                         Possible choices are:
+                         'stlm' (default), which stands for 1. particle number, 2. tau, 3. l, 4. m
+                         (Other choices are not implemented at the moment.)
+    """
+    return max_index(lmax=lmax, mmax=mmax, number_of_particles=number_of_particles, index_arrangement=index_arrangement) \
+           + 1
