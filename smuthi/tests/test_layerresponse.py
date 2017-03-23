@@ -59,13 +59,13 @@ class LayerResponseTest(unittest.TestCase):
         kpar = np.linspace(0, self.kpar)
         lmat_vec = smuthi.layers.layersystem_response_matrix(pol, self.layer_d, self.layer_n, kpar, self.omega,
                                                              fromlayer, tolayer)
-        lmat = smuthi.layers.layersystem_response_matrix(pol, self.layer_d, self.layer_n, self.kpar, self.omega,
+        lmat_end = smuthi.layers.layersystem_response_matrix(pol, self.layer_d, self.layer_n, kpar[-1], self.omega,
                                                          fromlayer, tolayer)
-        lmat0 = smuthi.layers.layersystem_response_matrix(pol, self.layer_d, self.layer_n, 0, self.omega,
+        lmat0 = smuthi.layers.layersystem_response_matrix(pol, self.layer_d, self.layer_n, kpar[0], self.omega,
                                                          fromlayer, tolayer)
 
-        np.testing.assert_almost_equal(lmat, lmat_vec[-1, :, :])
-        np.testing.assert_almost_equal(lmat0, lmat_vec[0, :, :])
+        np.testing.assert_almost_equal(lmat_end, lmat_vec[:, :, -1])
+        np.testing.assert_almost_equal(lmat0, lmat_vec[:, :, 0])
 
 
 if __name__ == '__main__':

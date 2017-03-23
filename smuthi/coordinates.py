@@ -17,9 +17,9 @@ class ComplexContour:
         neff_segments = []
         for i in range(len(self.neff_waypoints)-1):
             if hasattr(self.neff_discretization, "__len__"):
-                npoints = abs(self.neff_waypoints[i+1] - self.neff_waypoints[i]) / self.neff_discretization[i]
+                npoints = abs(self.neff_waypoints[i+1] - self.neff_waypoints[i]) / self.neff_discretization[i] + 1
             else:
-                npoints = abs(self.neff_waypoints[i + 1] - self.neff_waypoints[i]) / self.neff_discretization
+                npoints = abs(self.neff_waypoints[i + 1] - self.neff_waypoints[i]) / self.neff_discretization + 1
             neff_segments.append(self.neff_waypoints[i] + np.linspace(0, 1, num=npoints, endpoint=True, dtype=complex) *
                                  (self.neff_waypoints[i + 1] - self.neff_waypoints[i]))
         return np.concatenate(neff_segments)

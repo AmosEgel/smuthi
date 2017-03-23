@@ -67,5 +67,8 @@ def block_size(lmax, mmax=None, number_of_particles=1, index_arrangement='stlm')
                          'stlm' (default), which stands for 1. particle number, 2. tau, 3. l, 4. m
                          (Other choices are not implemented at the moment.)
     """
-    return max_index(lmax=lmax, mmax=mmax, number_of_particles=number_of_particles, index_arrangement=index_arrangement) \
-           + 1
+    return max_index(lmax=lmax, mmax=mmax, number_of_particles=number_of_particles,
+                     index_arrangement=index_arrangement) + 1
+
+def swe_index_specs(lmax, mmax=None, index_arrangement='stlm'):
+    return {'lmax': lmax, 'mmax': mmax, 'index arrangement': index_arrangement}
