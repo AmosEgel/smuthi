@@ -2,7 +2,7 @@
 """Functions to map the multiple coefficient indices s,p,l,m to a single index n and vice versa."""
 
 
-def multi2single(tau, l, m, lmax, mmax=None, particle_number=0, index_arrangement='stlm'):
+def multi2single(tau, l, m, lmax=None, mmax=None, particle_number=0, index_arrangement='stlm', index_specs=None):
     """Return a unique single index for the totality of indices characterizing a svwf expansion coefficient.
 
     input:
@@ -16,9 +16,19 @@ def multi2single(tau, l, m, lmax, mmax=None, particle_number=0, index_arrangemen
                         Possible choices are:
                         'stlm' (default), which stands for 1. particle number, 2. tau, 3. l, 4. m
                         (Other choices are not implemented at the moment.)
+    index_specs:        Instead of providing lmax, mmax and index_arrangement separately, they can be handed over
+                        through a dictionary {'lmax': lmax, 'mmax': mmax, 'index arrangement': index_arrangement}
     """
+    if lmax is None:
+        lmax = index_specs['lmax']
+        mmax = index_specs['mmax']
+        index_arrangement = index_specs['index arrangement']
+
     if mmax is None:
         mmax = lmax
+
+    if index_arrangement is None:
+        index_arrangement = 'stlm'
 
     if index_arrangement == 'stlm':
         # use:
@@ -38,7 +48,7 @@ def multi2single(tau, l, m, lmax, mmax=None, particle_number=0, index_arrangemen
         return n
 
 
-def max_index(lmax, mmax=None, number_of_particles=1, index_arrangement='stlm'):
+def max_index(lmax=None, mmax=None, number_of_particles=1, index_arrangement='stlm', index_specs=None):
     """Return the highest index that occurs which is the number of indices minus 1.
 
     input:
@@ -49,13 +59,21 @@ def max_index(lmax, mmax=None, number_of_particles=1, index_arrangement='stlm'):
                          Possible choices are:
                          'stlm' (default), which stands for 1. particle number, 2. tau, 3. l, 4. m
                          (Other choices are not implemented at the moment.)
+    index_specs:        Instead of providing lmax, mmax and index_arrangement separately, they can be handed over
+                        through a dictionary {'lmax': lmax, 'mmax': mmax, 'index arrangement': index_arrangement}
     """
+    if lmax is None:
+        lmax = index_specs['lmax']
+        mmax = index_specs['mmax']
+        index_arrangement = index_specs['index arrangement']
+
     if mmax is None:
         mmax = lmax
-    return multi2single(tau=1, l=lmax, m=mmax, lmax=lmax, mmax=mmax, particle_number=number_of_particles - 1,
-                        index_arrangement=index_arrangement)
 
-def block_size(lmax, mmax=None, number_of_particles=1, index_arrangement='stlm'):
+    return multi2single(tau=1, l=lmax, m=mmax, lmax=lmax, mmax=mmax, particle_number=number_of_particles - 1,
+                        index_arrangement=index_arrangement, index_specs=index_specs)
+
+def block_size(lmax=None, mmax=None, number_of_particles=1, index_arrangement='stlm', index_specs=None):
     """Return the total number of indices which is the maximal index plus 1.
 
     input:
@@ -66,9 +84,16 @@ def block_size(lmax, mmax=None, number_of_particles=1, index_arrangement='stlm')
                          Possible choices are:
                          'stlm' (default), which stands for 1. particle number, 2. tau, 3. l, 4. m
                          (Other choices are not implemented at the moment.)
+    index_specs:        Instead of providing lmax, mmax and index_arrangement separately, they can be handed over
+                        through a dictionary {'lmax': lmax, 'mmax': mmax, 'index arrangement': index_arrangement}
     """
     return max_index(lmax=lmax, mmax=mmax, number_of_particles=number_of_particles,
-                     index_arrangement=index_arrangement) + 1
+                     index_arrangement=index_arrangement, index_specs=index_specs) + 1
 
-def swe_index_specs(lmax, mmax=None, index_arrangement='stlm'):
+
+def swe_specifications(lmax, mmax=None, index_arrangement=None):
+    if index_arrangement is None:
+        index_arrangement='stlm'
+    if mmax is None:
+        mmax=lmax
     return {'lmax': lmax, 'mmax': mmax, 'index arrangement': index_arrangement}

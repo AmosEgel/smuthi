@@ -4,6 +4,7 @@
 import unittest
 import smuthi.t_matrix
 import smuthi.index_conversion
+import smuthi.particles
 import numpy as np
 
 class MieTest(unittest.TestCase):
@@ -39,7 +40,7 @@ class MieTest(unittest.TestCase):
         prtcl.add_sphere(200, 2 + 0.2j, [200, -200, 200])
 
         t2 = smuthi.t_matrix.t_matrix(vacuum_wavelength=550, n_medium=self.n_medium, particle_specs=prtcl.specs_list[0],
-                                      lmax=self.lmax)
+                                      index_specs=smuthi.index_conversion.swe_specifications(lmax= self.lmax))
         t3 = smuthi.t_matrix.t_matrix_sphere(2*np.pi/550 * self.n_medium, 2*np.pi/550 * 3, 100, self.lmax)
         np.testing.assert_allclose(t2, t3)
 

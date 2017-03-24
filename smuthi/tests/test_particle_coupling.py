@@ -13,7 +13,7 @@ rs1 = [0, 0, 250]
 rs2 = [100, -400, 150]
 laysys_substrate = smuthi.layers.LayerSystem(thicknesses=[0, 0], refractive_indices=[2 + 0.1j, 1])
 laysys_waveguide = smuthi.layers.LayerSystem(thicknesses=[0, 500, 0], refractive_indices=[1, 2, 1])
-swe_idx_specs = smuthi.index_conversion.swe_index_specs(3, 3)
+swe_idx_specs = smuthi.index_conversion.swe_specifications(3, 3)
 neff_contour = smuthi.coordinates.ComplexContour([0, 0.8, 0.8-0.1j, 1.2-0.1j, 1.2, 5], 2e-3)
 
 

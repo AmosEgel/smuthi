@@ -53,33 +53,33 @@ class InitialFieldCollection:
                                 'azimuthal angle': azimuthal_angle, 'polarization': polarization,
                                 'reference point': reference_point})
 
-    def swe_coefficients(self, particles, layer_system, lmax, mmax=None, index_arrangement='stlm',
-                         layerresponse_precision=None):
-        """Return the spherical wave expansion of all particles specified in a smuthi.particles.ParticleCollection
-        object, for all initial field elements"""
-        a0 = np.zeros((particles.particle_number(),
-                      idx.block_size(lmax=lmax, mmax=mmax, index_arrangement=index_arrangement)), dtype=complex)
-        for iS, rS in enumerate(particles.positions):
-            for i0, specs in enumerate(self.specs_list):
-                if specs['type'] == 'plane wave':
-                    a0[iS, :] += swe_coefficients_planewave(vacuum_wavelength=self.vacuum_wavelength,
-                                                            amplitude=specs['amplitude'],
-                                                            polar_angle=specs['polar angle'],
-                                                            azimuthal_angle=specs['azimuthal angle'],
-                                                            polarization=specs['polarization'],
-                                                            planewave_reference_point=specs['reference point'],
-                                                            particle_position=rS, layer_system=layer_system,
-                                                            layerresponse_precision=layerresponse_precision,
-                                                            lmax=lmax, mmax=mmax, index_arrangement=index_arrangement)
-                else:
-                    raise ValueError('This initial field type is currently not implemented')
 
-        return a0
+def initial_field_swe_coefficients(initial_field_collection, particles, layer_system, index_specs,
+                                   layerresponse_precision=None):
+    """Return the spherical wave expansion of all particles specified in a smuthi.particles.ParticleCollection
+    object, for all initial field elements"""
+    a0 = np.zeros((particles.particle_number(), idx.block_size(index_specs=index_specs)), dtype=complex)
+    for iS, rS in enumerate(particles.positions):
+        for i0, specs in enumerate(initial_field_collection.specs_list):
+            if specs['type'] == 'plane wave':
+                a0[iS, :] += planewave_swe_coefficients(vacuum_wavelength=initial_field_collection.vacuum_wavelength,
+                                                        amplitude=specs['amplitude'],
+                                                        polar_angle=specs['polar angle'],
+                                                        azimuthal_angle=specs['azimuthal angle'],
+                                                        polarization=specs['polarization'],
+                                                        planewave_reference_point=specs['reference point'],
+                                                        particle_position=rS, layer_system=layer_system,
+                                                        layerresponse_precision=layerresponse_precision,
+                                                        index_specs=index_specs)
+            else:
+                raise ValueError('This initial field type is currently not implemented')
+
+    return a0
 
 
-def swe_coefficients_planewave(vacuum_wavelength=None, amplitude=1, polar_angle=0, azimuthal_angle=0, polarization=0,
+def planewave_swe_coefficients(vacuum_wavelength=None, amplitude=1, polar_angle=0, azimuthal_angle=0, polarization=0,
                                planewave_reference_point=[0, 0, 0], particle_position=[0, 0, 0], layer_system=None,
-                               layerresponse_precision=None, lmax=0, mmax=None, index_arrangement='stlm'):
+                               layerresponse_precision=None, index_specs=idx.swe_specifications(None)):
     """Return the initial field coefficients (spherical wave expansion) as a numpy-array for a single particle in a
     planarly layered medium and a single initial plane wave.
 
@@ -97,17 +97,17 @@ def swe_coefficients_planewave(vacuum_wavelength=None, amplitude=1, polar_angle=
                                 particle is located
     layerresponse_precision     If None, standard numpy is used for the layer response. If int>0, that many decimal
                                 digits are considered in multiple precision. (default=None)
-    lmax                        Truncation degree of spherical wave expansion
-    mmax                        Truncation order of spherical wave expansion. If None, mmax=lmax (default)
-    index_arrangement           How are the indices arranged? See smuthi.index_conversion for more information.
-                                (default='stlm')
-
+    index_specs:                Dictionary {'lmax': lmax, 'mmax': mmax, 'index arrangement': index_arrangement}
     """
 
+    lmax = index_specs['lmax']
+    mmax = index_specs['mmax']
+    index_arrangement = index_specs['index arrangement']
     if mmax is None:
         mmax = lmax
+
     angular_frequency = coord.angular_frequency(vacuum_wavelength)
-    blocksize = idx.block_size(lmax=lmax, mmax=mmax, index_arrangement=index_arrangement)
+    blocksize = idx.block_size(index_specs=index_specs)
     
     #initialize output
     aPR = np.zeros(blocksize, dtype=complex) # layer system mediated

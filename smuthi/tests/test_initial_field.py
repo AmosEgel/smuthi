@@ -6,6 +6,7 @@ import numpy as np
 import smuthi.initial_field as init
 import smuthi.layers
 import smuthi.particles
+import smuthi.index_conversion as idx
 
 ld = 550
 A = 1
@@ -22,24 +23,26 @@ lmax = 3
 laysys = smuthi.layers.LayerSystem(thicknesses=[0, 500, 0], refractive_indices=[1, 2, 1])
 laysys1 = smuthi.layers.LayerSystem(thicknesses=[0, 500, 0], refractive_indices = [1, 1, 1])
 laysys2 = smuthi.layers.LayerSystem(thicknesses=[0, 0], refractive_indices=[1, 1])
+index_specs = idx.swe_specifications(lmax)
+
 
 class PlaneWaveTest(unittest.TestCase):
     def test_SWE_coefficients_consistency(self):
 
-        aI1 = init.swe_coefficients_planewave(vacuum_wavelength=ld, amplitude=A, polar_angle=beta,
+        aI1 = init.planewave_swe_coefficients(vacuum_wavelength=ld, amplitude=A, polar_angle=beta,
                                               azimuthal_angle=alpha, polarization=pol,
-                                              particle_position=rS, layer_system=laysys1, lmax=lmax)
-        aI2 = init.swe_coefficients_planewave(vacuum_wavelength=ld, amplitude=A, polar_angle=beta,
+                                              particle_position=rS, layer_system=laysys1, index_specs= index_specs)
+        aI2 = init.planewave_swe_coefficients(vacuum_wavelength=ld, amplitude=A, polar_angle=beta,
                                               azimuthal_angle=alpha, polarization=pol,
-                                              particle_position=rS, layer_system=laysys2, lmax=lmax)
+                                              particle_position=rS, layer_system=laysys2, index_specs=index_specs)
 
         np.testing.assert_allclose(aI1, aI2)
 
     def test_SWE_coefficients_against_prototype(self):
-        aI = init.swe_coefficients_planewave(vacuum_wavelength=ld, amplitude=A, polar_angle=beta,
+        aI = init.planewave_swe_coefficients(vacuum_wavelength=ld, amplitude=A, polar_angle=beta,
                                              azimuthal_angle=alpha, polarization=pol,
                                              planewave_reference_point=[0, 0, 500],
-                                             particle_position=rS, layer_system=laysys, lmax=lmax)
+                                             particle_position=rS, layer_system=laysys, index_specs=index_specs)
         self.assertAlmostEqual(aI[0], 0.037915264196848 + 0.749562792043970j)
         self.assertAlmostEqual(aI[5], 0.234585233040185 - 0.458335592154664j)
         self.assertAlmostEqual(aI[10], -0.047694884547150 - 0.942900216698188j)
@@ -57,13 +60,14 @@ class InitialFieldClassTest(unittest.TestCase):
         prtcl = smuthi.particles.ParticleCollection()
         prtcl.add_sphere(100, 3, [100, 200, 300])
         prtcl.add_sphere(100, 3, [200, -200, 200])
-        aI = in_fld.swe_coefficients(particles=prtcl, layer_system=laysys, lmax=3)
-        aI1 = init.swe_coefficients_planewave(vacuum_wavelength=ld, amplitude=A, polar_angle=beta,
+        aI = init.initial_field_swe_coefficients(initial_field_collection=in_fld,
+                                                 particles=prtcl, layer_system=laysys, index_specs=index_specs)
+        aI1 = init.planewave_swe_coefficients(vacuum_wavelength=ld, amplitude=A, polar_angle=beta,
                                              azimuthal_angle=alpha, polarization=pol,
-                                             particle_position=rS2, layer_system=laysys, lmax=lmax)
-        aI2 = init.swe_coefficients_planewave(vacuum_wavelength=ld, amplitude=A2, polar_angle=beta2,
+                                             particle_position=rS2, layer_system=laysys, index_specs=index_specs)
+        aI2 = init.planewave_swe_coefficients(vacuum_wavelength=ld, amplitude=A2, polar_angle=beta2,
                                              azimuthal_angle=alpha2, polarization=pol2,
-                                             particle_position=rS2, layer_system=laysys, lmax=lmax)
+                                             particle_position=rS2, layer_system=laysys, index_specs=index_specs)
         self.assertAlmostEqual(aI[1, 0], aI1[0] + aI2[0])
 
 
