@@ -34,7 +34,7 @@ def mie_coefficient(tau, l, k_medium, k_particle, radius):
 
     return q
 
-def t_matrix_sphere(k_medium, k_particle, radius, lmax, mmax=None, index_arrangement='stlm'):
+def t_matrix_sphere(k_medium, k_particle, radius, lmax=None, mmax=None, index_arrangement='stlm'):
     """Return the T-matrix of a spherical scattering object.
 
     Input:
@@ -59,31 +59,75 @@ def t_matrix_sphere(k_medium, k_particle, radius, lmax, mmax=None, index_arrange
     return t
 
 
-def t_matrix(vacuum_wavelength, n_medium, particle_specs, lmax, mmax=None, index_arrangement='stlm',
-             euler_angles=[0, 0, 0]):
+def t_matrix(vacuum_wavelength, n_medium, particle, index_specs):
     """Return the T-matrix of a particle.
 
     NOT TESTED
 
-    Input
-    vacuum_wavelength   float: (length units)
-    n_medium            float or complex: refractive index of surrounding medium
-    particle_specs      dictionary containing the particle parameters. the entries should at least contain:
-                        'shape' ('sphere')
-                        'refractive index'
-                        'radius'
-    lmax:               truncation degree of SVWF expansion
-    mmax:               (optional) truncation order of SVWF expansion, i.e., |m|<=mmax, default: mmax=lmax
-    index_arrangement:  (optional) string to specify the order according to which the indices are arranged
-                        See smuthi.index_conversion for explanation. Default: 'stlm'
-    euler_angles:       For rotated particles, in the format [alpha,beta,gamma] (radian)
+    Input:
+    vacuum_wavelength:  float (length units)
+    n_medium:           float or complex: refractive index of surrounding medium
+    particle:           Dictionary containing the particle parameters. See smuthi.particles for details.
+    index_specs:        A dictionary with 'lmax', 'mmax' and 'index arrangement' (see index_conversion.py)
     """
-    if particle_specs['shape'] == 'sphere':
+    lmax = index_specs['lmax']
+    mmax = index_specs['mmax']
+    index_arrangement = index_specs['index arrangement']
+
+    if particle['shape'] == 'sphere':
         k_medium = 2 * np.pi / vacuum_wavelength * n_medium
-        k_particle = 2 * np.pi / vacuum_wavelength * particle_specs['refractive index']
-        radius = particle_specs['radius']
+        k_particle = 2 * np.pi / vacuum_wavelength * particle['refractive index']
+        radius = particle['radius']
         t = t_matrix_sphere(k_medium, k_particle, radius, lmax, mmax=mmax, index_arrangement=index_arrangement)
     else:
-        raise ValueError('T-matrix for ' + particle_specs['shape'] + ' currently not implemented.')
+        raise ValueError('T-matrix for ' + particle['shape'] + ' currently not implemented.')
 
     return t
+
+
+def rotate_t_matrix(t, euler_angles, index_specs):
+    if euler_angles == [0, 0, 0]:
+        return t
+    else:
+        raise ValueError('Non-trivial rotation not yet implemented')
+
+
+def t_matrix_collection(vacuum_wavelength, particle_collection, layer_system, index_specs):
+
+    if index_specs['index arrangement'] == 'stlm':
+        blocksize = smuthi.index_conversion.block_size(index_specs=index_specs)
+        particle_number = particle_collection.particle_number()
+        t_matrices = np.zeros((particle_number, blocksize, blocksize), dtype=complex)
+
+        particle_params_table = []
+        tmatrix_table = []
+
+        for ip, particle in enumerate(particle_collection.particles):
+            # gather relevant parameters and omit those that don't alter the T-matrix (before rotation)
+            # in the first place, just omit position and euler angel, but add refractive index of surrounding medium
+            if particle['shape'] == 'sphere':
+                params = ['sphere', particle['radius'], particle['refractive index']]
+            else:
+                raise ValueError('invalid particle type: so far only spheres are implemented')
+            zS = particle['position'][2]
+            iS = layer_system.layer_number(zS)
+            n_medium = layer_system.refractive_indices[iS]
+            params.append(n_medium)
+
+            # compare parameters to table
+            for i_old, old_params in particle_params_table:
+                if params == old_params:
+                    tmatrix = tmatrix_table[i_old]
+                    break
+            else:  # compute T-matrix and update tables
+                tmatrix = t_matrix(vacuum_wavelength, n_medium, particle, index_specs)
+                particle_params_table.append(params)
+                tmatrix_table.append(tmatrix)
+
+            tmatrix_rotated = rotate_t_matrix(t=tmatrix, euler_angles=particle['euler angles'], index_specs=index_specs)
+            t_matrices[ip, :, :] = tmatrix_rotated
+
+    else:
+        raise ValueError('invalid index arrangement: currently only "stml" is implemented')
+
+    return t_matrices

@@ -54,12 +54,12 @@ class InitialFieldCollection:
                                 'reference point': reference_point})
 
 
-def initial_field_swe_coefficients(initial_field_collection, particles, layer_system, index_specs,
+def initial_field_swe_coefficients(initial_field_collection, particle_collection, layer_system, index_specs,
                                    layerresponse_precision=None):
     """Return the spherical wave expansion of all particles specified in a smuthi.particles.ParticleCollection
     object, for all initial field elements"""
-    a0 = np.zeros((particles.particle_number(), idx.block_size(index_specs=index_specs)), dtype=complex)
-    for iS, rS in enumerate(particles.positions):
+    a0 = np.zeros((particle_collection.particle_number(), idx.block_size(index_specs=index_specs)), dtype=complex)
+    for iS, rS in enumerate(particle_collection.particle_positions()):
         for i0, specs in enumerate(initial_field_collection.specs_list):
             if specs['type'] == 'plane wave':
                 a0[iS, :] += planewave_swe_coefficients(vacuum_wavelength=initial_field_collection.vacuum_wavelength,

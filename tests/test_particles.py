@@ -26,14 +26,12 @@ class ParticleCollectionTest(unittest.TestCase):
                                  position=[1000, -1000, 2000])
         pcln.add_finite_cylinder(cylinder_height=300, cylinder_radius=100, refractive_index=3 + 1j,
                                  position=[1000, -1000, -2000])
+
         self.assertEqual(pcln.particle_number(), 9)
-        self.assertEqual(len(pcln.specs_list), 6)
-        self.assertEqual(pcln.specs_indices, [0, 0, 1, 2, 2, 3, 4, 4, 5])
-        self.assertEqual(pcln.positions[4], [100, 100, 100])
+        self.assertEqual(pcln.particle_positions()[4], [100, 100, 100])
 
         pcln.remove_particle(3)
-        self.assertEqual(pcln.positions[4], [-100, -100, 100])
-        self.assertEqual(pcln.specs_indices, [0, 0, 1, 2, 3, 4, 4, 5])
+        self.assertEqual(pcln.particle_positions()[4], [-100, -100, 100])
 
 
 if __name__ == '__main__':

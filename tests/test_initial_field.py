@@ -61,7 +61,7 @@ class InitialFieldClassTest(unittest.TestCase):
         prtcl.add_sphere(100, 3, [100, 200, 300])
         prtcl.add_sphere(100, 3, [200, -200, 200])
         aI = init.initial_field_swe_coefficients(initial_field_collection=in_fld,
-                                                 particles=prtcl, layer_system=laysys, index_specs=index_specs)
+                                                 particle_collection=prtcl, layer_system=laysys, index_specs=index_specs)
         aI1 = init.planewave_swe_coefficients(vacuum_wavelength=ld, amplitude=A, polar_angle=beta,
                                              azimuthal_angle=alpha, polarization=pol,
                                              particle_position=rS2, layer_system=laysys, index_specs=index_specs)
