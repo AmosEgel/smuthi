@@ -19,8 +19,8 @@ neff_contour = smuthi.coordinates.ComplexContour([0, 0.8, 0.8-0.1j, 1.2-0.1j, 1.
 
 class WrTest(unittest.TestCase):
     def test_wr_against_prototype_single_particle_over_substrate(self):
-        wr = smuthi.particle_coupling.layer_mediated_coupling(wl, rs1, rs1, laysys_substrate, swe_idx_specs,
-                                                              neff_contour, show_integrand=False)
+        wr = smuthi.particle_coupling.layer_mediated_coupling_block(wl, rs1, rs1, laysys_substrate, swe_idx_specs,
+                                                                    neff_contour, show_integrand=False)
         wr00 = -0.031367838040052 - 0.086576016508040j
         self.assertTrue((wr[0, 0] - wr00) / wr00 < 1e-4)
         wr1910 = 0.110962483421277 + 0.155167528762370j

@@ -10,17 +10,18 @@ import smuthi.vector_wave_functions as vwf
 import matplotlib.pyplot as plt
 
 
-def layer_mediated_coupling(vacuum_wavelength, receiving_particle_position, emitting_particle_position,  layer_system,
-                            swe_idx_specs, neff_contour, layerresponse_precision=None, show_integrand=False):
-    """Return the layer-system mediated particle coupling matrix W^R for two particles. This routine is explicit, but slow.
-    It is thus suited for problems with few particles only.
+def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position, emitting_particle_position,
+                                  layer_system, index_specs, neff_contour, layerresponse_precision=None,
+                                  show_integrand=False):
+    """Return the layer-system mediated particle coupling matrix W^R for two particles. This routine is explicit, but
+    slow.
 
     Input:
     vacuum_wavelength:              (length unit)
     receiving_particle_position:    In the format [x,y,z] (length unit)
     emitting_particle_position:     In the format [x,y,z] (length unit)
     layer_system:                   An instance of smuthi.layers.LayerSystem describing the stratified medium
-    swe_idx_specs:                  A dictionary with the entries 'lmax', 'mmax' and 'index arrangement'
+    index_specs:                    A dictionary with the entries 'lmax', 'mmax' and 'index arrangement'
     neff_contour:                   An instance of smuthi.coordinates.ComplexContour to define the contour of the
                                     Sommerfeld integral
     layerresponse_precision:        Number of decimal digits (int). If specified, the layer-response is evaluated using
@@ -30,11 +31,11 @@ def layer_mediated_coupling(vacuum_wavelength, receiving_particle_position, emit
     omega = coord.angular_frequency(vacuum_wavelength)
 
     # read out index specs
-    lmax = swe_idx_specs['lmax']
-    mmax = swe_idx_specs['mmax']
+    lmax = index_specs['lmax']
+    mmax = index_specs['mmax']
     if mmax is None:
         mmax = lmax
-    index_arrangement = swe_idx_specs['index arrangement']
+    index_arrangement = index_specs['index arrangement']
     blocksize = idx.block_size(lmax=lmax, mmax=mmax, index_arrangement=index_arrangement)
 
     # cylindrical coordinates of relative position vectors
@@ -119,5 +120,45 @@ def layer_mediated_coupling(vacuum_wavelength, receiving_particle_position, emit
             norm_integrand[i] = 4 * np.linalg.norm(integrand[:, :, i])
         plt.plot(neff.real, norm_integrand)
         plt.show()
+
+    return wr
+
+
+def layer_mediated_coupling_matrix(vacuum_wavelength, particle_collection, layer_system, index_specs, neff_contour,
+                                   layerresponse_precision=None):
+    """Return the layer-system mediated particle coupling matrix W^R for a particle collection.
+    This routine is explicit, but slow. It is thus suited for problems with few particles only.
+
+    NOT TESTED
+
+    Input:
+    vacuum_wavelength:              (length unit)
+    particle_collection:            An instance of  smuthi.particles.ParticleCollection describing the scattering
+                                    particles
+    layer_system:                   An instance of smuthi.layers.LayerSystem describing the stratified medium
+    swe_idx_specs:                  A dictionary with the entries 'lmax', 'mmax' and 'index arrangement'
+    neff_contour:                   An instance of smuthi.coordinates.ComplexContour to define the contour of the
+                                    Sommerfeld integral
+    layerresponse_precision:        Number of decimal digits (int). If specified, the layer-response is evaluated using
+                                    mpmath multiple precision. Otherwise, standard numpy.
+    """
+    blocksize = idx.block_size(index_specs=index_specs)
+    particle_number = particle_collection.particle_number()
+    system_size = blocksize * particle_number
+    wr = np.zeros((system_size, system_size), dtype=complex)
+
+    if index_specs['index arrangement'][0] == 's':
+        for s1, particle1 in enumerate(particle_collection.particles):
+            rs1 = particle1['position']
+            s1_start_idx = s1 * blocksize
+            for s2, particle2 in enumerate(particle_collection.particles):
+                rs2 = particle2['position']
+                s2_start_idx = s2 * blocksize
+                wrblock = layer_mediated_coupling_block(vacuum_wavelength, rs1, rs2, layer_system, index_specs,
+                                                        neff_contour, layerresponse_precision)
+
+                wr[s1_start_idx:(s1_start_idx + blocksize), s2_start_idx:(s2_start_idx + blocksize)] = wrblock
+    else:
+        raise ValueError('index arrangement other than "s..." are currently not implemented')
 
     return wr

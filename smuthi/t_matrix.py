@@ -86,6 +86,7 @@ def t_matrix(vacuum_wavelength, n_medium, particle, index_specs):
 
 
 def rotate_t_matrix(t, euler_angles, index_specs):
+    """Placeholder for a proper T-matrix rotation routine"""
     if euler_angles == [0, 0, 0]:
         return t
     else:
@@ -93,7 +94,15 @@ def rotate_t_matrix(t, euler_angles, index_specs):
 
 
 def t_matrix_collection(vacuum_wavelength, particle_collection, layer_system, index_specs):
+    """Return the T-matrices for all particles as a numpy.ndarray, in the format (NS, blocksize, blocksize) where NS is
+    the number of particles and blocksize is the number of SWE terms per particle.
 
+    Input:
+    vacuum_wavelength:      (length unit)
+    particle_collection:    An instance of  smuthi.particles.ParticleCollection describing the scattering particles
+    layer_system:           An instance of smuthi.layers.LayerSystem describing the stratified medium
+    index_specs:            A dictionary with the entries 'lmax', 'mmax' and 'index arrangement'
+    """
     if index_specs['index arrangement'] == 'stlm':
         blocksize = smuthi.index_conversion.block_size(index_specs=index_specs)
         particle_number = particle_collection.particle_number()
