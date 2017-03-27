@@ -4,14 +4,17 @@
 import numpy as np
 import scipy.linalg
 import smuthi.index_conversion as idx
+import smuthi.coordinates as coord
 
 
 class LinearSystem:
     """Linear equation for the scattered field swe coefficients."""
-    def __init__(self, vacuum_wavelength=None, lmax=None, mmax=None, index_arrangement=None):
+    def __init__(self, lmax=None, mmax=None, index_arrangement=None, swe_specs=None):
 
-        self.index_specs = idx.swe_specifications(lmax=lmax, mmax=mmax, index_arrangement=index_arrangement)
-        self.vacuum_wavelength = vacuum_wavelength
+        if swe_specs is None:
+            self.swe_specs = idx.swe_specifications(lmax=lmax, mmax=mmax, index_arrangement=index_arrangement)
+        else:
+            self.swe_specs = swe_specs
 
         # numpy.ndarray of dimension (NS, nmax)
         self.scattered_field_coefficients = None

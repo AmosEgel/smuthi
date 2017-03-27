@@ -124,7 +124,7 @@ def t_matrix_collection(vacuum_wavelength, particle_collection, layer_system, in
             params.append(n_medium)
 
             # compare parameters to table
-            for i_old, old_params in particle_params_table:
+            for i_old, old_params in enumerate(particle_params_table):
                 if params == old_params:
                     tmatrix = tmatrix_table[i_old]
                     break

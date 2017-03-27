@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import smuthi.tests.debug_particle_coupling
+import smuthi.read_input
+
 
 def main(args=None):
     """The main routine."""
     if args is None:
         args = sys.argv[1:]
 
-    print("--------------------------------")
-    print("|            SMUTHI            |")
-    print("--------------------------------")
-    smuthi.tests.debug_particle_coupling.execute()
+    simulation = smuthi.read_input.read_input_yaml('input.dat')
+    simulation.run()
 
-    # Do argument parsing here (eg. with argparse) and anything else
-    # you want your project to do.
 
 if __name__ == "__main__":
     main()
