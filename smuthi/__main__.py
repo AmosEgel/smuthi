@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import sys
+import argparse
 import smuthi.read_input
 
 
-def main(args=None):
-    """The main routine."""
-    if args is None:
-        args = sys.argv[1:]
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('inputfile', type=str)
+    args = parser.parse_args()
+    if args.inputfile is None:
+        inputfile = 'input.dat'
+    else:
+        inputfile = args.inputfile
 
-    simulation = smuthi.read_input.read_input_yaml('input.dat')
+    simulation = smuthi.read_input.read_input_yaml(inputfile)
     simulation.run()
 
 

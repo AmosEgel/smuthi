@@ -1,0 +1,36 @@
+# -----------------------------------------------
+vacuum wavelength: 550
+# -----------------------------------------------
+scattering particles:
+- shape: "sphere"
+  radius: 100
+  refractive index: 2.4
+  extinction coefficient: 0.1
+  position: [0, 0, 100]
+- shape: sphere
+  radius: 200
+  refractive index: 2.7
+  extinction coefficient: 0.2
+  position: [-100, 100, 250]
+# -----------------------------------------------
+layer system:
+- thicknesses: [0, 500, 0]
+  refractive indices: [1, 2, 1]
+  extinction coefficients: [0, 0.01, 3]
+# -----------------------------------------------
+initial field:
+- type: "plane wave"
+  angle units: "degree"
+  polar angle: 180
+  azimuthal angle: 0
+  polarization: "TE"
+  amplitude: 1
+  reference point: [0, 0, 0]
+# -----------------------------------------------
+lmax: 3
+# -----------------------------------------------
+mmax: 3
+# -----------------------------------------------
+neff waypoints: [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
+# -----------------------------------------------
+neff discretization: 1e-3
