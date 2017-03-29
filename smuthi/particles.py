@@ -14,19 +14,6 @@ class ParticleCollection:
         """
         self.particles = []
 
-        # Particle templates, in the format of a list of dictionaries, each element corresponds to one
-        # particle type:
-        self.specs_list = []
-
-        # Maps particle number i to the index of its specs in the specs_list:
-        self.specs_indices = []
-
-        # A list of positions in the format [x,y,z]
-        self.positions = []
-
-        # A list of euler angles in the format [alpha,beta,gamma]
-        self.euler_angles = []
-
     def add_sphere(self, radius, refractive_index, position):
         """Add a sphere to the collection.
 

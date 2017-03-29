@@ -38,10 +38,10 @@ class LinearSystem:
         """Compute scattered field coefficients"""
         if self.solver == 'LU':
             if self.LU_piv is None:
-                lu, piv = scipy.linalg.lu_factor(self.master_matrix(), overwrite_a=False, check_finite=True)
+                lu, piv = scipy.linalg.lu_factor(self.master_matrix(), overwrite_a=False)
                 self.LU_piv = (lu, piv)
-            self.scattered_field_coefficients = scipy.linalg.lu_solve(self.LU_piv, self.right_hand_side(), trans=0,
-                                                                      overwrite_b=False, check_finite=True)
+            bvec = scipy.linalg.lu_solve(self.LU_piv, self.right_hand_side())
+            self.scattered_field_coefficients = bvec.reshape(self.initial_field_coefficients.shape)
         else:
             raise ValueError('This solver type is currently not implemented.')
 
