@@ -4,6 +4,7 @@ import smuthi.simulation
 import numpy as np
 import smuthi.index_conversion as idx
 import smuthi.coordinates as coord
+import smuthi.post_processing as pp
 
 
 def read_input_yaml(filename):
@@ -58,6 +59,11 @@ def read_input_yaml(filename):
     neff_discretization = float(input_data['neff discretization'])
     simulation.wr_neff_contour = coord.ComplexContour(neff_waypoints=neff_waypoints,
                                                       neff_discretization=neff_discretization)
+
+    simulation.post_processing = pp.PostProcessing()
+    for item in input_data['post processing']:
+        if item['task'] == 'plot 2D far-field distribution':
+            simulation.post_processing.tasks.append(item)
 
     return simulation
 

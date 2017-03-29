@@ -11,8 +11,20 @@ class PostProcessing:
     def __init__(self):
         self.tasks = []
 
-    def run(self):
-        pass
+    def run(self, simulation):
+        vacuum_wavelength = simulation.initial_field_collection.vacuum_wavelength
+        particle_collection = simulation.particle_collection
+        linear_system = simulation.linear_system
+        layer_system = simulation.layer_system
+        for item in self.tasks:
+            if item['task'] == 'plot 2D far-field distribution':
+                polar_angles = item.get('polar angles')
+                azimuthal_angles = item.get('azimuthal angles')
+                layerresponse_precision = item.get('layerresponse precision')
+                show_scattered_far_field(polar_angles=polar_angles, vacuum_wavelength=vacuum_wavelength,
+                                         azimuthal_angles=azimuthal_angles, particle_collection=particle_collection,
+                                         linear_system=linear_system, layer_system=layer_system,
+                                         layerresponse_precision=layerresponse_precision)
 
 
 def show_scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_angles=None,
@@ -40,15 +52,14 @@ def show_scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimutha
     bottom_idcs = polar_angles > (np.pi / 2)
 
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-    ax.contourf(azimuthal_angles, polar_angles[top_idcs] * 180 / np.pi,
+    ax.contourf(azimuthal_angles, polar_angles[top_idcs].real * 180 / np.pi,
                 far_field[0, top_idcs, :] + far_field[1, top_idcs, :])
     plt.title('forward far field')
 
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-    ax.contourf(azimuthal_angles, (np.pi-polar_angles[bottom_idcs]) * 180 / np.pi,
+    ax.contourf(azimuthal_angles, (np.pi-polar_angles[bottom_idcs]).real * 180 / np.pi,
                 far_field[0, bottom_idcs, :] + far_field[1, bottom_idcs, :])
     plt.title('backward far field')
-    plt.show()
 
 
 def scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_angles=None,
@@ -113,7 +124,7 @@ def scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_ang
     kkz2_bottom = coord.k_z(n_effective=neff_bottom, omega=omega, k=k_0) ** 2 * k_0
     kkz2 = np.concatenate([kkz2_top, kkz2_bottom])
 
-    far_field = 2 * np.pi ** 2 / omega * kkz2[np.newaxis, :, np.newaxis] * abs(pwp) ** 2
+    far_field = (2 * np.pi ** 2 / omega * kkz2[np.newaxis, :, np.newaxis] * abs(pwp) ** 2).real
 
     return far_field
 
