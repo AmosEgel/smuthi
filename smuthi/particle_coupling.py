@@ -7,6 +7,7 @@ import smuthi.index_conversion as idx
 import smuthi.coordinates as coord
 import smuthi.layers as lay
 import smuthi.vector_wave_functions as vwf
+import smuthi.spherical_functions as sf
 import matplotlib.pyplot as plt
 
 
@@ -136,7 +137,7 @@ def layer_mediated_coupling_matrix(vacuum_wavelength, particle_collection, layer
     particle_collection:            An instance of  smuthi.particles.ParticleCollection describing the scattering
                                     particles
     layer_system:                   An instance of smuthi.layers.LayerSystem describing the stratified medium
-    swe_idx_specs:                  A dictionary with the entries 'lmax', 'mmax' and 'index arrangement'
+    index_specs:                    A dictionary with the entries 'lmax', 'mmax' and 'index arrangement'
     neff_contour:                   An instance of smuthi.coordinates.ComplexContour to define the contour of the
                                     Sommerfeld integral
     layerresponse_precision:        Number of decimal digits (int). If specified, the layer-response is evaluated using
@@ -144,21 +145,108 @@ def layer_mediated_coupling_matrix(vacuum_wavelength, particle_collection, layer
     """
     blocksize = idx.block_size(index_specs=index_specs)
     particle_number = particle_collection.particle_number()
-    system_size = blocksize * particle_number
-    wr = np.zeros((system_size, system_size), dtype=complex)
+
+    # initialize result
+    wr = np.zeros((particle_number, blocksize, particle_number, blocksize), dtype=complex)
 
     if index_specs['index arrangement'][0] == 's':
         for s1, particle1 in enumerate(particle_collection.particles):
             rs1 = particle1['position']
-            s1_start_idx = s1 * blocksize
             for s2, particle2 in enumerate(particle_collection.particles):
                 rs2 = particle2['position']
-                s2_start_idx = s2 * blocksize
                 wrblock = layer_mediated_coupling_block(vacuum_wavelength, rs1, rs2, layer_system, index_specs,
                                                         neff_contour, layerresponse_precision)
 
-                wr[s1_start_idx:(s1_start_idx + blocksize), s2_start_idx:(s2_start_idx + blocksize)] = wrblock
+                wr[s1, :, s2, :] = wrblock
     else:
         raise ValueError('index arrangement other than "s..." are currently not implemented')
 
+    wr = np.reshape(wr, (particle_number * blocksize, particle_number * blocksize))
     return wr
+
+
+def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system, index_specs):
+    """Return the direct particle coupling matrix W for a particle collection in a layered medium.
+
+    NOT TESTED
+
+    Input:
+    vacuum_wavelength:              (length unit)
+    particle_collection:            An instance of  smuthi.particles.ParticleCollection describing the scattering
+                                    particles
+    layer_system:                   An instance of smuthi.layers.LayerSystem describing the stratified medium
+    index_specs:                    A dictionary with the entries 'lmax', 'mmax' and 'index arrangement'
+    """
+    omega = coord.angular_frequency(vacuum_wavelength)
+
+    # indices
+    blocksize = idx.block_size(index_specs=index_specs)
+    particle_number = particle_collection.particle_number()
+    lmax = index_specs['lmax']
+    mmax = index_specs['mmax']
+    if mmax is None:
+        mmax = lmax
+
+    # initialize result
+    w = np.zeros((particle_number, blocksize, particle_number, blocksize), dtype=complex)
+
+    # check which particles are in same layer
+    particle_layer_indices = [[]] * layer_system.number_of_layers()
+    for i_particle, particle in enumerate(particle_collection.particles):
+        particle_layer_indices[layer_system.layer_number(particle['position'][2])].append(i_particle)
+
+    # direct coupling inside each layer
+    pos_array = np.array(particle_collection.particle_positions())
+    for i_layer in range(layer_system.number_of_layers()):
+
+        k = omega * layer_system.refractive_indices[i_layer]
+
+        # coordinates
+        x = pos_array[particle_layer_indices[i_layer], 0]
+        y = pos_array[particle_layer_indices[i_layer], 1]
+        z = pos_array[particle_layer_indices[i_layer], 2]
+        dx = x[:, np.newaxis] - x[np.newaxis, :]
+        dy = y[:, np.newaxis] - y[np.newaxis, :]
+        dz = z[:, np.newaxis] - z[np.newaxis, :]
+        d = np.sqrt(dx**2 + dy**2 + dz**2)
+        cos_theta = dz / d
+        sin_theta = np.sqrt(dx**2 + dy**2) / d
+        phi = np.arctan2(dy, dx)
+
+        npart_layer = len(x)
+        w_layer = np.zeros((npart_layer, blocksize, npart_layer, blocksize), dtype=complex)
+        # indices: receiv. part., receiv. idx, emit. part., emit. idx
+
+        # spherical functions
+        bessel_h = [sf.spherical_hankel(n, k * d) for n in range(2 * lmax + 1)]
+        legendre, _, _ = sf.legendre_normalized(cos_theta, sin_theta, 2 * lmax)
+
+        for m1 in range(-mmax, mmax + 1):
+            for m2 in range(-mmax, mmax + 1):
+                eimph = np.exp(1j * (m1 - m2) * phi)
+                for l1 in range(max(1, abs(m1)), lmax + 1):
+                    for l2 in range(max(1, abs(m2)), lmax + 1):
+                        A, B = complex(0), complex(0)
+                        for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
+                            a5, b5 = vwf.ab5_coefficients(l1, m1, l2, m2, ld)
+                            A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
+                            B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
+                        A, B = eimph * A, eimph * B
+                        for tau1 in range(2):
+                            n1 = idx.multi2single(tau1, l1, m1, index_specs=index_specs)
+                            for tau2 in range(2):
+                                n2 = idx.multi2single(tau2, l2, m2, index_specs=index_specs)
+                                if n1 == n2:
+                                    w_layer[:, n2, :, n1] = A  # remember that w = A.T
+                                else:
+                                    w_layer[:, n2, :, n1] = B
+
+        for i1 in range(npart_layer):
+            for i2 in range(npart_layer):
+                if not i1 == i2:
+                    s1 = particle_layer_indices[i_layer][i1]
+                    s2 = particle_layer_indices[i_layer][i2]
+                    w[s1, :, s2, :] = w_layer[i1, :, i2, :]
+
+    w = np.reshape(w, (particle_number * blocksize, particle_number * blocksize))
+    return w

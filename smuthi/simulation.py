@@ -62,13 +62,19 @@ class Simulation:
                                     self.layer_system, self.linear_system.swe_specs)
         sys.stdout.write("done. \n")
 
-        # compute particle coupling matrix
-        sys.stdout.write("Compute particle coupling matrix ... ")
+        # compute particle coupling matrices
+        sys.stdout.write("Compute direct particle coupling matrix ... ")
         sys.stdout.flush()
-        self.linear_system.coupling_matrix = \
-            coup.layer_mediated_coupling_matrix(self.initial_field_collection.vacuum_wavelength,
-                                                self.particle_collection, self.layer_system,
-                                                self.linear_system.swe_specs, self.wr_neff_contour)
+        self.linear_system.coupling_matrix = coup.direct_coupling_matrix(
+            self.initial_field_collection.vacuum_wavelength, self.particle_collection, self.layer_system,
+            self.linear_system.swe_specs)
+        sys.stdout.write("done. \n")
+
+        sys.stdout.write("Compute layer system mediated particle coupling matrix ... ")
+        sys.stdout.flush()
+        self.linear_system.coupling_matrix += coup.layer_mediated_coupling_matrix(
+            self.initial_field_collection.vacuum_wavelength, self.particle_collection, self.layer_system,
+            self.linear_system.swe_specs, self.wr_neff_contour)
         sys.stdout.write("done. \n")
 
         # solve linear system
