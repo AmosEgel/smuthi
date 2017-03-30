@@ -70,7 +70,7 @@ def spherical_bessel(n, x):
     """
     sphj = scipy.special.sph_jn
     if hasattr(x, "__iter__"):
-        j_n = np.array([sphj(n, v)[0][n] for v in x])
+        j_n = np.array([spherical_bessel(n, v) for v in x])
     else:
         j_n = sphj(n, x)[0][n]
     return j_n
@@ -86,7 +86,7 @@ def spherical_hankel(n, x):
     sphj = scipy.special.sph_jn
     sphy = scipy.special.sph_yn
     if hasattr(x, "__iter__"):
-        h_n = np.array([(sphj(n, v)[0][n] + 1j * sphy(n, v)[0][n]) for v in x])
+        h_n = np.array([spherical_hankel(n, v) for v in x])
     else:
         h_n = sphj(n, x)[0][n] + 1j * sphy(n, x)[0][n]
     return h_n

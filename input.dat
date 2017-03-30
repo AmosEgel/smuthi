@@ -1,8 +1,10 @@
 # -----------------------------------------------
+length unit: nm
+# -----------------------------------------------
 vacuum wavelength: 550
 # -----------------------------------------------
 scattering particles:
-- shape: "sphere"
+- shape: sphere
   radius: 100
   refractive index: 2.4
   extinction coefficient: 0.1
@@ -19,11 +21,11 @@ layer system:
   extinction coefficients: [0, 0.01, 3]
 # -----------------------------------------------
 initial field:
-- type: "plane wave"
-  angle units: "degree"
+- type: plane wave
+  angle units: degree
   polar angle: 180
   azimuthal angle: 0
-  polarization: "TE"
+  polarization: TE
   amplitude: 1
   reference point: [0, 0, 0]
 # -----------------------------------------------
@@ -36,4 +38,4 @@ neff waypoints: [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
 neff discretization: 1e-3
 # -----------------------------------------------
 post processing:
-- task: "plot 2D far-field distribution"
+- task: plot 2D far-field distribution

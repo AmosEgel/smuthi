@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import smuthi
+import sympy.physics.wigner
+import sympy
+import smuthi.spherical_functions as sf
 
 
 def plane_vector_wave_function(x, y, z, kp, alpha, kz, pol):
@@ -92,18 +94,18 @@ def spherical_vector_wave_function(x, y, z, k, nu, tau, l, m):
 
     cos_thet = np.cos(theta)
     sin_thet = np.sin(theta)
-    plm_list, pilm_list, taulm_list = smuthi.spherical_functions.legendre_normalized(cos_thet, sin_thet, l)
+    plm_list, pilm_list, taulm_list = sf.legendre_normalized(cos_thet, sin_thet, l)
     plm = plm_list[l][abs(m)]
     pilm = pilm_list[l][abs(m)]
     taulm = taulm_list[l][abs(m)]
 
     kr = k * r
     if nu == 1:
-        bes = smuthi.spherical_functions.spherical_bessel(l, kr)
-        dxxz = smuthi.spherical_functions.dx_xj(l, kr)
+        bes = sf.spherical_bessel(l, kr)
+        dxxz = sf.dx_xj(l, kr)
     elif nu == 3:
-        bes = smuthi.spherical_functions.spherical_hankel(l, kr)
-        dxxz = smuthi.spherical_functions.dx_xh(l, kr)
+        bes = sf.spherical_hankel(l, kr)
+        dxxz = sf.dx_xh(l, kr)
     else:
         raise ValueError('nu must be 1 (regular SVWF) or 3 (outgoing SVWF)')
 
@@ -146,7 +148,7 @@ def transformation_coefficients_VWF(tau, l, m, pol, kp=None, kz=None, pilm_list=
         k = np.sqrt(kp**2 + kz**2)
         ct = kz / k
         st = kp / k
-        plm_list, pilm_list, taulm_list = smuthi.spherical_functions.legendre_normalized(ct, st, l)
+        plm_list, pilm_list, taulm_list = sf.legendre_normalized(ct, st, l)
 
     if tau == pol:
         sphfun = taulm_list[l][abs(m)]
@@ -171,3 +173,72 @@ def transformation_coefficients_VWF(tau, l, m, pol, kp=None, kz=None, pilm_list=
     B = prefac * sphfun
 
     return B
+
+
+def translation_coefficients_svwf(l1, m1, l2, m2, k, d, sph_hankel=None, legendre=None, exp_immphi=None):
+    """Return the coefficients of the translation operator for the expansion of an outgoing spherical wave in therms of
+    regular spherical waves with respect to a different origin.
+    The output is a tuple (A,B), where the translation operator
+        trans = \delta_pp' * A + (1-\delta_pp') * B
+
+    Input:
+    l1          integaer: l=1,...: Original wave's SVWF multipole degree
+    m1          integaer: m=-l,...,l: Original wave's SVWF multipole order
+    l2          integaer: l=1,...: Partial wave's SVWF multipole degree
+    m2          integaer: m=-l,...,l: Partial wave's SVWF multipole order
+    k           complex: wavenumber (inverse length unit)
+    d           translation vectors in format [dx, dy, dz] (length unit)
+                dx, dy, dz can be scalars or ndarrays
+    sph_hankel  list: sph_hankel[i] contains the spherical hankel funciton of degree i, evaluated at k*d where d is the
+                norm of the distance vector(s)
+    legendre    list of lists: legendre[l][m] contains the legendre function of order l and degree m, evaluated at
+                cos(theta) where theta is the polar angle(s) of the distance vector(s)
+    """
+    # spherical coordinates of d:
+    dd = np.sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2)
+
+    if exp_immphi is None:
+        phid = np.arctan2(d[1], d[0])
+        eimph = np.exp(1j * (m1 - m2) * phid)
+    else:
+        eimph = exp_immphi[m1][m2]
+
+    if sph_hankel is None:
+        sph_hankel = [sf.spherical_hankel(n, k * dd) for n in range(l1 + l2 + 1)]
+
+    if legendre is None:
+        costthetd = d[2] / dd
+        sinthetd = np.sqrt(d[0] ** 2 + d[1] ** 2) / dd
+        legendre, _, _ = sf.legendre_normalized(costthetd, sinthetd, l1 + l2)
+
+    A, B = complex(0), complex(0)
+    for ld in range(abs(l1 - l2), l1 + l2 + 1):
+        a5, b5 = ab5_coefficients(l1, m1, l2, m2, ld)
+        A += a5 * sph_hankel[ld] * legendre[ld][abs(m1 - m2)]
+        B += b5 * sph_hankel[ld] * legendre[ld][abs(m1 - m2)]
+    A, B = eimph * A, eimph * B
+    return A, B
+
+
+def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
+    """Return a tuple (a5, b5) where a5 and b5 are the coefficients used in the evaluation of the SVWF translation
+    operator. The computation is based on the sympy.physics.wigner package and is performed with symbolic numbers.
+    If symbolic=True is specified as input argument, symbolic numbers are returned. Otherwise, complex (default).
+    """
+    jfac = sympy.I ** (abs(m1 - m2) - abs(m1) - abs(m2) + l2 - l1 + p) * (-1) ** (m1 - m2)
+    fac1 = sympy.sqrt((2 * l1 + 1) * (2 * l2 + 1) / sympy.S(2 * l1 * (l1 + 1) * l2 * (l2 + 1)))
+    fac2a = (l1 * (l1 + 1) + l2 * (l2 + 1) - p * (p + 1)) * sympy.sqrt(2 * p + 1)
+    fac2b = sympy.sqrt((l1 + l2 + 1 + p) * (l1 + l2 + 1 - p) * (p + l1 - l2) * (p - l1 + l2) * (2 * p + 1))
+    wig1 = sympy.physics.wigner.wigner_3j(l1, l2, p, m1, -m2, -(m1 - m2))
+    wig2a = sympy.physics.wigner.wigner_3j(l1, l2, p, 0, 0, 0)
+    wig2b = sympy.physics.wigner.wigner_3j(l1, l2, p - 1, 0, 0, 0)
+
+    if symbolic:
+        a = jfac * fac1 * fac2a * wig1 * wig2a
+        b = jfac * fac1 * fac2b * wig1 * wig2b
+    else:
+        a = complex(jfac * fac1 * fac2a * wig1 * wig2a)
+        b = complex(jfac * fac1 * fac2b * wig1 * wig2b)
+    return a, b
+
+
