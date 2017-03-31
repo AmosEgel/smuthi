@@ -15,15 +15,31 @@ def read_input_yaml(filename):
 
     simulation.initial_field_collection.vacuum_wavelength = float(input_data['vacuum wavelength'])
 
-    for prtcl in input_data['scattering particles']:
-        if prtcl['shape'] == 'sphere':
-            r = float(prtcl['radius'])
-            n = (float(prtcl['refractive index']) + 1j * float(prtcl['extinction coefficient']))
-            pos = [float(prtcl['position'][0]), float(prtcl['position'][1]), float(prtcl['position'][2])]
-            simulation.particle_collection.add_sphere(radius=r, refractive_index=n, position=pos)
+    # particle collection
+    particle_input = input_data['scattering particles']
+    if isinstance(particle_input, str):
+        with open(particle_input, 'r') as f:
+            first_line = f.readline()
+        if first_line[0:-1] == '# spheres':
+            particle_data = np.loadtxt(particle_input, skiprows=2)
+            for prtcl in particle_data:
+                r = prtcl[3]
+                n = prtcl[4] + 1j * prtcl[5]
+                pos = prtcl[:3]
+                simulation.particle_collection.add_sphere(radius=r, refractive_index=n, position=pos)
         else:
             raise ValueError('Currently, only spheres are implemented')
+    else:
+        for prtcl in input_data['scattering particles']:
+            if prtcl['shape'] == 'sphere':
+                r = float(prtcl['radius'])
+                n = (float(prtcl['refractive index']) + 1j * float(prtcl['extinction coefficient']))
+                pos = [float(prtcl['position'][0]), float(prtcl['position'][1]), float(prtcl['position'][2])]
+                simulation.particle_collection.add_sphere(radius=r, refractive_index=n, position=pos)
+            else:
+                raise ValueError('Currently, only spheres are implemented')
 
+    # layer system
     thick = [float(d) for d in input_data['layer system'][0]['thicknesses']]
     ref_ind = [float(n) for n in input_data['layer system'][0]['refractive indices']]
     ext_coeff = [float(n) for n in input_data['layer system'][0]['extinction coefficients']]
@@ -31,6 +47,7 @@ def read_input_yaml(filename):
     ref_ind = ref_ind.tolist()
     simulation.layer_system.__init__(thicknesses=thick, refractive_indices=ref_ind)
 
+    # initial field
     for infld in input_data['initial field']:
         if infld['type'] == 'plane wave':
             a = float(infld['amplitude'])
@@ -51,16 +68,18 @@ def read_input_yaml(filename):
             simulation.initial_field_collection.add_planewave(amplitude=a, polar_angle=pol_ang, reference_point=ref,
                                                               azimuthal_angle=az_ang, polarization=pol)
 
+    # linear system
     lmax = int(input_data['lmax'])
-    mmax = int(input_data['mmax'])
+    mmax = int(input_data.get('mmax'))
     simulation.linear_system.swe_specs = idx.swe_specifications(lmax, mmax)
 
+    # contour
     neff_waypoints = [complex(nf) for nf in input_data['neff waypoints']]
     neff_discretization = float(input_data['neff discretization'])
     simulation.wr_neff_contour = coord.ComplexContour(neff_waypoints=neff_waypoints,
                                                       neff_discretization=neff_discretization)
 
-    simulation.post_processing = pp.PostProcessing()
+    # post processing
     for item in input_data['post processing']:
         if item['task'] == 'plot 2D far-field distribution':
             simulation.post_processing.tasks.append(item)
