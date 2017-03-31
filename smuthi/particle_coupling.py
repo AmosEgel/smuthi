@@ -9,7 +9,10 @@ import smuthi.layers as lay
 import smuthi.vector_wave_functions as vwf
 import smuthi.spherical_functions as sf
 import matplotlib.pyplot as plt
+import warnings
 
+
+layerresponse_lookup = {'args': {}, 'data': None}
 
 def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position, emitting_particle_position,
                                   layer_system, index_specs, neff_contour, layerresponse_precision=None,
@@ -38,6 +41,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
         mmax = lmax
     index_arrangement = index_specs['index arrangement']
     blocksize = idx.block_size(lmax=lmax, mmax=mmax, index_arrangement=index_arrangement)
+    laynum = layer_system.number_of_layers()
 
     # cylindrical coordinates of relative position vectors
     rs1 = np.array(receiving_particle_position)
@@ -67,11 +71,8 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
     ejkz[1, 1, :] = np.exp(- 1j * kzis2 * ziss2)
 
     # layer response
-    L = np.zeros((2, 2, 2, len(neff)), dtype=complex)  # indices are: polarization, pl/mn1, pl/mn2, kpar_idx
-    for pol in range(2):
-        L[pol, :, :, :] = lay.layersystem_response_matrix(pol, layer_system.thicknesses,
-                                                          layer_system.refractive_indices, kpar, omega, is2, is1,
-                                                          layerresponse_precision)
+    L = evaluate_layerresponse_lookup(layer_system.thicknesses, layer_system.refractive_indices, kpar, omega, is2, is1,
+                                      layerresponse_precision)  # indices are: polarization, pl/mn1, pl/mn2, kpar_idx
 
     # transformation coefficients
     B = np.zeros((2, 2, 2, blocksize, len(neff)), dtype=complex)  # indices are: particle, pol, plus/minus, n, kpar_idx
@@ -123,6 +124,42 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
         plt.show()
 
     return wr
+
+
+def evaluate_layerresponse_lookup(thicknesses, refractive_indices, kpar, omega, fromlayer, tolayer,
+                                  layerresponse_precision):
+
+    global layerresponse_lookup
+    L_args = {'thicknesses': thicknesses, 'refractive indices': refractive_indices, 'kpar': kpar, 'omega': omega,
+              'precicion': layerresponse_precision}
+    laynum = len(thicknesses)
+
+    # check for argument equality:
+    equal_args = (L_args.get('thicknesses') == layerresponse_lookup['args'].get('thicknesses')
+                  and L_args.get('refractive indices') == layerresponse_lookup['args'].get('refractive indices')
+                  and np.all(L_args.get('kpar') == layerresponse_lookup['args'].get('kpar'))
+                  and L_args.get('omega') == layerresponse_lookup['args'].get('omega')
+                  and L_args.get('precision') == layerresponse_lookup['args'].get('precision'))
+
+    if equal_args:
+        if layerresponse_lookup['data'][fromlayer][tolayer] is not None:
+            L = layerresponse_lookup['data'][fromlayer][tolayer]
+        else:
+            L = np.zeros((2, 2, 2, len(kpar)), dtype=complex)  # indices are: polarization, pl/mn1, pl/mn2, kpar_idx
+            for pol in range(2):
+                L[pol, :, :, :] = lay.layersystem_response_matrix(pol, thicknesses, refractive_indices, kpar, omega,
+                                                                  fromlayer, tolayer, layerresponse_precision)
+            layerresponse_lookup['data'][fromlayer][tolayer] = L
+    else:
+        layerresponse_lookup['args'] = L_args
+        layerresponse_lookup['data'] = [[None] * laynum] * laynum
+        L = np.zeros((2, 2, 2, len(kpar)), dtype=complex)  # indices are: polarization, pl/mn1, pl/mn2, kpar_idx
+        for pol in range(2):
+            L[pol, :, :, :] = lay.layersystem_response_matrix(pol, thicknesses, refractive_indices, kpar, omega,
+                                                              fromlayer, tolayer, layerresponse_precision)
+        layerresponse_lookup['data'][fromlayer][tolayer] = L
+
+    return L
 
 
 def layer_mediated_coupling_matrix(vacuum_wavelength, particle_collection, layer_system, index_specs, neff_contour,
@@ -209,8 +246,10 @@ def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system,
         dy = y[:, np.newaxis] - y[np.newaxis, :]
         dz = z[:, np.newaxis] - z[np.newaxis, :]
         d = np.sqrt(dx**2 + dy**2 + dz**2)
-        cos_theta = dz / d
-        sin_theta = np.sqrt(dx**2 + dy**2) / d
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="invalid value encountered in true_divide")
+            cos_theta = dz / d
+            sin_theta = np.sqrt(dx**2 + dy**2) / d
         phi = np.arctan2(dy, dx)
 
         npart_layer = len(x)
@@ -218,7 +257,9 @@ def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system,
         # indices: receiv. part., receiv. idx, emit. part., emit. idx
 
         # spherical functions
-        bessel_h = [sf.spherical_hankel(n, k * d) for n in range(2 * lmax + 1)]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Casting complex values to real discards the imaginary part")
+            bessel_h = [sf.spherical_hankel(n, k * d) for n in range(2 * lmax + 1)]
         legendre, _, _ = sf.legendre_normalized(cos_theta, sin_theta, 2 * lmax)
 
         for m1 in range(-mmax, mmax + 1):
