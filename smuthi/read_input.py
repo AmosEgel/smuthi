@@ -14,6 +14,7 @@ def read_input_yaml(filename):
     simulation = smuthi.simulation.Simulation()
 
     simulation.initial_field_collection.vacuum_wavelength = float(input_data['vacuum wavelength'])
+    simulation.length_unit = input_data.get('length unit')
 
     # particle collection
     particle_input = input_data['scattering particles']
@@ -81,7 +82,7 @@ def read_input_yaml(filename):
 
     # post processing
     for item in input_data['post processing']:
-        if item['task'] == 'plot 2D far-field distribution':
+        if item['task'] == 'evaluate cross sections':
             simulation.post_processing.tasks.append(item)
 
     return simulation

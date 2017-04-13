@@ -3,3 +3,5 @@ data/
 *__pycache__*
 SMUTHI.egg*
 snippets/
+dist/
+scripts/*.dat

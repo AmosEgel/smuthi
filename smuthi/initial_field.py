@@ -53,6 +53,7 @@ class InitialFieldCollection:
                                 'azimuthal angle': azimuthal_angle, 'polarization': polarization,
                                 'reference point': reference_point})
 
+
 def initial_field_swe_coefficients(initial_field_collection, particle_collection, layer_system, index_specs,
                                    layerresponse_precision=None):
     """Return the spherical wave expansion of all particles specified in a smuthi.particles.ParticleCollection

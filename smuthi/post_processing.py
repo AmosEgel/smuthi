@@ -12,31 +12,113 @@ class PostProcessing:
         self.tasks = []
 
     def run(self, simulation):
-        vacuum_wavelength = simulation.initial_field_collection.vacuum_wavelength
         particle_collection = simulation.particle_collection
         linear_system = simulation.linear_system
         layer_system = simulation.layer_system
         for item in self.tasks:
-            if item['task'] == 'plot 2D far-field distribution':
+            if item['task'] == 'evaluate cross sections':
                 polar_angles = item.get('polar angles')
                 azimuthal_angles = item.get('azimuthal angles')
                 layerresponse_precision = item.get('layerresponse precision')
-                show_scattered_far_field(polar_angles=polar_angles, vacuum_wavelength=vacuum_wavelength,
-                                         azimuthal_angles=azimuthal_angles, particle_collection=particle_collection,
-                                         linear_system=linear_system, layer_system=layer_system,
-                                         layerresponse_precision=layerresponse_precision)
+                filename_forward = item.get('filename forward')
+                filename_backward = item.get('filename backward')
+                differential_scattering_cross_section(polar_angles=polar_angles,
+                                                      initial_field_collection=simulation.initial_field_collection,
+                                                      azimuthal_angles=azimuthal_angles,
+                                                      particle_collection=particle_collection,
+                                                      linear_system=linear_system, layer_system=layer_system,
+                                                      layerresponse_precision=layerresponse_precision,
+                                                      filename_forward=filename_forward,
+                                                      filename_backward=filename_backward,
+                                                      length_unit=simulation.length_unit)
 
 
-def show_scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_angles=None,
-                             particle_collection=None, linear_system=None, layer_system=None, layerresponse_precision=None):
-    """Plot the far field intensity.
+def differential_scattering_cross_section(polar_angles=None, initial_field_collection=None, azimuthal_angles=None,
+                                          particle_collection=None, linear_system=None, layer_system=None,
+                                          layerresponse_precision=None, filename_forward=None, filename_backward=None,
+                                          length_unit=None):
+    """Evaluate and display the differential scattering cross section as a function of solid angle.
 
-    polar_angles:           (float) array of polar angles (radian), default: from 1 to 180 degree in steps of 1
-    vacuum_wavelength:      (float, length unit)
-    azimuthal_angles:       (float) array of azimuthal angles (radian), default: from 1 to 360 degree in steps of 1
-    particle_collection:    smuthi.particles.ParticleCollection object
-    linear_system:          smuthi.linear_system.LinearSystem object
-    layer_system:           smuthi.layers.LayerSystem object
+    polar_angles:               (float) array of polar angles (radian), default: from 1 to 180 degree in steps of 1
+    initial_field_collection:   smuthi.initial_field.InitialFieldCollection object
+    azimuthal_angles:           (float) array of azimuthal angles (radian), default: from 1 to 360 degree in steps of 1
+    particle_collection:        smuthi.particles.ParticleCollection object
+    linear_system:              smuthi.linear_system.LinearSystem object
+    layer_system:               smuthi.layers.LayerSystem object
+    layerresponse_precision:    If None, standard numpy is used for the layer response. If int>0, that many decimal
+                                digits are considered in multiple precision. (default=None)
+    """
+    if len(initial_field_collection.specs_list) > 1 or not initial_field_collection.specs_list[0]['type'] == 'plane wave':
+        raise ValueError('Cross section only defined for single plane wave excitation.')
+
+    if initial_field_collection.specs_list[0]['polar angle'] < np.pi / 2:
+        n_inc = layer_system.refractive_indices[0]
+    else:
+        n_inc = layer_system.refractive_indices[-1]
+    if n_inc.imag:
+        raise ValueError('plane wave from absorbing layer: cross section undefined')
+    else:
+        n_inc = n_inc.real
+
+    if polar_angles is None:
+        polar_angles = np.concatenate([np.arange(0, 90, 1, dtype=float), np.arange(91, 181, 1, dtype=float)]) * np.pi / 180
+    if azimuthal_angles is None:
+        azimuthal_angles = np.arange(0, 361, 1, dtype=float) * np.pi / 180
+
+    vacuum_wavelength = initial_field_collection.vacuum_wavelength
+    dsc = scattered_far_field(polar_angles, vacuum_wavelength, azimuthal_angles, particle_collection, linear_system,
+                              layer_system, layerresponse_precision) * n_inc / 2
+
+    top_idcs = polar_angles <= (np.pi / 2)
+    bottom_idcs = polar_angles > (np.pi / 2)
+
+    # forward
+    alpha_grid, beta_grid = np.meshgrid(azimuthal_angles, polar_angles[top_idcs].real * 180 / np.pi)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, polar=True)
+    ax.pcolormesh(alpha_grid, beta_grid, dsc[0, top_idcs, :] + dsc[1, top_idcs, :])
+    plt.title('forward far field (differential cross section in ' + length_unit + '^2)')
+    if filename_forward is not None:
+        fig.savefig(filename_forward)
+
+    # backward
+    alpha_grid, beta_grid = np.meshgrid(azimuthal_angles, polar_angles[bottom_idcs].real * 180 / np.pi)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, polar=True)
+    ax.pcolormesh(alpha_grid, 180 - beta_grid, dsc[0, bottom_idcs, :] + dsc[1, bottom_idcs, :])
+    plt.title('backward far field (differential cross section in ' + length_unit + '^2)')
+    if filename_backward is not None:
+        fig.savefig(filename_backward)
+
+    # averaged
+    polar_dsc = np.trapz(dsc, azimuthal_angles[None, None, :]) * np.sin(polar_angles[None, :])
+    plt.figure()
+    plt.plot(polar_angles * 180 / np.pi, polar_dsc[0, :] + polar_dsc[1, :])
+    plt.plot(polar_angles * 180 / np.pi, polar_dsc[0, :])
+    plt.plot(polar_angles * 180 / np.pi, polar_dsc[1, :])
+    plt.title('polar differential cross section')
+    plt.xlabel('polar angle (deg)')
+    plt.ylabel('polar differential cross section (' + length_unit + '^2)')
+
+    # total
+    total_cs = np.trapz(polar_dsc, polar_angles[None, :])
+    # print(total_cs[0] + total_cs[1])
+
+    return azimuthal_angles, polar_angles, dsc
+
+
+def show_scattered_far_field(polar_angles=None, initial_field_collection=None, azimuthal_angles=None,
+                             particle_collection=None, linear_system=None, layer_system=None,
+                             layerresponse_precision=None, filename_forward=None, filename_backward=None,
+                             length_unit=None):
+    """Plot the far field intensity. For plane waves as initial field, it is displayed as a differential cross section.
+
+    polar_angles:               (float) array of polar angles (radian), default: from 1 to 180 degree in steps of 1
+    initial_field_collection:   smuthi.initial_field.InitialFieldCollection object
+    azimuthal_angles:           (float) array of azimuthal angles (radian), default: from 1 to 360 degree in steps of 1
+    particle_collection:        smuthi.particles.ParticleCollection object
+    linear_system:              smuthi.linear_system.LinearSystem object
+    layer_system:               smuthi.layers.LayerSystem object
     layerresponse_precision:    If None, standard numpy is used for the layer response. If int>0, that many decimal
                                 digits are considered in multiple precision. (default=None)
     """
@@ -45,21 +127,41 @@ def show_scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimutha
     if azimuthal_angles is None:
         azimuthal_angles = np.arange(0, 361, 1, dtype=float) * np.pi / 180
 
+    vacuum_wavelength = initial_field_collection.vacuum_wavelength
     far_field = scattered_far_field(polar_angles, vacuum_wavelength, azimuthal_angles, particle_collection,
                                     linear_system, layer_system, layerresponse_precision)
 
     top_idcs = polar_angles <= (np.pi / 2)
     bottom_idcs = polar_angles > (np.pi / 2)
 
-    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-    ax.contourf(azimuthal_angles, polar_angles[top_idcs].real * 180 / np.pi,
-                far_field[0, top_idcs, :] + far_field[1, top_idcs, :])
-    plt.title('forward far field')
+    if len(initial_field_collection.specs_list) == 1:
+        initial_field_specs = initial_field_collection.specs_list[0]
+        if initial_field_specs['type'] == 'plane wave':  # in that case, differential cross section
+            if initial_field_specs['polar angle'] < np.pi / 2:
+                n_inc = layer_system.refractive_indices[0]
+            else:
+                n_inc = layer_system.refractive_indices[-1]
 
-    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-    ax.contourf(azimuthal_angles, (np.pi-polar_angles[bottom_idcs]).real * 180 / np.pi,
-                far_field[0, bottom_idcs, :] + far_field[1, bottom_idcs, :])
-    plt.title('backward far field')
+        # forward
+        alpha_grid, beta_grid = np.meshgrid(azimuthal_angles, polar_angles[top_idcs].real * 180 / np.pi)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, polar=True)
+        ax.pcolormesh(alpha_grid, beta_grid, (far_field[0, top_idcs, :] + far_field[1, top_idcs, :]) * n_inc / 2)
+        plt.title('forward far field (differential cross section in ' + length_unit + '^2)')
+        if filename_forward is not None:
+            fig.savefig(filename_forward)
+
+        # backward
+        alpha_grid, beta_grid = np.meshgrid(azimuthal_angles, polar_angles[bottom_idcs].real * 180 / np.pi)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, polar=True)
+        ax.pcolormesh(alpha_grid, 180 - beta_grid,
+                      (far_field[0, bottom_idcs, :] + far_field[1, bottom_idcs, :]) * n_inc / 2)
+        plt.title('backward far field (differential cross section in ' + length_unit + '^2)')
+        if filename_backward is not None:
+            fig.savefig(filename_backward)
 
 
 def scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_angles=None,
@@ -94,8 +196,6 @@ def scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_ang
     neff_top = np.sin(polar_angles[top_idcs]) * layer_system.refractive_indices[i_top]
     neff_bottom = np.sin(polar_angles[bottom_idcs]) * layer_system.refractive_indices[0]
 
-
-
     top_pwp_rs = plane_wave_pattern_rs(n_effective=neff_top, azimuthal_angles=azimuthal_angles,
                                        vacuum_wavelength=vacuum_wavelength, particle_collection=particle_collection,
                                        linear_system=linear_system, layer_system=layer_system, layer_numbers=[i_top],
@@ -117,7 +217,6 @@ def scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_ang
     pwp = np.concatenate([top_pwp_rs[0][:, 0, :, :] + top_pwp_s[0][:, 0, :, :],
                           bottom_pwp_rs[0][:, 1, :, :] + bottom_pwp_s[0][:, 1, :, :]], axis=1)
 
-
     k_top = omega * layer_system.refractive_indices[i_top]
     k_0 = omega * layer_system.refractive_indices[0]
     kkz2_top = coord.k_z(n_effective=neff_top, omega=omega, k=k_top) ** 2 * k_top
@@ -125,15 +224,12 @@ def scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_ang
     kkz2 = np.concatenate([kkz2_top, kkz2_bottom])
 
     far_field = (2 * np.pi ** 2 / omega * kkz2[np.newaxis, :, np.newaxis] * abs(pwp) ** 2).real
-
     return far_field
 
 
-
-
 def plane_wave_pattern_rs(n_effective=None, azimuthal_angles=None, vacuum_wavelength=None,
-                           particle_collection=None, linear_system=None, layer_system=None, layer_numbers=None,
-                           layerresponse_precision=None):
+                          particle_collection=None, linear_system=None, layer_system=None, layer_numbers=None,
+                          layerresponse_precision=None):
     """Layer system response plane wave pattern of the scattered field.
     Return a list of plane wave patterns as ndarrays of shape 2 x 2 x nk x na where nk =len(n_effective) and
     na = len(azimuthal_angles).
@@ -188,7 +284,7 @@ def plane_wave_pattern_rs(n_effective=None, azimuthal_angles=None, vacuum_wavele
         kziS[i] = coord.k_z(k_parallel=kpar, k=kiS[i])
         ziS[i] = layer_system.reference_z(i)
         # transformation coefficients
-        B[i] = np.zeros((2, 2, blocksize, len(n_effective)), dtype=complex)  # indices are: pol, plus/minus, n, kpar_idx
+        B[i] = np.zeros((2, 2, blocksize, len(n_effective)), dtype=complex)  # indices: pol, plus/minus, n, kpar_idx
 
         for tau in range(2):
             for m in range(-mmax, mmax + 1):
@@ -315,14 +411,13 @@ def plane_wave_pattern_s(n_effective=None, azimuthal_angles=None, vacuum_wavelen
                 emnikplrs_grid = np.exp(-1j * (kx_grid * pos[0] + ky_grid * pos[1] + kziS[:, np.newaxis] * pos[2]))
                 emnikmnrs_grid = np.exp(-1j * (kx_grid * pos[0] + ky_grid * pos[1] - kziS[:, np.newaxis] * pos[2]))
                 eirks = np.concatenate([emnikplrs_grid[np.newaxis, np.newaxis, :, :],
-                                        emnikmnrs_grid[np.newaxis, np.newaxis, :, :]], axis=1)
-                # idcs: kp, al
+                                        emnikmnrs_grid[np.newaxis, np.newaxis, :, :]], axis=1)  # idcs: kp, al
 
                 fac1 = 1 / (2 * np.pi * kziS * kiS)                          # index: kpar_idx
 
-                b = linear_system.scattered_field_coefficients[iprt, :] # index: n
+                b = linear_system.scattered_field_coefficients[iprt, :]     # index: n
 
-                bB = b[np.newaxis, np.newaxis, :, np.newaxis] * B # idcs: pol, pl/mn, n, kp
+                bB = b[np.newaxis, np.newaxis, :, np.newaxis] * B       # idcs: pol, pl/mn, n, kp
 
                 pwp = fac1[np.newaxis, np.newaxis, :, np.newaxis] * eirks * np.tensordot(bB, eima, axes=[2, 0])
                 pwp_list[iidx] += pwp

@@ -10,6 +10,7 @@ import smuthi.index_conversion as idx
 import smuthi.t_matrix as tmt
 import smuthi.particle_coupling as coup
 import smuthi.coordinates as coord
+import smuthi.post_processing as pp
 
 
 # Parameter input ----------------------------
@@ -26,6 +27,9 @@ plane_wave_amplitude = 1
 lmax = 3
 neff_waypoints = [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
 neff_discr = 1e-3
+farfield_neff_waypoints = [0, 1]
+farfield_neff_discr = 1e-2
+
 # --------------------------------------------
 
 index_specs = idx.swe_specifications(lmax)
@@ -43,7 +47,7 @@ init_fld.add_planewave(amplitude=plane_wave_amplitude, polar_angle=plane_wave_po
                        azimuthal_angle=plane_wave_azimuthal_angle, polarization=plane_wave_polarization)
 
 # initialize equation object
-lin_sys = lin.LinearSystem(vacuum_wavelength, lmax)
+lin_sys = lin.LinearSystem(lmax)
 
 # compute initial field coefficients
 lin_sys.initial_field_coefficients = init.initial_field_swe_coefficients(init_fld, part_col, lay_sys, index_specs)
@@ -59,10 +63,33 @@ lin_sys.coupling_matrix = coup.layer_mediated_coupling_matrix(vacuum_wavelength,
 # solve linear system
 lin_sys.solve()
 
+"""
+nef = np.array([0])
+al = np.array([0])
+grs = pp.plane_wave_pattern_rs(n_effective=nef, azimuthal_angles=al, vacuum_wavelength=vacuum_wavelength,
+                           particle_collection=part_col, linear_system=lin_sys, layer_system=lay_sys,
+                           layer_numbers=[1], layerresponse_precision=None)
+
+gs = pp.plane_wave_pattern_s(n_effective=nef, azimuthal_angles=al, vacuum_wavelength=vacuum_wavelength,
+                           particle_collection=part_col, linear_system=lin_sys, layer_system=lay_sys,
+                           layer_numbers=[1])
+
+
+# plane wave patterns in both layers
+
+alpha = np.arange(0, 361, 1) * np.pi/180
+beta = np.arange(0, 181, 1) * np.pi/180
+
+pp.show_scattered_far_field(azimuthal_angles=alpha, polar_angles=beta, vacuum_wavelength=vacuum_wavelength,
+                            particle_collection=part_col, linear_system=lin_sys, layer_system=lay_sys)
+"""
+
 def test_versus_prototype():
     b0 = -0.2586209 + 0.8111274j
-    assert abs((lin_sys.scattered_field_coefficients[0] - b0) / b0) < 1e-4
+    assert abs((lin_sys.scattered_field_coefficients[0, 0] - b0) / b0) < 1e-4
     b10 = -1.5103858e-04 - 4.1782795e-04j
-    assert abs((lin_sys.scattered_field_coefficients[10] - b10) / b10) < 1e-4
+    assert abs((lin_sys.scattered_field_coefficients[0, 10] - b10) / b10) < 1e-4
     b21 = -0.0795316 + 0.0194518j
-    assert abs((lin_sys.scattered_field_coefficients[21] - b21) / b21) < 1e-4
+    assert abs((lin_sys.scattered_field_coefficients[0, 21] - b21) / b21) < 1e-4
+
+
