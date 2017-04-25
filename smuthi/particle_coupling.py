@@ -228,7 +228,7 @@ def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system,
     w = np.zeros((particle_number, blocksize, particle_number, blocksize), dtype=complex)
 
     # check which particles are in same layer
-    particle_layer_indices = [[]] * layer_system.number_of_layers()
+    particle_layer_indices = [[] for x in range(layer_system.number_of_layers())]
     for i_particle, particle in enumerate(particle_collection.particles):
         particle_layer_indices[layer_system.layer_number(particle['position'][2])].append(i_particle)
 
