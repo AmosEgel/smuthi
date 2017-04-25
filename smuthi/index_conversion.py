@@ -1,99 +1,103 @@
 # -*- coding: utf-8 -*-
-"""Functions to map the multiple coefficient indices s,p,l,m to a single index n and vice versa."""
+"""Functions to map the multiple coefficient indices tau,l,m to a single index n and vice versa."""
+
+# the global variable index_order specifies the order of the multipole indices (tau, l, m) of the spherical wave
+# expansion
+# index_order = 'tlm' implies the following map between multi-index and single-index:
+# n | tau, l, m
+# -------------
+# 1 | 1, 1, -1
+# 2 | 1, 1, 0
+# 3 | 1, 1, 1
+# 2 | 1, 2, -2
+# 2 | 1, 2, -1
+# 2 | 1, 2, 0
+# ..| ... ...
+# ..| 1, lmax, lmax
+# ..| 2, 1, -1
+# ..| ... ...
+index_order = 'tlm'
+
+# global variable for lmax
+maximal_multipole_degree = None
+
+# global variable for mmax
+maximal_multipole_order = None
 
 
-def multi2single(tau, l, m, lmax=None, mmax=None, particle_number=0, index_arrangement='stlm', index_specs=None):
+def multi_to_single_index(tau, l, m, **kwargs):
     """Return a unique single index for the totality of indices characterizing a svwf expansion coefficient.
 
     input:
     tau:                SVWF polarization (0=spherical TE, 1=spherical TM)
     l:                  SVWF degree (1, ..., lmax)
     m:                  SVWF order (-l,...,l)
-    lmax:               truncation degree of SVWF expansion
-    mmax:               (optional) truncation order of SVWF expansion, i.e., |m|<=mmax, default: mmax=lmax
-    particle_number:    (optional) number of particle (0,1,2,...), default=0
-    index_arrangement:  (optional) string to specify the order according to which the indices are arranged
+
+    optional key-word input:
+    l_max:              set the global truncation degree of SVWF expansions
+    m_max:              set the global truncation order of SVWF expansions. None means m_max = l_max
+    index_order:  set string to globally specify the order according to which the indices are arranged
                         Possible choices are:
-                        'stlm' (default), which stands for 1. particle number, 2. tau, 3. l, 4. m
+                        'tlm' (default), which stands for 1. tau, 2. l, 3. m
                         (Other choices are not implemented at the moment.)
-    index_specs:        Instead of providing lmax, mmax and index_arrangement separately, they can be handed over
-                        through a dictionary {'lmax': lmax, 'mmax': mmax, 'index arrangement': index_arrangement}
     """
-    if lmax is None:
-        lmax = index_specs['lmax']
-        mmax = index_specs['mmax']
-        index_arrangement = index_specs['index arrangement']
+    global maximal_multipole_degree, maximal_multipole_order, index_order
 
-    if mmax is None:
-        mmax = lmax
+    # set global variables
+    if 'l_max' in kwargs:
+        maximal_multipole_degree = kwargs['l_max']
+    if 'm_max' in kwargs:
+        maximal_multipole_order = kwargs['m_max']
+    if 'index_order' in kwargs:
+        index_order = kwargs['index_order']
 
-    if index_arrangement is None:
-        index_arrangement = 'stlm'
+    l_max = maximal_multipole_degree
+    if maximal_multipole_order is None:
+        m_max = l_max
+    else:
+        m_max = maximal_multipole_order
 
-    if index_arrangement == 'stlm':
+    if index_order == 'tlm':
         # use:
         # \sum_{l=1}^lmax (2\min(l,mmax)+1) = \sum_{l=1}^mmax (2l+1) + \sum_{l=mmax+1}^lmax (2mmax+1)
         #                                   = 2*(1/2*mmax*(mmax+1))+mmax  +  (lmax-mmax)*(2*mmax+1)
         #                                   = mmax*(mmax+2)               +  (lmax-mmax)*(2*mmax+1)
 
-        tau_blocksize = mmax * (mmax + 2) + (lmax - mmax) * (2 * mmax + 1)
-        s_blocksize = 2 * tau_blocksize
-        n = particle_number * s_blocksize
-        n += tau * tau_blocksize
-        if (l - 1) <= mmax:
+        tau_blocksize = m_max * (m_max + 2) + (l_max - m_max) * (2 * m_max + 1)
+        n = tau * tau_blocksize
+        if (l - 1) <= m_max:
             n += (l - 1) * (l - 1 + 2)
         else:
-            n += mmax * (mmax + 2) + (l - 1 - mmax) * (2 * mmax + 1)
-        n += m + min(l, mmax)
+            n += m_max * (m_max + 2) + (l - 1 - m_max) * (2 * m_max + 1)
+        n += m + min(l, m_max)
         return n
 
 
-def max_index(lmax=None, mmax=None, number_of_particles=1, index_arrangement='stlm', index_specs=None):
-    """Return the highest index that occurs which is the number of indices minus 1.
-
-    input:
-    lmax:                truncation degree of SVWF expansion
-    mmax:                (optional) truncation order of SVWF expansion, i.e., |m|<=mmax, default: mmax=lmax
-    number_of_particles: (optional) total number of particles (1,2,...), default=1
-    index_arrangement:   (optional) string to specify the order according to which the indices are arranged
-                         Possible choices are:
-                         'stlm' (default), which stands for 1. particle number, 2. tau, 3. l, 4. m
-                         (Other choices are not implemented at the moment.)
-    index_specs:        Instead of providing lmax, mmax and index_arrangement separately, they can be handed over
-                        through a dictionary {'lmax': lmax, 'mmax': mmax, 'index arrangement': index_arrangement}
-    """
-    if lmax is None:
-        lmax = index_specs['lmax']
-        mmax = index_specs['mmax']
-        index_arrangement = index_specs['index arrangement']
-
-    if mmax is None:
-        mmax = lmax
-
-    return multi2single(tau=1, l=lmax, m=mmax, lmax=lmax, mmax=mmax, particle_number=number_of_particles - 1,
-                        index_arrangement=index_arrangement, index_specs=index_specs)
-
-def block_size(lmax=None, mmax=None, number_of_particles=1, index_arrangement='stlm', index_specs=None):
+def number_of_indices(**kwargs):
     """Return the total number of indices which is the maximal index plus 1.
 
-    input:
-    lmax:                truncation degree of SVWF expansion
-    mmax:                (optional) truncation order of SVWF expansion, i.e., |m|<=mmax, default: mmax=lmax
-    number_of_particles: (optional) total number of particles (1,2,...), default=1
-    index_arrangement:   (optional) string to specify the order according to which the indices are arranged
-                         Possible choices are:
-                         'stlm' (default), which stands for 1. particle number, 2. tau, 3. l, 4. m
-                         (Other choices are not implemented at the moment.)
-    index_specs:        Instead of providing lmax, mmax and index_arrangement separately, they can be handed over
-                        through a dictionary {'lmax': lmax, 'mmax': mmax, 'index arrangement': index_arrangement}
+    optional key-word input:
+    l_max:              set the global truncation degree of SVWF expansions
+    m_max:              set the global truncation order of SVWF expansions. None means m_max = l_max
+    index_order:  set string to globally specify the order according to which the indices are arranged
+                        Possible choices are:
+                        'tlm' (default), which stands for 1. tau, 2. l, 3. m
+                        (Other choices are not implemented at the moment.)
     """
-    return max_index(lmax=lmax, mmax=mmax, number_of_particles=number_of_particles,
-                     index_arrangement=index_arrangement, index_specs=index_specs) + 1
+    global maximal_multipole_degree, maximal_multipole_order, index_order
 
+    # set global variables
+    if 'l_max' in kwargs:
+        maximal_multipole_degree = kwargs['l_max']
+    if 'm_max' in kwargs:
+        maximal_multipole_order = kwargs['m_max']
+    if 'index_order' in kwargs:
+        index_order = kwargs['index_order']
 
-def swe_specifications(lmax, mmax=None, index_arrangement=None):
-    if index_arrangement is None:
-        index_arrangement='stlm'
-    if mmax is None:
-        mmax=lmax
-    return {'lmax': lmax, 'mmax': mmax, 'index arrangement': index_arrangement}
+    l_max = maximal_multipole_degree
+    if maximal_multipole_order is None:
+        m_max = l_max
+    else:
+        m_max = maximal_multipole_order
+
+    return multi_to_single_index(tau=1, l=l_max, m=m_max) + 1

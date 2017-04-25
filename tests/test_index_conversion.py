@@ -1,44 +1,43 @@
 # -*- coding: utf-8 -*-
 """Test the index_conversion module"""
 
-import unittest
 import smuthi.index_conversion
 
 
-class IndexConversionTest(unittest.TestCase):
-    def test_multi2single_stlm(self):
-        idcs = []
-        lmax = 5
-        count = 0
-        for s in range(3):
-            for tau in range(2):
-                for l in range(1, lmax + 1):
-                    for m in range(-l, l + 1):
-                        idcs.append(smuthi.index_conversion.multi2single(particle_number=s, tau=tau, l=l, m=m,
-                                                                         lmax=lmax))
-                        if s == 0:
-                            count += 1
-        self.assertEqual(idcs, list(range(len(idcs))))
-        nmax = smuthi.index_conversion.max_index(lmax)
-        self.assertEqual(count, nmax + 1)
+def test_multi2single_stlm():
+    idcs = []
+    lmax = 5
+    count = 0
 
-        idcs = []
-        lmax = 6
-        mmax = 3
-        count = 0
-        for s in range(3):
-            for tau in range(2):
-                for l in range(1, lmax + 1):
-                    mlim = min(l, mmax)
-                    for m in range(-mlim, mlim + 1):
-                        idcs.append(smuthi.index_conversion.multi2single(particle_number=s, tau=tau, l=l, m=m,
-                                                                         lmax=lmax, mmax=mmax))
-                        if s == 0:
-                            count += 1
-        self.assertEqual(idcs, list(range(len(idcs))))
-        nmax = smuthi.index_conversion.max_index(lmax, mmax=mmax)
-        self.assertEqual(count, nmax + 1)
+    for tau in range(2):
+        for l in range(1, lmax + 1):
+            for m in range(-l, l + 1):
+                idcs.append(smuthi.index_conversion.multi_to_single_index(tau=tau, l=l, m=m, l_max=lmax))
+                count += 1
+
+    assert idcs == list(range(len(idcs)))
+
+    ind_num = smuthi.index_conversion.number_of_indices()
+    assert count == ind_num
+
+    idcs = []
+    lmax = 6
+    mmax = 3
+    count = 0
+    smuthi.index_conversion.maximal_multipole_degree = lmax
+    smuthi.index_conversion.maximal_multipole_order = mmax
+    for tau in range(2):
+        for l in range(1, lmax + 1):
+            mlim = min(l, mmax)
+            for m in range(-mlim, mlim + 1):
+                idcs.append(smuthi.index_conversion.multi_to_single_index(tau=tau, l=l, m=m))
+                count += 1
+
+    assert idcs == list(range(len(idcs)))
+
+    ind_num = smuthi.index_conversion.number_of_indices()
+    assert count == ind_num
 
 
 if __name__ == '__main__':
-    unittest.main()
+    test_multi2single_stlm()
