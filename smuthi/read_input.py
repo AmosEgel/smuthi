@@ -71,8 +71,8 @@ def read_input_yaml(filename):
 
     # linear system
     lmax = int(input_data['lmax'])
-    mmax = int(input_data.get('mmax'))
-    simulation.linear_system.swe_specs = idx.swe_specifications(lmax, mmax)
+    mmax = int(input_data.get('mmax', default=lmax))
+    idx.set_swe_specs(l_max=lmax, m_max=mmax)
 
     # contour
     neff_waypoints = [complex(nf) for nf in input_data['neff waypoints']]

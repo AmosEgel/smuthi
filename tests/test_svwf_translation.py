@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 """Check wether the translation of spherical wave works properly."""
 
-import numpy as np
-import smuthi.linear_system as lin
-import smuthi.particles as part
-import smuthi.layers as lay
 import smuthi.index_conversion as idx
 import smuthi.vector_wave_functions as vwf
 import smuthi.coordinates as coord
@@ -14,6 +10,8 @@ import smuthi.coordinates as coord
 vacuum_wavelength = 550
 surrounding_medium_refractive_index = 1.3
 lmax = 10
+idx.l_max = lmax
+idx.m_max = lmax
 
 rx = 100
 ry = -100
@@ -28,7 +26,6 @@ l = 2
 m = -1
 # --------------------------------------------
 
-index_specs = idx.swe_specifications(lmax)
 k = coord.angular_frequency(vacuum_wavelength) * surrounding_medium_refractive_index
 
 # outgoing wave
@@ -68,3 +65,7 @@ def test_ab5_versus_prototype():
     b5matl = 0.912870929175277j
     assert abs(b5 - b5matl) / abs(b5) < 1e-7
 
+
+if __name__ == '__main__':
+    test_ab5_versus_prototype()
+    test_out_to_reg_expansion()

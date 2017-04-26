@@ -6,6 +6,7 @@ import smuthi.layers as lay
 import smuthi.vector_wave_functions as vwf
 import smuthi.index_conversion as idx
 
+
 class InitialFieldCollection:
     """Collection of initial field parameter sets."""
     def __init__(self, vacuum_wavelength=None):
@@ -54,11 +55,12 @@ class InitialFieldCollection:
                                 'reference point': reference_point})
 
 
-def initial_field_swe_coefficients(initial_field_collection, particle_collection, layer_system, index_specs,
+def initial_field_swe_coefficients(initial_field_collection, particle_collection, layer_system,
                                    layerresponse_precision=None):
-    """Return the spherical wave expansion of all particles specified in a smuthi.particles.ParticleCollection
-    object, for all initial field elements"""
-    a0 = np.zeros((particle_collection.particle_number(), idx.block_size(index_specs=index_specs)), dtype=complex)
+    """Return the spherical wave expansion coefficients a0 for all particles specified in a
+    smuthi.particles.ParticleCollection object, for all initial field elements. a0 is a numpy array of dimensions
+    NS x nmax, where NS is the number of particles and nmax is the number of swe coefficients per particle."""
+    a0 = np.zeros((particle_collection.particle_number(), idx.number_of_indices()), dtype=complex)
     for iS, rS in enumerate(particle_collection.particle_positions()):
         for i0, specs in enumerate(initial_field_collection.specs_list):
             if specs['type'] == 'plane wave':
@@ -69,8 +71,7 @@ def initial_field_swe_coefficients(initial_field_collection, particle_collection
                                                         polarization=specs['polarization'],
                                                         planewave_reference_point=specs['reference point'],
                                                         particle_position=rS, layer_system=layer_system,
-                                                        layerresponse_precision=layerresponse_precision,
-                                                        index_specs=index_specs)
+                                                        layerresponse_precision=layerresponse_precision)
             else:
                 raise ValueError('This initial field type is currently not implemented')
 
@@ -79,9 +80,10 @@ def initial_field_swe_coefficients(initial_field_collection, particle_collection
 
 def planewave_swe_coefficients(vacuum_wavelength=None, amplitude=1, polar_angle=0, azimuthal_angle=0, polarization=0,
                                planewave_reference_point=[0, 0, 0], particle_position=[0, 0, 0], layer_system=None,
-                               layerresponse_precision=None, index_specs=idx.swe_specifications(None)):
+                               layerresponse_precision=None):
     """Return the initial field coefficients (spherical wave expansion) as a numpy-array for a single particle in a
-    planarly layered medium and a single initial plane wave.
+    planarly layered medium and a single initial plane wave. The coefficients array has dimension NS x nmax, where NS is
+    the number of particles and nmax is the number of swe coefficients per particle.
 
     Input:
     vacuum_wavelength           (length unit)
@@ -97,17 +99,13 @@ def planewave_swe_coefficients(vacuum_wavelength=None, amplitude=1, polar_angle=
                                 particle is located
     layerresponse_precision     If None, standard numpy is used for the layer response. If int>0, that many decimal
                                 digits are considered in multiple precision. (default=None)
-    index_specs:                Dictionary {'lmax': lmax, 'mmax': mmax, 'index arrangement': index_arrangement}
     """
 
-    lmax = index_specs['lmax']
-    mmax = index_specs['mmax']
-    index_arrangement = index_specs['index arrangement']
-    if mmax is None:
-        mmax = lmax
+    l_max = idx.l_max
+    m_max = idx.m_max
 
     angular_frequency = coord.angular_frequency(vacuum_wavelength)
-    blocksize = idx.block_size(index_specs=index_specs)
+    blocksize = idx.number_of_indices()
     
     #initialize output
     aPR = np.zeros(blocksize, dtype=complex) # layer system mediated
@@ -150,10 +148,10 @@ def planewave_swe_coefficients(vacuum_wavelength=None, amplitude=1, polar_angle=
                                         precision=layerresponse_precision)
     gR = np.dot(L, np.array([1, 1]))
     for tau in range(2):
-        for m in range(-mmax, mmax + 1):
+        for m in range(-m_max, m_max + 1):
             emjma = np.exp(-1j * m * azimuthal_angle)
-            for l in range(max(1, abs(m)), lmax+1):
-                n = idx.multi2single(tau, l, m, lmax, mmax, index_arrangement=index_arrangement)
+            for l in range(max(1, abs(m)), l_max+1):
+                n = idx.multi_to_single_index(tau, l, m)
                 Bdagpl = vwf.transformation_coefficients_VWF(tau, l, m, pol=polarization, kp=kp, kz=kz_iS, dagger=True)
                 Bdagmn = vwf.transformation_coefficients_VWF(tau, l, m, pol=polarization, kp=kp, kz=-kz_iS, dagger=True)
                 Bvec = np.array([Bdagpl * ejkplriSS, Bdagmn * ejkmnriSS])

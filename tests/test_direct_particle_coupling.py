@@ -22,7 +22,8 @@ lmax = 3
 
 # --------------------------------------------
 
-index_specs = idx.swe_specifications(lmax)
+idx.l_max = lmax
+idx.m_max = lmax
 
 # initialize particle object
 part_col = part.ParticleCollection()
@@ -34,15 +35,17 @@ part_col.add_sphere(100, 1.7, [-100, -200, -300])
 lay_sys = lay.LayerSystem([0, 0], [substrate_refractive_index, surrounding_medium_refractive_index])
 
 # initialize equation object
-lin_sys = lin.LinearSystem(lmax)
-coupling_matrix = coup.direct_coupling_matrix(vacuum_wavelength, part_col, lay_sys, lin_sys.swe_specs)
+lin_sys = lin.LinearSystem()
+coupling_matrix = coup.direct_coupling_matrix(vacuum_wavelength, part_col, lay_sys)
 
 
 def test_versus_prototype():
     w12_00 = -0.163409214869119 + 0.112130245600907j
-    assert abs((coupling_matrix[0, 30] - w12_00) / w12_00) < 1e-4
+    assert abs((coupling_matrix[0, 0, 1, 0] - w12_00) / w12_00) < 1e-4
     w12_2_16 = 0.175494924814760 + 0.171772249467886j
-    assert abs((coupling_matrix[2, 46] - w12_2_16) / w12_2_16) < 1e-4
-    assert abs(coupling_matrix[0, 60]) == 0  # zero direct coupling to particle in different layer
+    assert abs((coupling_matrix[0, 2, 1, 16] - w12_2_16) / w12_2_16) < 1e-4
+    assert abs(coupling_matrix[0, 0, 2, 0]) == 0  # zero direct coupling to particle in different layer
 
 
+if __name__ == '__main__':
+    test_versus_prototype()

@@ -4,17 +4,11 @@
 import numpy as np
 import scipy.linalg
 import smuthi.index_conversion as idx
-import smuthi.coordinates as coord
 
 
 class LinearSystem:
     """Linear equation for the scattered field swe coefficients."""
-    def __init__(self, lmax=None, mmax=None, index_arrangement=None, swe_specs=None):
-
-        if swe_specs is None:
-            self.swe_specs = idx.swe_specifications(lmax=lmax, mmax=mmax, index_arrangement=index_arrangement)
-        else:
-            self.swe_specs = swe_specs
+    def __init__(self):
 
         # numpy.ndarray of dimension (NS, nmax)
         self.scattered_field_coefficients = None
@@ -23,9 +17,11 @@ class LinearSystem:
         self.initial_field_coefficients = None
 
         # numpy.ndarray of dimension (NS, nmax, nmax)
+        # indices are: particle number, outgoing swe index, regular swe index
         self.t_matrices = None
 
-        # numpy.ndarray of dimension (NS*nmax, NS*nmax)
+        # numpy.ndarray of dimension (NS, nmax, NS, nmax)
+        # indices are: receiving particle number, regular swe index, emitting particle number, outgoing swe index
         self.coupling_matrix = None
 
         # how to solve?
@@ -51,10 +47,10 @@ class LinearSystem:
         return np.concatenate(tai)
 
     def master_matrix(self):
-        w = self.coupling_matrix
         NS = len(self.t_matrices[:, 0, 0])
         blocksize = len(self.t_matrices[0, 0, :])
         mm = np.eye(NS * blocksize, dtype=complex)
+        w = np.reshape(self.coupling_matrix, (NS * blocksize, NS * blocksize))
         for s in range(NS):
             t = self.t_matrices[s, :, :]
             wblockrow = w[s * blocksize:((s + 1) * blocksize), :]

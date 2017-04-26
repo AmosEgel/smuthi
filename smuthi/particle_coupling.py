@@ -12,11 +12,8 @@ import matplotlib.pyplot as plt
 import warnings
 
 
-layerresponse_lookup = {'args': {}, 'data': None}
-
 def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position, emitting_particle_position,
-                                  layer_system, index_specs, neff_contour, layerresponse_precision=None,
-                                  show_integrand=False):
+                                  layer_system, neff_contour, layerresponse_precision=None, show_integrand=False):
     """Return the layer-system mediated particle coupling matrix W^R for two particles. This routine is explicit, but
     slow.
 
@@ -25,7 +22,6 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
     receiving_particle_position:    In the format [x,y,z] (length unit)
     emitting_particle_position:     In the format [x,y,z] (length unit)
     layer_system:                   An instance of smuthi.layers.LayerSystem describing the stratified medium
-    index_specs:                    A dictionary with the entries 'lmax', 'mmax' and 'index arrangement'
     neff_contour:                   An instance of smuthi.coordinates.ComplexContour to define the contour of the
                                     Sommerfeld integral
     layerresponse_precision:        Number of decimal digits (int). If specified, the layer-response is evaluated using
@@ -35,13 +31,9 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
     omega = coord.angular_frequency(vacuum_wavelength)
 
     # read out index specs
-    lmax = index_specs['lmax']
-    mmax = index_specs['mmax']
-    if mmax is None:
-        mmax = lmax
-    index_arrangement = index_specs['index arrangement']
-    blocksize = idx.block_size(lmax=lmax, mmax=mmax, index_arrangement=index_arrangement)
-    laynum = layer_system.number_of_layers()
+    lmax = idx.l_max
+    mmax = idx.m_max
+    blocksize = idx.number_of_indices()
 
     # cylindrical coordinates of relative position vectors
     rs1 = np.array(receiving_particle_position)
@@ -71,8 +63,8 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
     ejkz[1, 1, :] = np.exp(- 1j * kzis2 * ziss2)
 
     # layer response
-    L = evaluate_layerresponse_lookup(layer_system.thicknesses, layer_system.refractive_indices, kpar, omega, is2, is1,
-                                      layerresponse_precision)  # indices are: polarization, pl/mn1, pl/mn2, kpar_idx
+    L = lay.evaluate_layerresponse_lookup(layer_system.thicknesses, layer_system.refractive_indices, kpar, omega, is2,
+                                          is1, layerresponse_precision)  # polarization, pl/mn1, pl/mn2, kpar_idx
 
     # transformation coefficients
     B = np.zeros((2, 2, 2, blocksize, len(neff)), dtype=complex)  # indices are: particle, pol, plus/minus, n, kpar_idx
@@ -85,7 +77,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
     for tau in range(2):
         for m in range(-mmax, mmax + 1):
             for l in range(max(1, abs(m)), lmax + 1):
-                n = idx.multi2single(tau, l, m, lmax, mmax, index_arrangement=index_arrangement)
+                n = idx.multi_to_single_index(tau, l, m)
                 m_vec[n] = m
                 for iprt in range(2):
                     for iplmn, plmn in enumerate(plmn_tup):
@@ -94,12 +86,12 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
                                                                                             plmn * kz_tup[iprt],
                                                                                             dagger=dagger_tup[iprt])
 
-    BeL = np.zeros((2, 2, blocksize, len(neff)), dtype=complex) # indices are: pol, plmn2, n1, kpar_idx
+    BeL = np.zeros((2, 2, blocksize, len(neff)), dtype=complex)  # indices are: pol, plmn2, n1, kpar_idx
     for iplmn1 in range(2):
         for pol in range(2):
             BeL[pol, :, :, :] += (L[pol, iplmn1, :, np.newaxis, :] *
                                      B[0, pol, iplmn1, np.newaxis, :, :] * ejkz[0, iplmn1, :])
-    BeLBe = np.zeros((blocksize, blocksize, len(neff)), dtype=complex) # indices are: n1, n2, kpar_idx
+    BeLBe = np.zeros((blocksize, blocksize, len(neff)), dtype=complex)  # indices are: n1, n2, kpar_idx
     for iplmn2 in range(2):
         for pol in range(2):
             BeLBe += BeL[pol, iplmn2, :, np.newaxis, :] * B[1, pol, iplmn2, :, :] * ejkz[1, 1 - iplmn2, :]
@@ -126,43 +118,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
     return wr
 
 
-def evaluate_layerresponse_lookup(thicknesses, refractive_indices, kpar, omega, fromlayer, tolayer,
-                                  layerresponse_precision):
-
-    global layerresponse_lookup
-    L_args = {'thicknesses': thicknesses, 'refractive indices': refractive_indices, 'kpar': kpar, 'omega': omega,
-              'precicion': layerresponse_precision}
-    laynum = len(thicknesses)
-
-    # check for argument equality:
-    equal_args = (L_args.get('thicknesses') == layerresponse_lookup['args'].get('thicknesses')
-                  and L_args.get('refractive indices') == layerresponse_lookup['args'].get('refractive indices')
-                  and np.all(L_args.get('kpar') == layerresponse_lookup['args'].get('kpar'))
-                  and L_args.get('omega') == layerresponse_lookup['args'].get('omega')
-                  and L_args.get('precision') == layerresponse_lookup['args'].get('precision'))
-
-    if equal_args:
-        if layerresponse_lookup['data'][fromlayer][tolayer] is not None:
-            L = layerresponse_lookup['data'][fromlayer][tolayer]
-        else:
-            L = np.zeros((2, 2, 2, len(kpar)), dtype=complex)  # indices are: polarization, pl/mn1, pl/mn2, kpar_idx
-            for pol in range(2):
-                L[pol, :, :, :] = lay.layersystem_response_matrix(pol, thicknesses, refractive_indices, kpar, omega,
-                                                                  fromlayer, tolayer, layerresponse_precision)
-            layerresponse_lookup['data'][fromlayer][tolayer] = L
-    else:
-        layerresponse_lookup['args'] = L_args
-        layerresponse_lookup['data'] = [[None] * laynum] * laynum
-        L = np.zeros((2, 2, 2, len(kpar)), dtype=complex)  # indices are: polarization, pl/mn1, pl/mn2, kpar_idx
-        for pol in range(2):
-            L[pol, :, :, :] = lay.layersystem_response_matrix(pol, thicknesses, refractive_indices, kpar, omega,
-                                                              fromlayer, tolayer, layerresponse_precision)
-        layerresponse_lookup['data'][fromlayer][tolayer] = L
-
-    return L
-
-
-def layer_mediated_coupling_matrix(vacuum_wavelength, particle_collection, layer_system, index_specs, neff_contour,
+def layer_mediated_coupling_matrix(vacuum_wavelength, particle_collection, layer_system, neff_contour,
                                    layerresponse_precision=None):
     """Return the layer-system mediated particle coupling matrix W^R for a particle collection.
     This routine is explicit, but slow. It is thus suited for problems with few particles only.
@@ -174,35 +130,30 @@ def layer_mediated_coupling_matrix(vacuum_wavelength, particle_collection, layer
     particle_collection:            An instance of  smuthi.particles.ParticleCollection describing the scattering
                                     particles
     layer_system:                   An instance of smuthi.layers.LayerSystem describing the stratified medium
-    index_specs:                    A dictionary with the entries 'lmax', 'mmax' and 'index arrangement'
     neff_contour:                   An instance of smuthi.coordinates.ComplexContour to define the contour of the
                                     Sommerfeld integral
     layerresponse_precision:        Number of decimal digits (int). If specified, the layer-response is evaluated using
                                     mpmath multiple precision. Otherwise, standard numpy.
     """
-    blocksize = idx.block_size(index_specs=index_specs)
+    blocksize = idx.number_of_indices()
     particle_number = particle_collection.particle_number()
 
     # initialize result
     wr = np.zeros((particle_number, blocksize, particle_number, blocksize), dtype=complex)
 
-    if index_specs['index arrangement'][0] == 's':
-        for s1, particle1 in enumerate(particle_collection.particles):
-            rs1 = particle1['position']
-            for s2, particle2 in enumerate(particle_collection.particles):
-                rs2 = particle2['position']
-                wrblock = layer_mediated_coupling_block(vacuum_wavelength, rs1, rs2, layer_system, index_specs,
-                                                        neff_contour, layerresponse_precision)
+    for s1, particle1 in enumerate(particle_collection.particles):
+        rs1 = particle1['position']
+        for s2, particle2 in enumerate(particle_collection.particles):
+            rs2 = particle2['position']
+            wrblock = layer_mediated_coupling_block(vacuum_wavelength, rs1, rs2, layer_system, neff_contour,
+                                                    layerresponse_precision)
 
-                wr[s1, :, s2, :] = wrblock
-    else:
-        raise ValueError('index arrangement other than "s..." are currently not implemented')
+            wr[s1, :, s2, :] = wrblock
 
-    wr = np.reshape(wr, (particle_number * blocksize, particle_number * blocksize))
     return wr
 
 
-def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system, index_specs):
+def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system):
     """Return the direct particle coupling matrix W for a particle collection in a layered medium.
 
     NOT TESTED
@@ -212,17 +163,14 @@ def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system,
     particle_collection:            An instance of  smuthi.particles.ParticleCollection describing the scattering
                                     particles
     layer_system:                   An instance of smuthi.layers.LayerSystem describing the stratified medium
-    index_specs:                    A dictionary with the entries 'lmax', 'mmax' and 'index arrangement'
     """
     omega = coord.angular_frequency(vacuum_wavelength)
 
     # indices
-    blocksize = idx.block_size(index_specs=index_specs)
+    blocksize = idx.number_of_indices()
     particle_number = particle_collection.particle_number()
-    lmax = index_specs['lmax']
-    mmax = index_specs['mmax']
-    if mmax is None:
-        mmax = lmax
+    lmax = idx.l_max
+    mmax = idx.m_max
 
     # initialize result
     w = np.zeros((particle_number, blocksize, particle_number, blocksize), dtype=complex)
@@ -274,9 +222,9 @@ def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system,
                             B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                         A, B = eimph * A, eimph * B
                         for tau1 in range(2):
-                            n1 = idx.multi2single(tau1, l1, m1, index_specs=index_specs)
+                            n1 = idx.multi_to_single_index(tau1, l1, m1)
                             for tau2 in range(2):
-                                n2 = idx.multi2single(tau2, l2, m2, index_specs=index_specs)
+                                n2 = idx.multi_to_single_index(tau2, l2, m2)
                                 if n1 == n2:
                                     w_layer[:, n2, :, n1] = A  # remember that w = A.T
                                 else:
@@ -289,5 +237,4 @@ def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system,
                     s2 = particle_layer_indices[i_layer][i2]
                     w[s1, :, s2, :] = w_layer[i1, :, i2, :]
 
-    w = np.reshape(w, (particle_number * blocksize, particle_number * blocksize))
     return w

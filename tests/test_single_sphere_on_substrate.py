@@ -32,7 +32,7 @@ farfield_neff_discr = 1e-2
 
 # --------------------------------------------
 
-index_specs = idx.swe_specifications(lmax)
+idx.set_swe_specs(l_max=lmax)
 
 # initialize particle object
 part_col = part.ParticleCollection()
@@ -47,18 +47,17 @@ init_fld.add_planewave(amplitude=plane_wave_amplitude, polar_angle=plane_wave_po
                        azimuthal_angle=plane_wave_azimuthal_angle, polarization=plane_wave_polarization)
 
 # initialize equation object
-lin_sys = lin.LinearSystem(lmax)
+lin_sys = lin.LinearSystem()
 
 # compute initial field coefficients
-lin_sys.initial_field_coefficients = init.initial_field_swe_coefficients(init_fld, part_col, lay_sys, index_specs)
+lin_sys.initial_field_coefficients = init.initial_field_swe_coefficients(init_fld, part_col, lay_sys)
 
 # compute T-matrix
-lin_sys.t_matrices = tmt.t_matrix_collection(vacuum_wavelength, part_col, lay_sys, index_specs)
+lin_sys.t_matrices = tmt.t_matrix_collection(vacuum_wavelength, part_col, lay_sys)
 
 # compute particle coupling matrix
 neff_contour = coord.ComplexContour(neff_waypoints, neff_discr)
-lin_sys.coupling_matrix = coup.layer_mediated_coupling_matrix(vacuum_wavelength, part_col, lay_sys, index_specs,
-                                                              neff_contour)
+lin_sys.coupling_matrix = coup.layer_mediated_coupling_matrix(vacuum_wavelength, part_col, lay_sys, neff_contour)
 
 # solve linear system
 lin_sys.solve()
@@ -93,3 +92,5 @@ def test_versus_prototype():
     assert abs((lin_sys.scattered_field_coefficients[0, 21] - b21) / b21) < 1e-4
 
 
+if __name__ == '__main__':
+    test_versus_prototype()

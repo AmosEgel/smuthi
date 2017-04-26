@@ -18,45 +18,21 @@
 # ..| ... ...
 index_order = 'tlm'
 
-# global variable for lmax
-maximal_multipole_degree = None
+# global variable for maximal multipole degree
+l_max = None
 
-# global variable for mmax
-maximal_multipole_order = None
+# global variable for maximal multipole order
+m_max = None
 
 
-def multi_to_single_index(tau, l, m, **kwargs):
+def multi_to_single_index(tau, l, m):
     """Return a unique single index for the totality of indices characterizing a svwf expansion coefficient.
 
     input:
     tau:                SVWF polarization (0=spherical TE, 1=spherical TM)
     l:                  SVWF degree (1, ..., lmax)
     m:                  SVWF order (-l,...,l)
-
-    optional key-word input:
-    l_max:              set the global truncation degree of SVWF expansions
-    m_max:              set the global truncation order of SVWF expansions. None means m_max = l_max
-    index_order:  set string to globally specify the order according to which the indices are arranged
-                        Possible choices are:
-                        'tlm' (default), which stands for 1. tau, 2. l, 3. m
-                        (Other choices are not implemented at the moment.)
     """
-    global maximal_multipole_degree, maximal_multipole_order, index_order
-
-    # set global variables
-    if 'l_max' in kwargs:
-        maximal_multipole_degree = kwargs['l_max']
-    if 'm_max' in kwargs:
-        maximal_multipole_order = kwargs['m_max']
-    if 'index_order' in kwargs:
-        index_order = kwargs['index_order']
-
-    l_max = maximal_multipole_degree
-    if maximal_multipole_order is None:
-        m_max = l_max
-    else:
-        m_max = maximal_multipole_order
-
     if index_order == 'tlm':
         # use:
         # \sum_{l=1}^lmax (2\min(l,mmax)+1) = \sum_{l=1}^mmax (2l+1) + \sum_{l=mmax+1}^lmax (2mmax+1)
@@ -73,31 +49,34 @@ def multi_to_single_index(tau, l, m, **kwargs):
         return n
 
 
-def number_of_indices(**kwargs):
-    """Return the total number of indices which is the maximal index plus 1.
+def number_of_indices():
+    """Return the total number of indices which is the maximal index plus 1."""
+    return multi_to_single_index(tau=1, l=l_max, m=m_max) + 1
 
-    optional key-word input:
+
+def set_swe_specs(**kwargs):
+    """
+    Set the truncation degree and order of the spherical wave expansion, as well as the index order for the single to
+    multi index mapping.
+
+    key-word input:
     l_max:              set the global truncation degree of SVWF expansions
     m_max:              set the global truncation order of SVWF expansions. None means m_max = l_max
-    index_order:  set string to globally specify the order according to which the indices are arranged
+    index_order:        set string to globally specify the order according to which the indices are arranged
                         Possible choices are:
                         'tlm' (default), which stands for 1. tau, 2. l, 3. m
                         (Other choices are not implemented at the moment.)
     """
-    global maximal_multipole_degree, maximal_multipole_order, index_order
+    global l_max, m_max, index_order
 
     # set global variables
     if 'l_max' in kwargs:
-        maximal_multipole_degree = kwargs['l_max']
+        l_max = kwargs['l_max']
+        m_max = l_max
     if 'm_max' in kwargs:
-        maximal_multipole_order = kwargs['m_max']
+        m_max = kwargs['m_max']
     if 'index_order' in kwargs:
         index_order = kwargs['index_order']
-
-    l_max = maximal_multipole_degree
-    if maximal_multipole_order is None:
-        m_max = l_max
-    else:
-        m_max = maximal_multipole_order
-
-    return multi_to_single_index(tau=1, l=l_max, m=m_max) + 1
+    for key in kwargs.keys():
+        if not (key == 'l_max' or key == 'm_max' or key == 'index_order'):
+            raise ValueError('Unknown argument ' + key)

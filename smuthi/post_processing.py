@@ -258,13 +258,9 @@ def plane_wave_pattern_rs(n_effective=None, azimuthal_angles=None, vacuum_wavele
     kpar_grid = neff_grid * omega
 
     # read out index specs
-    index_specs = linear_system.swe_specs
-    lmax = index_specs['lmax']
-    mmax = index_specs['mmax']
-    if mmax is None:
-        mmax = lmax
-    index_arrangement = index_specs['index arrangement']
-    blocksize = idx.block_size(lmax=lmax, mmax=mmax, index_arrangement=index_arrangement)
+    lmax = idx.l_max
+    mmax = idx.m_max
+    blocksize = idx.number_of_indices()
 
     iS_list = [layer_system.layer_number(prtcl['position'][2]) for prtcl in particle_collection.particles]
     iS_unique = list(set(iS_list))
@@ -289,7 +285,7 @@ def plane_wave_pattern_rs(n_effective=None, azimuthal_angles=None, vacuum_wavele
         for tau in range(2):
             for m in range(-mmax, mmax + 1):
                 for l in range(max(1, abs(m)), lmax + 1):
-                    n = idx.multi2single(tau, l, m, lmax, mmax, index_arrangement=index_arrangement)
+                    n = idx.multi_to_single_index(tau, l, m)
                     m_vec[n] = m
                     for pol in range(2):
                         B[i][pol, 0, n, :] = vwf.transformation_coefficients_VWF(tau, l, m, pol, kpar, kziS[i])
@@ -367,13 +363,9 @@ def plane_wave_pattern_s(n_effective=None, azimuthal_angles=None, vacuum_wavelen
     kpar_grid = neff_grid * omega
 
     # read out index specs
-    index_specs = linear_system.swe_specs
-    lmax = index_specs['lmax']
-    mmax = index_specs['mmax']
-    if mmax is None:
-        mmax = lmax
-    index_arrangement = index_specs['index arrangement']
-    blocksize = idx.block_size(lmax=lmax, mmax=mmax, index_arrangement=index_arrangement)
+    lmax = idx.l_max
+    mmax = idx.m_max
+    blocksize = idx.number_of_indices()
 
     kpar = n_effective * omega
 
@@ -385,7 +377,7 @@ def plane_wave_pattern_s(n_effective=None, azimuthal_angles=None, vacuum_wavelen
     for tau in range(2):
         for m in range(-mmax, mmax + 1):
             for l in range(max(1, abs(m)), lmax + 1):
-                n = idx.multi2single(tau, l, m, lmax, mmax, index_arrangement=index_arrangement)
+                n = idx.multi_to_single_index(tau, l, m)
                 m_vec[n] = m
     eima = np.exp(1j * np.tensordot(m_vec, azimuthal_angles, axes=0))  # indices: n, alpha_idx
 
@@ -398,7 +390,7 @@ def plane_wave_pattern_s(n_effective=None, azimuthal_angles=None, vacuum_wavelen
         for tau in range(2):
             for m in range(-mmax, mmax + 1):
                 for l in range(max(1, abs(m)), lmax + 1):
-                    n = idx.multi2single(tau, l, m, lmax, mmax, index_arrangement=index_arrangement)
+                    n = idx.multi_to_single_index(tau, l, m)
                     for pol in range(2):
                         B[pol, 0, n, :] = vwf.transformation_coefficients_VWF(tau, l, m, pol, kpar, kziS)
                         B[pol, 1, n, :] = vwf.transformation_coefficients_VWF(tau, l, m, pol, kpar, -kziS)
