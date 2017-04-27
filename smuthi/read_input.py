@@ -71,7 +71,7 @@ def read_input_yaml(filename):
 
     # linear system
     lmax = int(input_data['lmax'])
-    mmax = int(input_data.get('mmax', default=lmax))
+    mmax = int(input_data.get('mmax', lmax))
     idx.set_swe_specs(l_max=lmax, m_max=mmax)
 
     # contour

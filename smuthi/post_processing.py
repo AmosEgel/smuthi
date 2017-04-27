@@ -31,6 +31,10 @@ class PostProcessing:
                                                       filename_forward=filename_forward,
                                                       filename_backward=filename_backward,
                                                       length_unit=simulation.length_unit)
+                extinction_cross_section(initial_field_collection=simulation.initial_field_collection,
+                                         particle_collection=particle_collection, linear_system=linear_system,
+                                         layer_system=layer_system, layerresponse_precision=layerresponse_precision,
+                                         length_unit=simulation.length_unit)
 
 
 def differential_scattering_cross_section(polar_angles=None, initial_field_collection=None, azimuthal_angles=None,
@@ -48,30 +52,60 @@ def differential_scattering_cross_section(polar_angles=None, initial_field_colle
     layerresponse_precision:    If None, standard numpy is used for the layer response. If int>0, that many decimal
                                 digits are considered in multiple precision. (default=None)
     """
-    if len(initial_field_collection.specs_list) > 1 or not initial_field_collection.specs_list[0]['type'] == 'plane wave':
+    if (len(initial_field_collection.specs_list) > 1
+         or not initial_field_collection.specs_list[0]['type'] == 'plane wave'):
         raise ValueError('Cross section only defined for single plane wave excitation.')
 
-    if initial_field_collection.specs_list[0]['polar angle'] < np.pi / 2:
-        n_inc = layer_system.refractive_indices[0]
-    else:
-        n_inc = layer_system.refractive_indices[-1]
-    if n_inc.imag:
-        raise ValueError('plane wave from absorbing layer: cross section undefined')
-    else:
-        n_inc = n_inc.real
-
     if polar_angles is None:
-        polar_angles = np.concatenate([np.arange(0, 90, 1, dtype=float), np.arange(91, 181, 1, dtype=float)]) * np.pi / 180
+        polar_angles = (np.concatenate([np.arange(0, 90, 1, dtype=float), np.arange(91, 181, 1, dtype=float)])
+                        * np.pi / 180)
     if azimuthal_angles is None:
         azimuthal_angles = np.arange(0, 361, 1, dtype=float) * np.pi / 180
 
+    i_top = layer_system.number_of_layers() - 1
     vacuum_wavelength = initial_field_collection.vacuum_wavelength
+    omega = coord.angular_frequency(vacuum_wavelength)
+    k_bot = omega * layer_system.refractive_indices[0]
+    k_top = omega * layer_system.refractive_indices[-1]
+
+    # read plane wave parameters
+    A_P = initial_field_collection.specs_list[0]['amplitude']
+    beta_P = initial_field_collection.specs_list[0]['polar angle']
+    if beta_P < np.pi / 2:
+        i_P = 0
+        n_P = layer_system.refractive_indices[i_P]
+    else:
+        i_P = i_top
+        n_P = layer_system.refractive_indices[i_P]
+    if n_P.imag:
+        raise ValueError('plane wave from absorbing layer: cross section undefined')
+    else:
+        n_P = n_P.real
+
+    kappa_P = np.sin(beta_P) * n_P * omega
+    initial_intensity = abs(A_P) ** 2 * abs(np.cos(beta_P)) * n_P / 2
+
+    # differential scattering cross section
     dsc = scattered_far_field(polar_angles, vacuum_wavelength, azimuthal_angles, particle_collection, linear_system,
-                              layer_system, layerresponse_precision) * n_inc / 2
+                              layer_system, layerresponse_precision) / initial_intensity
 
     top_idcs = polar_angles <= (np.pi / 2)
     bottom_idcs = polar_angles > (np.pi / 2)
 
+    if not k_top.imag == 0:
+        dsc[:, top_idcs, :] = 0
+    if not k_bot.imag == 0:
+        dsc[:, bottom_idcs, :] = 0
+
+    # azimuthal average
+    polar_dsc = np.trapz(dsc, azimuthal_angles[None, None, :]) * np.sin(polar_angles[None, :])
+
+    # total scattering cross section
+    total_cs = np.trapz(polar_dsc, polar_angles[None, :])
+    print(total_cs[0] + total_cs[1])
+
+    """
+    # plot -------------------------------------------------------------------------------------------------------------
     # forward
     alpha_grid, beta_grid = np.meshgrid(azimuthal_angles, polar_angles[top_idcs].real * 180 / np.pi)
     fig = plt.figure()
@@ -91,7 +125,6 @@ def differential_scattering_cross_section(polar_angles=None, initial_field_colle
         fig.savefig(filename_backward)
 
     # averaged
-    polar_dsc = np.trapz(dsc, azimuthal_angles[None, None, :]) * np.sin(polar_angles[None, :])
     plt.figure()
     plt.plot(polar_angles * 180 / np.pi, polar_dsc[0, :] + polar_dsc[1, :])
     plt.plot(polar_angles * 180 / np.pi, polar_dsc[0, :])
@@ -99,12 +132,116 @@ def differential_scattering_cross_section(polar_angles=None, initial_field_colle
     plt.title('polar differential cross section')
     plt.xlabel('polar angle (deg)')
     plt.ylabel('polar differential cross section (' + length_unit + '^2)')
-
-    # total
-    total_cs = np.trapz(polar_dsc, polar_angles[None, :])
-    # print(total_cs[0] + total_cs[1])
-
+    #-------------------------------------------------------------------------------------------------------------------
+    """
     return azimuthal_angles, polar_angles, dsc
+
+
+def extinction_cross_section(initial_field_collection=None, particle_collection=None, linear_system=None,
+                             layer_system=None, layerresponse_precision=None, length_unit=None):
+    """Evaluate and display the differential scattering cross section as a function of solid angle.
+
+    polar_angles:               (float) array of polar angles (radian), default: from 1 to 180 degree in steps of 1
+    initial_field_collection:   smuthi.initial_field.InitialFieldCollection object
+    azimuthal_angles:           (float) array of azimuthal angles (radian), default: from 1 to 360 degree in steps of 1
+    particle_collection:        smuthi.particles.ParticleCollection object
+    linear_system:              smuthi.linear_system.LinearSystem object
+    layer_system:               smuthi.layers.LayerSystem object
+    layerresponse_precision:    If None, standard numpy is used for the layer response. If int>0, that many decimal
+                                digits are considered in multiple precision. (default=None)
+    """
+    if (len(initial_field_collection.specs_list) > 1
+         or not initial_field_collection.specs_list[0]['type'] == 'plane wave'):
+        raise ValueError('Cross section only defined for single plane wave excitation.')
+
+    i_top = layer_system.number_of_layers() - 1
+    vacuum_wavelength = initial_field_collection.vacuum_wavelength
+    omega = coord.angular_frequency(vacuum_wavelength)
+    k_bot = omega * layer_system.refractive_indices[0]
+    k_top = omega * layer_system.refractive_indices[-1]
+
+    # read plane wave parameters
+    pol_P = initial_field_collection.specs_list[0]['polarization']
+    beta_P = initial_field_collection.specs_list[0]['polar angle']
+    alpha_P = initial_field_collection.specs_list[0]['azimuthal angle']
+
+    if beta_P < np.pi / 2:
+        i_P = 0
+        n_P = layer_system.refractive_indices[i_P]
+        k_P = k_bot
+    else:
+        i_P = i_top
+        n_P = layer_system.refractive_indices[i_P]
+        k_P = k_top
+    if n_P.imag:
+        raise ValueError('plane wave from absorbing layer: cross section undefined')
+    else:
+        n_P = n_P.real
+
+    # complex amplitude of initial wave (including phase factor for reference point)
+    kappa_P = np.sin(beta_P) * k_P
+    kx = np.cos(alpha_P) * kappa_P
+    ky = np.sin(alpha_P) * kappa_P
+    pm_kz_P = k_P * np.cos(beta_P)
+    kvec_P = np.array([kx, ky, pm_kz_P])
+    rvec_iP = np.array([0, 0, layer_system.reference_z(i_P)])
+    rvec_0 = np.array(initial_field_collection.specs_list[0]['reference point'])
+    ejkriP = np.exp(1j * np.dot(kvec_P, rvec_iP - rvec_0))
+    A_P = initial_field_collection.specs_list[0]['amplitude'] * ejkriP
+
+    initial_intensity = abs(A_P) ** 2 * abs(np.cos(beta_P)) * n_P / 2
+
+    # bottom extinction
+    Lbot = lay.layersystem_response_matrix(pol_P, layer_system.thicknesses, layer_system.refractive_indices, kappa_P,
+                                           omega, i_P, 0, layerresponse_precision)
+    gRPbot = (Lbot[1, 0] + Lbot[1, 1]) * A_P
+
+    gr_scat_bottom_list = plane_wave_pattern_rs(n_effective=np.array([kappa_P/omega]),
+                                                azimuthal_angles=np.array([alpha_P]),
+                                                vacuum_wavelength=vacuum_wavelength,
+                                                particle_collection=particle_collection,
+                                                linear_system=linear_system, layer_system=layer_system,
+                                                layer_numbers=[0])
+    g_scat_bottom_list = plane_wave_pattern_s(n_effective=np.array([kappa_P/omega]),
+                                              azimuthal_angles=np.array([alpha_P]), vacuum_wavelength=vacuum_wavelength,
+                                              particle_collection=particle_collection, linear_system=linear_system,
+                                              layer_system=layer_system, layer_numbers=[0])
+    kz_bot = coord.k_z(k_parallel=kappa_P, k=k_bot)
+    g_scat_bottom = gr_scat_bottom_list[0][pol_P, 1, 0, 0] + g_scat_bottom_list[0][pol_P, 1, 0, 0]
+    P_bot_ext = -4 * np.pi ** 2 * kz_bot / omega * (gRPbot * np.conj(g_scat_bottom)).real
+    bottom_extinction_cs = P_bot_ext / initial_intensity
+    print(bottom_extinction_cs)
+
+    # bottom extinction
+    Ltop = lay.layersystem_response_matrix(pol_P, layer_system.thicknesses, layer_system.refractive_indices, kappa_P,
+                                           omega, i_P, i_top, layerresponse_precision)
+    gRPtop = (Ltop[0, 0] + Ltop[0, 1]) * A_P
+
+    gr_scat_top_list = plane_wave_pattern_rs(n_effective=np.array([kappa_P/omega]),
+                                             azimuthal_angles=np.array([alpha_P]), vacuum_wavelength=vacuum_wavelength,
+                                             particle_collection=particle_collection, linear_system=linear_system,
+                                             layer_system=layer_system, layer_numbers=[i_top])
+    g_scat_top_list = plane_wave_pattern_s(n_effective=np.array([kappa_P/omega]), azimuthal_angles=np.array([alpha_P]),
+                                           vacuum_wavelength=vacuum_wavelength, particle_collection=particle_collection,
+                                           linear_system=linear_system, layer_system=layer_system,
+                                           layer_numbers=[i_top])
+    kz_top = coord.k_z(k_parallel=kappa_P, k=k_top)
+    g_scat_top = gr_scat_top_list[0][pol_P, 0, 0, 0] + g_scat_top_list[0][pol_P, 0, 0, 0]
+    P_top_ext = 4 * np.pi ** 2 * kz_top / omega * (gRPtop * np.conj(g_scat_top)).real
+    top_extinction_cs = P_top_ext / initial_intensity
+    print(top_extinction_cs)
+
+    """print(abs(gr_scat_bottom_list[0][pol_P, 1, 0, 0]))
+    print(abs(g_scat_bottom_list[0][pol_P, 1, 0, 0]))
+    print(abs(g_scat_bottom_list[0][pol_P, 1, 0, 0] + gr_scat_bottom_list[0][pol_P, 1, 0, 0]))
+
+    print(abs(gr_scat_top_list[0][pol_P, 0, 0, 0]))
+    print(abs(g_scat_top_list[0][pol_P, 0, 0, 0]))
+    print(abs(g_scat_top_list[0][pol_P, 0, 0, 0] + gr_scat_top_list[0][pol_P, 0, 0, 0]))"""
+
+    #print(g_scat_top_list[0][pol_P, 0, 0, 0] / gRPtop)
+    #print(gr_scat_top_list[0][pol_P, 0, 0, 0]/ gRPtop)
+
 
 
 def show_scattered_far_field(polar_angles=None, initial_field_collection=None, azimuthal_angles=None,
@@ -384,6 +521,7 @@ def plane_wave_pattern_s(n_effective=None, azimuthal_angles=None, vacuum_wavelen
     for iidx, i in enumerate(layer_numbers):
         kiS = omega * layer_system.refractive_indices[i]
         kziS = coord.k_z(k_parallel=kpar, k=kiS)
+        ziS = layer_system.reference_z(i)
         # transformation coefficients
         B = np.zeros((2, 2, blocksize, len(n_effective)), dtype=complex)  # indices are: pol, plus/minus, n, kpar_idx
 
@@ -400,8 +538,10 @@ def plane_wave_pattern_s(n_effective=None, azimuthal_angles=None, vacuum_wavelen
                 pos = prtcl['position']
                 kx_grid = kpar_grid * np.cos(azimuthal_angle_grid)
                 ky_grid = kpar_grid * np.sin(azimuthal_angle_grid)
-                emnikplrs_grid = np.exp(-1j * (kx_grid * pos[0] + ky_grid * pos[1] + kziS[:, np.newaxis] * pos[2]))
-                emnikmnrs_grid = np.exp(-1j * (kx_grid * pos[0] + ky_grid * pos[1] - kziS[:, np.newaxis] * pos[2]))
+                emnikplrs_grid = np.exp(-1j * (kx_grid * pos[0] + ky_grid * pos[1]
+                                               + kziS[:, np.newaxis] * (pos[2] - ziS)))
+                emnikmnrs_grid = np.exp(-1j * (kx_grid * pos[0] + ky_grid * pos[1]
+                                               - kziS[:, np.newaxis] * (pos[2] - ziS)))
                 eirks = np.concatenate([emnikplrs_grid[np.newaxis, np.newaxis, :, :],
                                         emnikmnrs_grid[np.newaxis, np.newaxis, :, :]], axis=1)  # idcs: kp, al
 
