@@ -285,7 +285,7 @@ def evaluate_layerresponse_lookup(layer_d, layer_n, kpar, omega, fromlayer, tola
     """
     global layerresponse_lookup
     L_args = {'thicknesses': layer_d, 'refractive indices': layer_n, 'kpar': kpar, 'omega': omega,
-              'precicion': precision}
+              'precision': precision}
     laynum = len(layer_d)
 
     # check for argument equality:
@@ -306,7 +306,7 @@ def evaluate_layerresponse_lookup(layer_d, layer_n, kpar, omega, fromlayer, tola
             layerresponse_lookup['data'][fromlayer][tolayer] = L
     else:
         layerresponse_lookup['args'] = L_args
-        layerresponse_lookup['data'] = [[None] * laynum] * laynum
+        layerresponse_lookup['data'] = [[None for x in range(laynum)] for x in range(laynum)]
         L = np.zeros((2, 2, 2, len(kpar)), dtype=complex)  # indices are: polarization, pl/mn1, pl/mn2, kpar_idx
         for pol in range(2):
             L[pol, :, :, :] = layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, tolayer,

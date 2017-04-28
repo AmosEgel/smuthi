@@ -70,9 +70,64 @@ def test_layerresponse_for_kpar_arrays():
     np.testing.assert_almost_equal(lmat0, lmat_vec[:, :, 0])
 
 
+def test_layerresponse_lookup():
+    trivial_layer_d = [0, 0]
+    trivial_layer_n = [1, 1]
+    kpar_array = np.linspace(0, kpar)
+
+    fromlayer = 0
+    tolayer = 0
+    L1 = smuthi.layers.evaluate_layerresponse_lookup(trivial_layer_d, trivial_layer_n, kpar_array, omega, fromlayer,
+                                                     tolayer, None)
+
+    L1TE = smuthi.layers.layersystem_response_matrix(0, trivial_layer_d, trivial_layer_n, kpar_array, omega, fromlayer,
+                                                     tolayer)
+
+    L1TM = smuthi.layers.layersystem_response_matrix(1, trivial_layer_d, trivial_layer_n, kpar_array, omega, fromlayer,
+                                                     tolayer)
+    np.testing.assert_almost_equal(L1[0, :, :, :], L1TE)
+    np.testing.assert_almost_equal(L1[1, :, :, :], L1TM)
+
+    fromlayer = 0
+    tolayer = 1
+    L2 = smuthi.layers.evaluate_layerresponse_lookup(trivial_layer_d, trivial_layer_n, kpar_array, omega, fromlayer,
+                                                     tolayer, None)
+    L2TE = smuthi.layers.layersystem_response_matrix(0, trivial_layer_d, trivial_layer_n, kpar_array, omega, fromlayer,
+                                                     tolayer)
+
+    L2TM = smuthi.layers.layersystem_response_matrix(1, trivial_layer_d, trivial_layer_n, kpar_array, omega, fromlayer,
+                                                     tolayer)
+
+    np.testing.assert_almost_equal(L2[0, :, :, :], L2TE)
+    np.testing.assert_almost_equal(L2[1, :, :, :], L2TM)
+
+    fromlayer = 0
+    tolayer = 0
+    L1 = smuthi.layers.evaluate_layerresponse_lookup(trivial_layer_d, trivial_layer_n, kpar_array, omega, fromlayer,
+                                                     tolayer, None)
+
+    L1TE = smuthi.layers.layersystem_response_matrix(0, trivial_layer_d, trivial_layer_n, kpar_array, omega, fromlayer,
+                                                     tolayer)
+
+    L1TM = smuthi.layers.layersystem_response_matrix(1, trivial_layer_d, trivial_layer_n, kpar_array, omega, fromlayer,
+                                                     tolayer)
+    np.testing.assert_almost_equal(L1[0, :, :, :], L1TE)
+    np.testing.assert_almost_equal(L1[1, :, :, :], L1TM)
+
+    fromlayer = 0
+    tolayer = 1
+    L1 = smuthi.layers.evaluate_layerresponse_lookup(layer_d, layer_n, kpar_array, omega, fromlayer, tolayer, None)
+
+    L1TE = smuthi.layers.layersystem_response_matrix(0, layer_d, layer_n, kpar_array, omega, fromlayer, tolayer)
+
+    L1TM = smuthi.layers.layersystem_response_matrix(1, layer_d, layer_n, kpar_array, omega, fromlayer, tolayer)
+    np.testing.assert_almost_equal(L1[0, :, :, :], L1TE)
+    np.testing.assert_almost_equal(L1[1, :, :, :], L1TM)
+
 if __name__ == '__main__':
     test_layerresponse_mpmath_equals_numpy()
     test_scattering_matrix_equals_transfer_matrix()
     test_layerresponse_equals_TSPL()
     test_layerresponse_for_kpar_arrays()
+    test_layerresponse_lookup()
 

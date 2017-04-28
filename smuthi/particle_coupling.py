@@ -39,7 +39,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
     rs1 = np.array(receiving_particle_position)
     rs2 = np.array(emitting_particle_position)
     rs2s1 = rs1 - rs2
-    rhos2s1 = np.linalg.norm(rs2s1[0:1])
+    rhos2s1 = np.linalg.norm(rs2s1[0:2])
     phis2s1 = np.arctan2(rs2s1[1], rs2s1[0])
     is1 = layer_system.layer_number(rs1[2])
     ziss1 = rs1[2] - layer_system.reference_z(is1)
@@ -101,11 +101,11 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
     for dm in range(2 * lmax + 1):
         bessel_list.append(scipy.special.jv(dm, kpar * rhos2s1))
     bessel_full = np.array([[bessel_list[abs(m_vec[n1] - m_vec[n2])]
-                                    for n1 in range(blocksize)] for n2 in range(blocksize)])
+                             for n1 in range(blocksize)] for n2 in range(blocksize)])
     jacobi_vector = kpar / (kzis2 * kis2)
     integrand = bessel_full * jacobi_vector * BeLBe
     integral = np.trapz(integrand, x=kpar, axis=-1)
-    m2_minus_m1 = m_vec[np.newaxis].T - m_vec
+    m2_minus_m1 = m_vec - m_vec[np.newaxis].T
     wr = 4 * (1j) ** abs(m2_minus_m1) * np.exp(1j * m2_minus_m1 * phis2s1) * integral
 
     if show_integrand:
@@ -225,7 +225,7 @@ def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system)
                             n1 = idx.multi_to_single_index(tau1, l1, m1)
                             for tau2 in range(2):
                                 n2 = idx.multi_to_single_index(tau2, l2, m2)
-                                if n1 == n2:
+                                if tau1 == tau2:
                                     w_layer[:, n2, :, n1] = A  # remember that w = A.T
                                 else:
                                     w_layer[:, n2, :, n1] = B
