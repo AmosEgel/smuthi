@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This script runs a simulation for a single sphere on a substrate, illuminated by a plane wave."""
+"""This script runs a simulation for two spheres in a slab waveguide, illuminated by a plane wave."""
 
 import numpy as np
 import smuthi.linear_system as lin
@@ -7,8 +7,6 @@ import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
 import smuthi.index_conversion as idx
-import smuthi.t_matrix as tmt
-import smuthi.particle_coupling as coup
 import smuthi.coordinates as coord
 import smuthi.simulation as simul
 import smuthi.post_processing as pp
@@ -58,6 +56,11 @@ simulation2 = simul.Simulation(lay_sys2, part_col, init_fld,
                                wr_neff_contour=coord.ComplexContour(neff_waypoints, neff_discr))
 simulation2.run()
 
+farfield = pp.scattered_far_field(vacuum_wavelength=vacuum_wavelength,
+                                  particle_collection=simulation1.particle_collection,
+                                  linear_system=simulation1.linear_system,
+                                  layer_system=simulation1.layer_system)
+
 
 def test_equivalent_layer_systems():
     relerr = (np.linalg.norm(simulation1.linear_system.coupling_matrix[0, :, 1, :] -
@@ -78,6 +81,14 @@ def test_against_prototype():
 
     b10 = 0.2065701 + 0.1197903j
     assert abs((simulation1.linear_system.scattered_field_coefficients[1, 0] - b10) / b10) < 1e-4
+
+    top_power_flux = 4.3895865e+02
+    assert abs((farfield['forward power'][0] + farfield['forward power'][1] - top_power_flux) / top_power_flux) < 1e-3
+
+    bottom_power_flux = 2.9024410e+04
+    assert abs((farfield['backward power'][0] + farfield['backward power'][1] - bottom_power_flux)
+               / bottom_power_flux) < 1e-3
+
 
 if __name__ == '__main__':
     test_equivalent_layer_systems()
