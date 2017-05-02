@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 
 # Parameter input ----------------------------
 vacuum_wavelength = 550
-plane_wave_polar_angle = np.pi
-plane_wave_azimuthal_angle = 0
+plane_wave_polar_angle = np.pi * 7/8
+plane_wave_azimuthal_angle = np.pi * 1/3
 plane_wave_polarization = 0
 plane_wave_amplitude = 1
 lmax = 3
@@ -66,7 +66,7 @@ ecs = pp.extinction_cross_section(initial_field_collection=simulation.initial_fi
 def test_optical_theorem():
     relerr = abs((scs['total'][0] + scs['total'][1] + ecs['forward'] + ecs['backward'])
                  / (scs['total'][0] + scs['total'][1]))
-    assert relerr < 1e-3
+    assert relerr < 1e-4
 
 
 if __name__ == '__main__':

@@ -3,7 +3,6 @@
 
 import numpy as np
 import scipy.linalg
-import smuthi.index_conversion as idx
 
 
 class LinearSystem:

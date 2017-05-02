@@ -12,6 +12,7 @@ import smuthi.post_processing as pp
 import sys
 import matplotlib.pyplot as plt
 
+
 class Simulation:
     def __init__(self, layer_system=None, particle_collection=None, initial_field_collection=None, linear_system=None,
                  wr_neff_contour=None, post_processing=None):
@@ -31,7 +32,6 @@ class Simulation:
             wr_neff_contour = coord.ComplexContour()
         if post_processing is None:
             post_processing = pp.PostProcessing()
-
 
 
         self.layer_system = layer_system
@@ -92,7 +92,7 @@ class Simulation:
 
 def welcome_message():
     msg = ("********************************\n"
-           "*            SMUTHI            *\n"
+           "*        SMUTHI  v0.1          *\n"
            "********************************\n")
     return msg
 

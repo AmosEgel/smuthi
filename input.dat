@@ -38,7 +38,7 @@ layer system:
 initial field:
 - type: plane wave
   angle units: degree
-  polar angle: 180
+  polar angle: 0
   azimuthal angle: 0
   polarization: TE
   amplitude: 1
@@ -53,4 +53,4 @@ neff waypoints: [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
 neff discretization: 1e-3
 # -----------------------------------------------
 post processing:
-- task: plot 2D far-field distribution
+- task: evaluate cross sections

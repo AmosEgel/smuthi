@@ -4,7 +4,6 @@ import smuthi.simulation
 import numpy as np
 import smuthi.index_conversion as idx
 import smuthi.coordinates as coord
-import smuthi.post_processing as pp
 
 
 def read_input_yaml(filename):
