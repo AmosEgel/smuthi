@@ -29,7 +29,7 @@ If you have pip available, you can install SMUTHI simply by::
 
    pip install smuthi
 
-Alternatively, you can download the SMUTHI project folder manually from TODO:URL. Open a command prompt and change directory to the SMUTHI project folder. Then, enter (Windows)::
+Alternatively, you can download the SMUTHI project folder manually from https://gitlab.com/AmosEgel/smuthi Open a command prompt and change directory to the SMUTHI project folder. Then, enter (Windows)::
 
    python setup.py install
 
@@ -40,7 +40,7 @@ or (Ubuntu)::
 
 2 Running simulations
 -----------------------
-SMUTHI is executed together with a single argument, specifying the input file that contains all parameters of the configuration to be simulated, see `3 The input file`_.
+SMUTHI is executed from the command line together with one argument, specifying the input file that contains all parameters of the configuration to be simulated, see `3 The input file`_.
 
 Open a command window (shell or Win Python Command Prompt) and type::
 
@@ -48,7 +48,7 @@ Open a command window (shell or Win Python Command Prompt) and type::
 
 3 The input file
 --------------------
-The input file uses the YAML format. An examplary file :code:`input.dat` is contained in the SMUTHI project folder. You can modify the entries to adapt the file to your use case.
+The input file uses the YAML format. An example file :code:`input.dat` is contained in the SMUTHI project folder. You can modify the entries to adapt the file to your use case.
 
 In the following, the parameters which can be specified in the input file are listed:
 
@@ -189,7 +189,6 @@ Alltogether, the contents of the inputfile could look like this::
     post processing:
     - task: evaluate cross sections
 
-
 4 The particle specifications file
 -----------------------------------
 The file containing the particle specifications needs to be written in the following format::
@@ -197,7 +196,7 @@ The file containing the particle specifications needs to be written in the follo
    # spheres
    # x			y			z			radius		ref. idx 		exct. coeff.
    220			110			250			100			2.4				0
-   -300			-200		750			200			2.1				0.01
+   -300			-200        750			200			2.1				0.01
 
 An examplary particle specifiacations file with the name particle_specs.dat is provided in the SMUTHI project folder.
 
