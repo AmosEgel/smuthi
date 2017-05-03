@@ -92,7 +92,7 @@ class Simulation:
 
 def welcome_message():
     msg = ("********************************\n"
-           "*        SMUTHI  v0.1          *\n"
+           "*         SMUTHI  v0.1         *\n"
            "********************************\n")
     return msg
 

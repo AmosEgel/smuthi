@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
 
 setup(
@@ -14,7 +14,7 @@ setup(
                       "interfaces. It is based on the T-matrix method for the single particle scattering, and on the "
                       "scattering-matrix method for the propagation through the layered medium."),
     packages=['smuthi'],
-    install_requires=['numpy', 'scipy', 'sympy', 'matplotlib', 'yaml'],
+    install_requires=['numpy', 'scipy', 'sympy', 'matplotlib', 'pyyaml', 'argparse'],
     entry_points={'console_scripts': ['smuthi = smuthi.__main__:main']},
     license='MIT'
 )

@@ -1,6 +1,5 @@
 SMUTHI
 =======================
-
 SMUTHI means 'Scattering by MUltiple particles in THIn-film systems'. The software allows to simulate light scattering
 by multiple particles near (or between) planar interfaces. It is based on the T-matrix method for the single particle
 scattering, and on the scattering-matrix method for the propagation through the layered medium.
@@ -46,6 +45,8 @@ Open a command window (shell or Win Python Command Prompt) and type::
 
    smuthi path/to/input.dat
 
+If :code:`smuthi` is called without an argument, it tries to open :code:`input.dat` as default.
+   
 3 The input file
 --------------------
 The input file uses the YAML format. An example file :code:`input.dat` is contained in the SMUTHI project folder. You can modify the entries to adapt the file to your use case.
@@ -124,7 +125,8 @@ Specify the multipole truncation degree :code:`lmax` and order :code:`mmax`, for
 
    mmax: 3
 
-lmax should be chosen with reference to the desired accuracy and to the particle size parameter and refractive index contrast, see for example https://arxiv.org/ftp/arxiv/papers/1202/1202.5904.pdf
+:code:`lmax` and :code:`mmax` should be chosen with reference to the desired accuracy and to the particle size parameter and refractive index contrast, see for example https://arxiv.org/ftp/arxiv/papers/1202/1202.5904.pdf
+A larger value leads to higher accuracy, but also to longer computation time. :code:`lmax` is a positive integer and :code:`mmax` is a non-negative integer and not greater than :code:`lmax`.
 
 Further, specify the contour of the sommerfeld integral in the complex :code:`neff` plane where :code:`neff = k_parallel / omega` refers to the effective refractive index of the partial wave. The contour is parameterized by its waypoints::
 
@@ -134,7 +136,9 @@ as well as its discretization scale::
 
    neff discretization: 1e-3
 
-TODO: further explanation.
+The :code:`neff waypoints` define a piecewise linear trajectory in the complex plane. This trajectory should start at :code:`0` and end at a suitable real truncation parameter (somewhere above the highest layer refractive index). 
+A simple contour would be for example :code:`neff waypoints: [0, 4]`. However
+The trajectory can be deflected into the lower complex half plaen such that it does not come close to waveguide mode resonances of the layer system.
 
 3.7 Post procesing
 ~~~~~~~~~~~~~~~~~~~
@@ -142,6 +146,9 @@ Define here, what output you want to generate. Currently only the evaluation of 
 
    post processing:
    - task: evaluate cross sections
+     show plots: true
+
+If :code:`show plots` is not set to :code:`false` (default), the differential scattering cross section is plotted.
 
 3.8 Full example
 ~~~~~~~~~~~~~~~~~
@@ -188,15 +195,17 @@ Alltogether, the contents of the inputfile could look like this::
     # -----------------------------------------------
     post processing:
     - task: evaluate cross sections
+      show plots: true	
 
 4 The particle specifications file
 -----------------------------------
 The file containing the particle specifications needs to be written in the following format::
 
    # spheres
-   # x			y			z			radius		ref. idx 		exct. coeff.
-   220			110			250			100			2.4				0
-   -300			-200        750			200			2.1				0.01
-
+   # x         y           z           radius      ref. idx.   exct. coeff.
+   220         110         250         100         2.4         0
+   -300        -200        750         200         2.1         0.01
+   ...         ...         ...         ...         ...         ...
+   
 An examplary particle specifiacations file with the name particle_specs.dat is provided in the SMUTHI project folder.
 
