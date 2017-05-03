@@ -83,10 +83,10 @@ def test_against_prototype():
     assert abs((simulation1.linear_system.scattered_field_coefficients[1, 0] - b10) / b10) < 1e-4
 
     top_power_flux = 4.3895865e+02
-    assert abs((farfield['forward power'][0] + farfield['forward power'][1] - top_power_flux) / top_power_flux) < 1e-3
+    assert abs((farfield['top power'][0] + farfield['top power'][1] - top_power_flux) / top_power_flux) < 1e-3
 
     bottom_power_flux = 2.9024410e+04
-    assert abs((farfield['backward power'][0] + farfield['backward power'][1] - bottom_power_flux)
+    assert abs((farfield['bottom power'][0] + farfield['bottom power'][1] - bottom_power_flux)
                / bottom_power_flux) < 1e-3
 
 

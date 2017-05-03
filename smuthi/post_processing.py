@@ -15,6 +15,7 @@ class PostProcessing:
         particle_collection = simulation.particle_collection
         linear_system = simulation.linear_system
         layer_system = simulation.layer_system
+        initial_field_collection = simulation.initial_field_collection
         for item in self.tasks:
             if item['task'] == 'evaluate cross sections':
                 polar_angles = item.get('polar angles')
@@ -22,22 +23,109 @@ class PostProcessing:
                 layerresponse_precision = item.get('layerresponse precision')
                 filename_forward = item.get('filename forward')
                 filename_backward = item.get('filename backward')
+
+                if (len(initial_field_collection.specs_list) > 1
+                    or not initial_field_collection.specs_list[0]['type'] == 'plane wave'):
+                    raise ValueError('Cross section only defined for single plane wave excitation.')
+
+                i_top = layer_system.number_of_layers() - 1
+                beta_P = initial_field_collection.specs_list[0]['polar angle']
+                if beta_P < np.pi / 2:
+                    i_P = 0
+                    n_P = layer_system.refractive_indices[i_P]
+                    n_transm = layer_system.refractive_indices[i_top]
+                else:
+                    i_P = i_top
+                    n_P = layer_system.refractive_indices[i_P]
+                    n_transm = layer_system.refractive_indices[0]
+                if n_P.imag:
+                    raise ValueError('plane wave from absorbing layer: cross section undefined')
+
                 dcs = scattering_cross_section(polar_angles=polar_angles,
-                                               initial_field_collection=simulation.initial_field_collection,
+                                               initial_field_collection=initial_field_collection,
                                                azimuthal_angles=azimuthal_angles,
                                                particle_collection=particle_collection,
                                                linear_system=linear_system, layer_system=layer_system,
                                                layerresponse_precision=layerresponse_precision)
 
-                ecs = extinction_cross_section(initial_field_collection=simulation.initial_field_collection,
+                ecs = extinction_cross_section(initial_field_collection=initial_field_collection,
                                                particle_collection=particle_collection, linear_system=linear_system,
                                                layer_system=layer_system,
                                                layerresponse_precision=layerresponse_precision)
 
-                print('Total scattering cross section: ', dcs['total'][0] + dcs['total'][1])
-                print('Top layer extinction cross section: ', ecs['forward'])
-                print('Bottom layer extinction cross section: ', ecs['backward'])
-                print('Total extinction cross section: ', ecs['forward'] + ecs['backward'])
+                # distinguish the cases of top/bottom illumination
+                print('cross sections:')
+                if i_P == 0:
+                    print('Scattering cross section in bottom layer (diffuse reflection): ',
+                          dcs['total bottom'][0] + dcs['total bottom'][1])
+                    if n_transm.imag == 0:
+                        print('Scattering cross section in top layer (diffuse transmission): ',
+                              dcs['total top'][0] + dcs['total top'][1])
+                        print('Total scattering cross section (diffuse reflection plus transmission): ',
+                              dcs['total'][0] + dcs['total'][1])
+
+                    print('Bottom layer extinction cross section (extinction of reflection): ', ecs['bottom'])
+                    if n_transm.imag == 0:
+                        print('Top layer extinction cross section (extinction of transmission): ', ecs['top'])
+                        print('Total extinction cross section: ', ecs['top'] + ecs['bottom'])
+                else:
+                    print('Scattering cross section in top layer (diffuse reflection): ',
+                          dcs['total top'][0] + dcs['total top'][1])
+                    if n_transm.imag == 0:
+                        print('Scattering cross section in bottom layer (diffuse transmission): ',
+                              dcs['total bottom'][0] + dcs['total bottom'][1])
+                        print('Total scattering cross section (diffuse reflection plus transmission): ',
+                              dcs['total'][0] + dcs['total'][1])
+
+                    print('Top layer extinction cross section (extinction of reflection): ', ecs['top'])
+                    if n_transm.imag == 0:
+                        print('Bottom layer extinction cross section (extinction of transmission): ', ecs['bottom'])
+                        print('Total extinction cross section: ', ecs['top'] + ecs['bottom'])
+
+                if item.get('show plots', False):
+
+                    # dsc as polar plot
+                    if layer_system.refractive_indices[i_top].imag == 0:
+                        # top layer
+                        top_idcs = (dcs['polar angles'] <= np.pi / 2)
+                        alpha_grid, beta_grid = np.meshgrid(dcs['azimuthal angles'],
+                                                            dcs['polar angles'][top_idcs].real * 180 / np.pi)
+
+                        fig = plt.figure()
+                        ax = fig.add_subplot(111, polar=True)
+                        ax.pcolormesh(alpha_grid, beta_grid, (dcs['differential'][0, top_idcs, :] +
+                                                              dcs['differential'][1, top_idcs, :]))
+                        plt.title('DCS in top layer (' + simulation.length_unit + '^2)')
+
+                        plt.figure()
+                        plt.plot(dcs['polar angles'][top_idcs] * 180 / np.pi,
+                                 (dcs['polar'][0, top_idcs] + dcs['polar'][1, top_idcs]) * np.pi / 180)
+                        plt.xlabel('polar angle (degree)')
+                        plt.ylabel('d_CS/d_beta (' + simulation.length_unit + '^2)')
+                        plt.title('Polar differential scattering cross section in top layer')
+                        plt.grid(True)
+
+                    if layer_system.refractive_indices[0].imag == 0:
+                        # bottom layer
+                        bottom_idcs = (dcs['polar angles'] > np.pi / 2)
+                        alpha_grid, beta_grid = np.meshgrid(dcs['azimuthal angles'],
+                                                            dcs['polar angles'][bottom_idcs].real * 180 / np.pi)
+
+                        fig = plt.figure()
+                        ax = fig.add_subplot(111, polar=True)
+                        ax.pcolormesh(alpha_grid, 180 - beta_grid, (dcs['differential'][0, bottom_idcs, :] +
+                                                                      dcs['differential'][1, bottom_idcs, :]))
+                        plt.title('DCS in bottom layer (' + simulation.length_unit + '^2)')
+
+                        plt.figure()
+                        plt.plot(180 - dcs['polar angles'][bottom_idcs] * 180 / np.pi,
+                                 (dcs['polar'][0, bottom_idcs] + dcs['polar'][1, bottom_idcs]) * np.pi / 180)
+                        plt.xlabel('polar angle (degree)')
+                        plt.ylabel('d_CS/d_beta (' + simulation.length_unit + '^2)')
+                        plt.title('Polar differential scattering cross section in bottom layer')
+                        plt.grid(True)
+
+                    plt.show()
 
 
 def scattering_cross_section(polar_angles=None, initial_field_collection=None, azimuthal_angles=None,
@@ -113,10 +201,12 @@ def scattering_cross_section(polar_angles=None, initial_field_collection=None, a
     polar_dscs = np.trapz(dscs, azimuthal_angles[None, None, :]) * np.sin(polar_angles[None, :])
 
     # total scattering cross section
-    total_cs = np.trapz(polar_dscs, polar_angles[None, :])
+    total_cs_top = np.trapz(polar_dscs[:, top_idcs], polar_angles[None, top_idcs])
+    total_cs_bottom = np.trapz(polar_dscs[:, bottom_idcs], polar_angles[None, bottom_idcs])
 
-    scs = {'differential': dscs, 'total': total_cs, 'polar': polar_dscs, 'polar angles': polar_angles,
-           'azimuthal angles': azimuthal_angles, 'forward indices': top_idcs, 'backward indices': bottom_idcs}
+    scs = {'differential': dscs, 'total': total_cs_top + total_cs_bottom, 'total top': total_cs_top,
+           'total bottom': total_cs_bottom, 'polar': polar_dscs, 'polar angles': polar_angles,
+           'azimuthal angles': azimuthal_angles}
 
     return scs
 
@@ -196,7 +286,7 @@ def extinction_cross_section(initial_field_collection=None, particle_collection=
     kz_bot = coord.k_z(k_parallel=kappa_P, k=k_bot)
     g_scat_bottom = gr_scat_bottom_list[0][pol_P, 1, 0, 0] + g_scat_bottom_list[0][pol_P, 1, 0, 0]
     P_bot_ext = 4 * np.pi ** 2 * kz_bot / omega * (gRPbot * np.conj(g_scat_bottom)).real
-    bottom_extinction_cs = P_bot_ext / initial_intensity
+    bottom_extinction_cs = - P_bot_ext / initial_intensity
 
     # bottom extinction
     Ltop = lay.layersystem_response_matrix(pol_P, layer_system.thicknesses, layer_system.refractive_indices, kappa_P,
@@ -214,67 +304,11 @@ def extinction_cross_section(initial_field_collection=None, particle_collection=
     kz_top = coord.k_z(k_parallel=kappa_P, k=k_top)
     g_scat_top = gr_scat_top_list[0][pol_P, 0, 0, 0] + g_scat_top_list[0][pol_P, 0, 0, 0]
     P_top_ext = 4 * np.pi ** 2 * kz_top / omega * (gRPtop * np.conj(g_scat_top)).real
-    top_extinction_cs = P_top_ext / initial_intensity
+    top_extinction_cs = - P_top_ext / initial_intensity
 
-    extinction_cs = {'forward': top_extinction_cs, 'backward': bottom_extinction_cs}
+    extinction_cs = {'top': top_extinction_cs, 'bottom': bottom_extinction_cs}
 
     return extinction_cs
-
-
-def show_scattered_far_field(polar_angles=None, initial_field_collection=None, azimuthal_angles=None,
-                             particle_collection=None, linear_system=None, layer_system=None,
-                             layerresponse_precision=None, filename_forward=None, filename_backward=None,
-                             length_unit=None):
-    """Plot the far field intensity. For plane waves as initial field, it is displayed as a differential cross section.
-
-    input:
-    polar_angles:               (float) array of polar angles (radian), default: from 1 to 180 degree in steps of 1
-    initial_field_collection:   smuthi.initial_field.InitialFieldCollection object
-    azimuthal_angles:           (float) array of azimuthal angles (radian), default: from 1 to 360 degree in steps of 1
-    particle_collection:        smuthi.particles.ParticleCollection object
-    linear_system:              smuthi.linear_system.LinearSystem object
-    layer_system:               smuthi.layers.LayerSystem object
-    layerresponse_precision:    If None, standard numpy is used for the layer response. If int>0, that many decimal
-                                digits are considered in multiple precision. (default=None)
-    """
-
-    vacuum_wavelength = initial_field_collection.vacuum_wavelength
-    far_field = scattered_far_field(polar_angles, vacuum_wavelength, azimuthal_angles, particle_collection,
-                                    linear_system, layer_system, layerresponse_precision)
-
-    polar_angles = far_field['polar angles']
-    azimuthal_angles = far_field['azimuthal angles']
-    top_idcs =  far_field['forward indices']
-    bottom_idcs =  far_field['backward indices']
-
-    if len(initial_field_collection.specs_list) == 1:
-        initial_field_specs = initial_field_collection.specs_list[0]
-        if initial_field_specs['type'] == 'plane wave':  # in that case, differential cross section
-            if initial_field_specs['polar angle'] < np.pi / 2:
-                n_inc = layer_system.refractive_indices[0]
-            else:
-                n_inc = layer_system.refractive_indices[-1]
-
-        # forward
-        alpha_grid, beta_grid = np.meshgrid(azimuthal_angles, polar_angles[top_idcs].real * 180 / np.pi)
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, polar=True)
-        ax.pcolormesh(alpha_grid, beta_grid, (far_field[0, top_idcs, :] + far_field[1, top_idcs, :]) * n_inc / 2)
-        plt.title('forward far field (differential cross section in ' + length_unit + '^2)')
-        if filename_forward is not None:
-            fig.savefig(filename_forward)
-
-        # backward
-        alpha_grid, beta_grid = np.meshgrid(azimuthal_angles, polar_angles[bottom_idcs].real * 180 / np.pi)
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, polar=True)
-        ax.pcolormesh(alpha_grid, 180 - beta_grid,
-                      (far_field[0, bottom_idcs, :] + far_field[1, bottom_idcs, :]) * n_inc / 2)
-        plt.title('backward far field (differential cross section in ' + length_unit + '^2)')
-        if filename_backward is not None:
-            fig.savefig(filename_backward)
 
 
 def scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_angles=None,
@@ -287,12 +321,10 @@ def scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_ang
                         - polar angle index
                         - azimuthal angle index
     'polar intensity':  Polar far field, that is the power per polar angle as ndarray of shape 2 x nb
-    'forward power':    Total scattered power into top layer (positive z direction)
-    'backward power':   Total scattered power into bottom layer (negative z direction)
+    'top power':        Total scattered power into top layer (positive z direction)
+    'bottom power':     Total scattered power into bottom layer (negative z direction)
     'polar angles':     Polar angles
     'azimuthal angles': Azimuthal angles
-    'forward indices':  These indices belong to polar angles in top hemisphere
-    'backward indices': These indices belong to polar angles in bottom hemisphere
 
     input:
     polar_angles:           (float) array of polar angles values (radian)
@@ -349,17 +381,15 @@ def scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_ang
     polar_far_field = np.trapz(far_field_intensity, azimuthal_angles[None, None, :]) * np.sin(polar_angles[None, :])
 
     # total scattered power
-    total_forward_power = np.trapz(polar_far_field[:, top_idcs], polar_angles[None, top_idcs])
-    total_backward_power = np.trapz(polar_far_field[:, bottom_idcs], polar_angles[None, bottom_idcs])
+    total_top_power = np.trapz(polar_far_field[:, top_idcs], polar_angles[None, top_idcs])
+    total_bottom_power = np.trapz(polar_far_field[:, bottom_idcs], polar_angles[None, bottom_idcs])
 
     far_field = {'intensity': far_field_intensity,
                  'polar intensity': polar_far_field,
-                 'forward power': total_forward_power,
-                 'backward power': total_backward_power,
+                 'top power': total_top_power,
+                 'bottom power': total_bottom_power,
                  'polar angles': polar_angles,
-                 'azimuthal angles': azimuthal_angles,
-                 'forward indices': top_idcs,
-                 'backward indices': bottom_idcs}
+                 'azimuthal angles': azimuthal_angles}
 
     return far_field
 

@@ -64,7 +64,7 @@ ecs = pp.extinction_cross_section(initial_field_collection=simulation.initial_fi
 
 
 def test_optical_theorem():
-    relerr = abs((scs['total'][0] + scs['total'][1] + ecs['forward'] + ecs['backward'])
+    relerr = abs((scs['total'][0] + scs['total'][1] - ecs['top'] - ecs['bottom'])
                  / (scs['total'][0] + scs['total'][1]))
     assert relerr < 1e-4
 
