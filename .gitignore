@@ -5,3 +5,6 @@ SMUTHI.egg*
 snippets/
 dist/
 scripts/*.dat
+docs/_build/
+docs/_static/
+docs/_templates/

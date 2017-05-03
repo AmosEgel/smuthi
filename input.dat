@@ -1,8 +1,41 @@
-# -----------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+# Declare here the unit in which you want to specify all lengths. It has no influence on the calculations and can be
+# chosen arbitrarily. This field is mainly there to remind the user that all lengths have to be specified in consistent
+# units. In addition, it is used for the axis annotation of output plots.
+# ----------------------------------------------------------------------------------------------------------------------
+
 length unit: nm
-# -----------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Vacuum wavelength of the electromagnetic field, in the specified length unit:
+# ----------------------------------------------------------------------------------------------------------------------
+
 vacuum wavelength: 550
-# -----------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Define the background geometry of the layered medium. A layer system consists of N layers, counted from bottom to top.
+# Each layer is characterized by its thickness as well as its (real) refractive index and extinction coefficient (the
+# latter is equivalent to the imaginary part of the complex refractive index). Provide the thickness information in the
+# form of [d_0, d_1, d_2, ..., d_N], where d_i is the thickness of the i-th layer. As the outermost layers are
+# infinitely thick, specify them with a thickness of 0. Analogously, provide the refractive indices and extinction
+# coefficients in the form of [n0, ..., nN] and [k0, ..., kN].
+# ----------------------------------------------------------------------------------------------------------------------
+
+layer system:
+- thicknesses: [0, 500, 0]
+  refractive indices: [1.5, 2, 1]
+  extinction coefficients: [0, 0.01, 0]
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Specify the ensemble of scattering particles inside the layered medium.
+# For spherical particles, specify shape: sphere', the radius, refractive index, extinction coefficient and the
+# [x, y, z] coordinates of the particle position.
+# The coordinate system is such that the interface between the first two layers defines the plane z=0.
+# ----------------------------------------------------------------------------------------------------------------------
+
 scattering particles:
 - shape: sphere
   radius: 100
@@ -19,12 +52,17 @@ scattering particles:
   refractive index: 2.7
   extinction coefficient: 0.2
   position: [-250, 250, -250]
-# -----------------------------------------------
-layer system:
-- thicknesses: [0, 500, 0]
-  refractive indices: [1.5, 2, 1]
-  extinction coefficients: [0, 0.01, 0]
-# -----------------------------------------------
+
+# Alternatively, the scattering particles can be specified in a separate file, which needs to be located in the SMUTHI
+# project folder. This is more convenient for large particle numbers. In that case, specify the filename of the
+# particles parameters file, for example:
+#
+#  scattering particles: particle_specs.dat
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+
 initial field:
 - type: plane wave
   angle units: degree
@@ -33,15 +71,30 @@ initial field:
   polarization: TE
   amplitude: 1
   reference point: [0, 0, 0]
-# -----------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+
 lmax: 3
-# -----------------------------------------------
+
 mmax: 3
-# -----------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+
 neff waypoints: [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
-# -----------------------------------------------
+
 neff discretization: 1e-3
-# -----------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+
 post processing:
 - task: evaluate cross sections
   show plots: true
