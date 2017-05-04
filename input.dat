@@ -53,14 +53,17 @@ scattering particles:
   extinction coefficient: 0.2
   position: [-250, 250, -250]
 
+
 # Alternatively, the scattering particles can be specified in a separate file, which needs to be located in the SMUTHI
 # project folder. This is more convenient for large particle numbers. In that case, specify the filename of the
 # particles parameters file, for example:
-#
+
 #  scattering particles: particle_specs.dat
 
-# ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Currently, only plane waves are implemented as the initial excitation. Specify the initial field in the following
+# format:
 # ----------------------------------------------------------------------------------------------------------------------
 
 initial field:
@@ -72,9 +75,20 @@ initial field:
   amplitude: 1
   reference point: [0, 0, 0]
 
+# Polar and azimuthal angle refer to the corresponding spherical coordinates of the plane wave's wave vector. Angle
+# units can be 'degree' (otherwise, radians are used). If the polar is between 0 and 90 degree, the k-vector has a
+# positive z-component and consequently, the plane wave is incident from the bottom side. If the polar angle is between
+# 90 and 180 degree, then the plane wave is incident from the top. For polarization, select either TE or TM. The
+# reference point specifies the location where the incident wave would have zero phase, i.e., the electric field of the
+# incident wave is proportional to E(r) = A * exp(j k.(r-r0)) where A is the amplitude and r0 is the reference point.
+
 
 # ----------------------------------------------------------------------------------------------------------------------
-
+# Specify the multipole truncation degree lmax and order mmax. They should be chosen with reference to the desired
+# accuracy and to the particle size parameter and refractive index contrast, see for example
+# https://arxiv.org/ftp/arxiv/papers/1202/1202.5904.pdf
+# A larger value leads to higher accuracy, but also to longer computation time. lmax is a positive integer and mmax is a
+# non-negative integer not greater than lmax.
 # ----------------------------------------------------------------------------------------------------------------------
 
 lmax: 3
@@ -83,7 +97,15 @@ mmax: 3
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
+# Specify the contour of the Sommerfeld integral in the complex neff plane, where neff = k_parallel / omega refers to
+# the effective refractive index of the partial wave.
+# The Sommerfeld integral is performed using the trapezoidal rule along a contour. The contour is parameterized by its
+# waypoints and the discretization. The neff waypoints define a piecewise linear trajectory in the complex plane.
+# This trajectory should start at 0 and end at a suitable real truncation parameter (somewhere above the highest layer
+# refractive index).
+# A simple contour would be for example neff waypoints: [0, 4]. However, if the trajectory comes close to resonances of
+# the layered medium, the accuracy is affected. To improve, deflect the contour into the lower complex half plane such
+# that it does not come close to waveguide mode resonances of the layer system.
 # ----------------------------------------------------------------------------------------------------------------------
 
 neff waypoints: [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
@@ -92,7 +114,9 @@ neff discretization: 1e-3
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
+# Define here, what output you want to generate. Currently only the evaluation of scattering and extinction cross
+# sections is implemented.
+# If 'show plots' is not set to 'false' (default), the differential scattering cross section is plotted.
 # ----------------------------------------------------------------------------------------------------------------------
 
 post processing:
