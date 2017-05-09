@@ -36,8 +36,17 @@ def read_input_yaml(filename):
                 n = (float(prtcl['refractive index']) + 1j * float(prtcl['extinction coefficient']))
                 pos = [float(prtcl['position'][0]), float(prtcl['position'][1]), float(prtcl['position'][2])]
                 simulation.particle_collection.add_sphere(radius=r, refractive_index=n, position=pos)
+            elif prtcl['shape'] == 'spheroid':
+                c = float(prtcl['semi axis c'])
+                a = float(prtcl['semi axis a'])
+                n = float(prtcl['refractive index']) + 1j * float(prtcl['extinction coefficient'])
+                pos = [float(prtcl['position'][0]), float(prtcl['position'][1]), float(prtcl['position'][2])]
+                euler_angles = [float(prtcl['euler angles'][0]), float(prtcl['euler angles'][1]),
+                                float(prtcl['euler angles'][2])]
+                simulation.particle_collection.add_spheroid(semi_axis_c=c, semi_axis_a=a, refractive_index=n,
+                                                            position=pos, euler_angles=euler_angles)
             else:
-                raise ValueError('Currently, only spheres are implemented')
+                raise ValueError('Currently, only spheres and spheroids are implemented')
 
     # layer system
     thick = [float(d) for d in input_data['layer system'][0]['thicknesses']]
@@ -59,7 +68,7 @@ def read_input_yaml(filename):
             az_ang = ang_fac * float(infld['azimuthal angle'])
             if infld['polarization'] == 'TE':
                 pol = 0
-            elif infld['polarization'] == TM:
+            elif infld['polarization'] == 'TM':
                 pol = 1
             else:
                 raise ValueError('polarization must be "TE" or "TM"')
@@ -79,10 +88,13 @@ def read_input_yaml(filename):
     simulation.wr_neff_contour = coord.ComplexContour(neff_waypoints=neff_waypoints,
                                                       neff_discretization=neff_discretization)
 
+    # T-matrix method
+    simulation.t_matrix_method = input_data.get('tmatrix method')
+
+
     # post processing
     for item in input_data['post processing']:
         if item['task'] == 'evaluate cross sections':
             simulation.post_processing.tasks.append(item)
 
     return simulation
-

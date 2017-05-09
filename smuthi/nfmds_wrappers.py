@@ -1,29 +1,48 @@
 """Functions to call NFM-DS (null field method with discrete sources) Fortran code by Doicu et al. for the
-generation of T-matrices for non-spherical particles."""
+generation of T-matrices for non-spherical particles.
+The Fortran code comes with the book
+A. Doicu, T. Wriedt, and Y. A. Eremin: Light Scattering by Systems of Particles,
+1st ed. Berlin, Heidelberg: Springer-Verlag, 2006.
+and can also be downloaded from
+https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds
+"""
 
 import smuthi.index_conversion as idx
 import os
 from subprocess import Popen, PIPE
 import numpy as np
-import sys
 
 
 def taxsym_tmatrix_spheroid(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
-                            half_axis_z=None, half_axis_xy=None, use_ds=True, n_int=None, n_rank=None):
+                            semi_axis_c=None, semi_axis_a=None, use_ds=True, nint=None, nrank=None):
+    """Return T-matrix for spheroid, using the TAXSYM.f90 routine from the NFM-DS.
+
+    Input:
+    vacuum_wavelength
+    layer_refractive_index      Real refractive index of layer (complex values are not allowed).
+    particle_refractive_index   Complex refractive index of spheroid
+    semi_axis_c                 Semi axis of spheroid along rotation axis
+    semi_axis_a                 Semi axis of spheroid along lateral direction
+    use_ds                      Flag to switch the use of discrete sources on (True) and off (False)
+    nint                        Nint parameter for internal use of NFM-DS (number of points along integral).
+                                Higher value is more accurate and takes longer
+    nrank                       l_max used internally in NFM-DS
+    """
 
     filename = 'T_matrix_spheroid.dat'
 
-    write_taxsym_input_spheroid(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=layer_refractive_index,
-                                particle_refractive_index=particle_refractive_index, half_axis_z=half_axis_z,
-                                half_axis_xy=half_axis_xy, use_ds=use_ds, n_int=n_int, n_rank=n_rank,
-                                filename=filename)
-    run_taxsym()
-    t_matrix = read_taxsym_tmatrix(filename=filename)
+    taxsym_write_input_spheroid(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=layer_refractive_index,
+                                particle_refractive_index=particle_refractive_index, semi_axis_c=semi_axis_c,
+                                semi_axis_a=semi_axis_a, use_ds=use_ds, nint=nint, nrank=nrank, filename=filename)
+    taxsym_run()
+    t_matrix = taxsym_read_tmatrix(filename=filename)
     return t_matrix
 
 
-def run_taxsym():
-    nfmds_log = open('nfmds.log', 'a')
+def taxsym_run():
+    """Call TAXSYM.f90 routine."""
+
+    nfmds_log = open('nfmds.log', 'w')
     os.chdir('NFM-DS/TMATSOURCES')
     p = Popen('main.exe', stdin=PIPE, stdout=nfmds_log, universal_newlines=True)
     p.communicate('1')
@@ -31,10 +50,23 @@ def run_taxsym():
     nfmds_log.close()
 
 
-def write_taxsym_input_spheroid(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
-                                half_axis_z=None, half_axis_xy=None, use_ds=True, n_int=None, n_rank=None,
+def taxsym_write_input_spheroid(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
+                                semi_axis_c=None, semi_axis_a=None, use_ds=True, nint=None, nrank=None,
                                 filename='T_matrix_spheroid.dat'):
+    """Generate input file for the TAXSYM.f90 routine for the simulation of a spheroid.
 
+    Input:
+    vacuum_wavelength
+    layer_refractive_index      Real refractive index of layer (complex values are not allowed)
+    particle_refractive_index   Complex refractive index of spheroid
+    semi_axis_c                 Semi axis of spheroid along rotation axis
+    semi_axis_a                 Semi axis of spheroid along lateral direction
+    use_ds                      Flag to switch the use of discrete sources on (True) and off (False)
+    nint                        Nint parameter for internal use of NFM-DS (number of points along integral)
+                                Higher value is more accurate and takes longer
+    nrank                       l_max used internally in NFM-DS
+    filename                    Name of the file in which the T-matrix is stored
+    """
     if layer_refractive_index.imag:
         raise ValueError('Refractive index of surrounding medium  must be real(?)')
 
@@ -68,8 +100,8 @@ def write_taxsym_input_spheroid(vacuum_wavelength=None, layer_refractive_index=N
     f.write("'../GEOMFILES/prolate.fem'\n")
     f.write('1\n')                          # TypeGeom = 1 for spheroid
     f.write('2\n')                          # Nsurf = 2 for spheroid
-    f.write(str(float(half_axis_z)) + '\n')        # half-height of spheroid
-    f.write(str(float(half_axis_xy)) + '\n')       # half-width of spheroid
+    f.write(str(float(semi_axis_c)) + '\n')        # half-height of spheroid
+    f.write(str(float(semi_axis_a)) + '\n')       # half-width of spheroid
     f.write('1\n')                          # Nparam=1 for spheroid
     f.write('1.0\n')
     f.write('1.0\n')
@@ -139,8 +171,8 @@ def write_taxsym_input_spheroid(vacuum_wavelength=None, layer_refractive_index=N
 
     f.write('\n')
     f.write('NintNrank\n')
-    f.write(str(n_int) + '\n')
-    f.write(str(n_rank) + '\n')
+    f.write(str(nint) + '\n')
+    f.write(str(nrank) + '\n')
 
     f.write(' Variables: \n')
     f.write(' - Nint  - number of integration points in computing integrals over the \n')
@@ -179,12 +211,17 @@ def write_taxsym_input_spheroid(vacuum_wavelength=None, layer_refractive_index=N
     f.write('                 is printed. \n')
 
     f.write(' Comment\n')
-    f.write(' This file was generated by the routine smuthi.nfmds_wrappers.write_taxsym_input_spheroid \n')
+    f.write(' This file was generated by the routine smuthi.nfmds_wrappers.taxsym_write_input_spheroid \n')
 
     f.close()
 
 
-def read_taxsym_tmatrix(filename):
+def taxsym_read_tmatrix(filename):
+    """Export TAXSYM.f90 output to SMUTHI T-matrix.
+
+    input:
+    filename       Name of the file containing the T-matrix output of TAXSYM.f90
+    """
 
     info_file = open('NFM-DS/TMATFILES/Info' + filename, 'r')
     info_file_lines = info_file.readlines()

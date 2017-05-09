@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 class Simulation:
     def __init__(self, layer_system=None, particle_collection=None, initial_field_collection=None, linear_system=None,
-                 wr_neff_contour=None, post_processing=None):
+                 wr_neff_contour=None, post_processing=None, tmatrix_method=None):
         """Initialize
 
         input:
@@ -32,6 +32,8 @@ class Simulation:
             wr_neff_contour = coord.ComplexContour()
         if post_processing is None:
             post_processing = pp.PostProcessing()
+        if tmatrix_method is None:
+            tmatrix_method = {}
 
 
         self.layer_system = layer_system
@@ -40,6 +42,7 @@ class Simulation:
         self.linear_system = linear_system
         self.wr_neff_contour = wr_neff_contour
         self.post_processing = post_processing
+        self.tmatrix_method = tmatrix_method
 
     def run(self):
         clear_console()
@@ -59,7 +62,7 @@ class Simulation:
         sys.stdout.flush()
         self.linear_system.t_matrices = \
             tmt.t_matrix_collection(self.initial_field_collection.vacuum_wavelength, self.particle_collection,
-                                    self.layer_system)
+                                    self.layer_system, self.tmatrix_method)
         sys.stdout.write("done. \n")
 
         # compute particle coupling matrices
