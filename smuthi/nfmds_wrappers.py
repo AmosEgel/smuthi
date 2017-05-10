@@ -9,7 +9,8 @@ https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds
 
 import smuthi.index_conversion as idx
 import os
-from subprocess import Popen, PIPE
+import sys
+import subprocess
 import numpy as np
 
 
@@ -42,12 +43,19 @@ def taxsym_tmatrix_spheroid(vacuum_wavelength=None, layer_refractive_index=None,
 def taxsym_run():
     """Call TAXSYM.f90 routine."""
 
-    nfmds_log = open('nfmds.log', 'w')
-    os.chdir('NFM-DS/TMATSOURCES')
-    p = Popen('main.exe', stdin=PIPE, stdout=nfmds_log, universal_newlines=True)
-    p.communicate('1')
-    os.chdir('../..')
-    nfmds_log.close()
+    smuthi_folder_path = os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + '/../')
+    original_path = os.getcwd()
+    os.chdir(smuthi_folder_path)
+
+    with open('NFM-DS/nfmds.log', 'w') as nfmds_log:
+        os.chdir('NFM-DS/TMATSOURCES')
+        if sys.platform.startswith('win'):
+            subprocess.run('taxsym.exe', stdout=nfmds_log)
+        elif sys.platform.startswith('linux'):
+            subprocess.run('taxsym.out', stdout=nfmds_log)
+        else:
+            raise AssertionError('Platform neither windows nor linux.')
+    os.chdir(original_path)
 
 
 def taxsym_write_input_spheroid(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,

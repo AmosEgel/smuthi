@@ -8,3 +8,5 @@ scripts/*.dat
 docs/_build/
 docs/_static/
 docs/_templates/
+NFM*.log
+NFM*.mod

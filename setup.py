@@ -1,15 +1,41 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup
+from setuptools.command.install import install
+import os
+import sys
+from subprocess import Popen, PIPE
 
-readme = open('README.rst', 'r')
-README_TEXT = readme.read()
-readme.close()
+# chdir to smuthi project folder
+smuthi_folder_path = os.path.normpath(os.path.dirname(os.path.realpath(__file__)))
+original_path = os.getcwd()
+os.chdir(smuthi_folder_path)
 
+with open('README.rst', 'r') as readme:
+    README_TEXT = readme.read()
+
+
+class CustomInstallCommand(install):
+    """Customized setuptools install command - compiles TAXSYM.f90."""
+    def run(self):
+        os.chdir('NFM-DS/TMATSOURCES')
+        try:
+            if sys.platform.startswith('win'):
+                p = Popen('gfortran TAXSYM.f90 -o taxsym.exe', stdin=PIPE, universal_newlines=True)
+                print('successfully compiled TAXSYM.f90')
+            elif sys.platform.startswith('linux'):
+                p = Popen('gfortran TAXSYM.f90 -o taxsym.out', stdin=PIPE, universal_newlines=True)
+                print('successfully compiled TAXSYM.f90')
+            else:
+                raise AssertionError('Platform neither windows nor linux.')
+        except:
+            print('failed to compile TAXSYM.f90')
+        os.chdir('../..')
+        install.run(self)
 
 setup(
     name="SMUTHI",
-    version="0.1.1",
+    version="0.1.2",
     author="Amos Egel",
     author_email="amos.egel@kit.edu",
     url='https://gitlab.com/AmosEgel/smuthi',
@@ -18,5 +44,8 @@ setup(
     packages=['smuthi'],
     install_requires=['numpy', 'scipy', 'sympy', 'matplotlib', 'pyyaml', 'argparse'],
     entry_points={'console_scripts': ['smuthi = smuthi.__main__:main']},
-    license='MIT'
+    license='MIT',
+    cmdclass={'install': CustomInstallCommand}
 )
+
+os.chdir(original_path)
