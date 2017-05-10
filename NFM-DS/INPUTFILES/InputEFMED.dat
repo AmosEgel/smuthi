@@ -1,0 +1,60 @@
+OptProp 
+ 0.810810810 
+ 1.0                  
+(1.8,0.05)         	                                      
+Variables:
+- wavelength - wavelength of the incident light in vacuo.
+- ind_refMed - refractive index of the ambient medium.
+- ind_refRel - relative refractive index of the spherical 
+               particles with respect to the ambient medium. 
+
+                                            
+TmatPart 
+ 2.5
+ 0.01
+ 0.063846154
+ 1.0             
+ 0.2                    
+ 100
+ .false.
+ .true.                       
+Variables:
+- xmax - maximum size parameter.
+- xmin - minimum size parameter.
+- dx   - size parameter step
+- e    - eccentricity of the spheroidal particles.
+- c    - volume concentration.
+- Nint - number of integration points on the particle surface.
+- RandomOrientation - if true, the spheroidal particle is randomly 
+                      oriented.
+- ComputeQCA        - if true, the QCA and QCA-CP are used to compute the
+                      effective wave number for spherical particles.
+NOTE: FOR SPHERICAL PARTICLES, SET RandomOrientation = f, AND FOR
+NONSPHERICAL PARTICLES; SET ComputeQCA = f.
+
+
+AlgProp  
+ 180                     
+ 3                       
+ 9		                             
+ 1.e-8                  
+ 1.e-8                   
+ 100                     
+Variables:
+- Nbeta - number of integration points for computing the elements of
+          the averaged translation matrices.
+- p     - determines the numbers of discretization points for computing the 
+          pair distribution function by sintransform.
+- pN    - determines the numbers of discretization points for computing the 
+          pair distribution function by sintransform.
+- epsX  - tollerance specifying the accuracy of root computation.
+- epsY  - tollerance specifying the accuracy of root computation.
+- Niter - maximum number of iterations for Mueller's method.
+
+
+Comment 
+As provided, the file InputEFMED.dat is setup to calculate the effective
+wave number for spherical particles with a size parameter ranging
+from 0.01 to 2.5 in steps of 0.063846154. The relative refractive index 
+of the spherical particles with respect to the ambient medium is
+(1.8,0.05). The results are written to the file '../OUTPUTFILES/Output.dat'.

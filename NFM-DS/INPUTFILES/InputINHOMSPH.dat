@@ -1,0 +1,110 @@
+OptProp          
+ 0.628318530717959
+ 1.0           
+ 1.2 
+Variables:
+- wavelength - wavelength of the incident light in vacuo.
+- ind_refMed - refractive index of the ambient medium
+- ind_refRel - relative refractive index of the host particle 
+               with respect to the ambient medium.          
+				                             
+
+GeomPropHost     
+ 1.0               
+ 1.0              
+Variables:
+- r     - radius of the host sphere.
+- anorm - characteristic length of the host particle which is used to 
+          normalize the differential scattering cross sections.
+
+
+TmatIncl         
+'../TMATFILES/TProlA5B3.dat'
+.true.         
+.false.         
+ 13             
+  5			              
+Variables:
+- FileTmatr - name of the file containing the T matrix of the inclusion.
+- axsym1    - if axsym1 = t, the inclusion is a rotationally symmetric 
+              particle.
+- chiral1   - if chiral1 = t, the inclusion is an optical activ particle. 
+- Nrank1    - the maximum expansion order of the inclusion. 
+- Mrank1    - the maximum azimuthal order of the inclusion.
+
+
+GeomPropIncl     
+  0.0             
+  0.0              
+  0.0              
+ 45.0              
+ 45.0              
+  0.0                 
+Variables:
+- x1      - x-coordinate specifying the position of the inclusion 
+            with respect to the coordinate system of the host particle.
+- y1      - y-coordinate specifying the position of the inclusion.    
+- z1      - z-coordinate specifying the position of the inclusion.    
+- alpha1  - Euler angle specifying the orientation of the inclusion 
+            coordinate system with respect to the coordinate system 
+            of the host particle. 
+- beta1   - Euler angle specifying the orientation of the inclusion. 
+- gamma1  - Euler angle specifying the orientation of the inclusion. 
+
+
+
+ConvTest         
+.true.                 
+.true.      
+Variables:
+- DoConvTest  - if DoConvTest = t, the interactive convergence tests  
+                over Nrank and Mrank are performed. 
+- ExtThetaDom - if ExtThetaDom = t the DSCS is computed for scattering 
+                angles ranging from 0 to 180° in the azimuthal 
+                plane phiGS = 0°, and from 180° to 0° in the azimuthal 
+                plane phiGS = 180°.
+
+
+NrankMrankHost   
+ 20                 
+ 13                 
+Variables:
+- Nrank - maximum expansion order for the host particle.
+- Mrank - maximum azimuthal order for the host particle.
+NOTE: THESE VARIABLES MUST BR PROVIDED IF DoConvTest = f.
+
+Errors           
+ 5.e-2           
+ 5.e-2          
+Variables:
+- epsNrank - error tolerance for the expansion order test.
+- epsMrank - error tolerance for the azimuthal order test.
+
+
+Tmat             
+'../TMATFILES/TmatInhomSphere.dat'
+Variable:
+- FileTmatG - name of the file to which the T matrix of the 
+              inhomogeneous sphere is written.
+
+
+PrintProgress    
+.true.      
+Variable:
+- PrnProgress - if PrnProgress = t, the progress of calculation 
+                is printed. 
+
+
+Comment
+As provided, the input file is setup to calculate scattering by an 
+inhomogeneous sphere with radius  r = 1.0 micrometer, at a wavelength of
+0.2 * Pi micrometer. The T matrix of the inclusion is read from the file 
+FileTmat = '../TMATFILES/TProlA5B3.dat'. The maximum expansion and 
+azimuthal orders of the inclusion are Nrank1 = 13 and Mrank1 = 5. The 
+inclusion is a prolate spheroid with surf(1) = 0.5 micrometer and 
+surf(2) = 0.3 micrometer. The relative refractive index of the host 
+particle is 1.2, while the relative refractive index of the inclusion 
+with respect to the ambient medium is 1.5. The position of the inclusion 
+with respect to the coordinate system of the host sphere is given by 
+x1 = y1 = z1 = 0.0. The Euler angles are alpha1 = beta1 = 45° deg and 
+gamma1 = 0°. Convergence is achieved for Nrank = 20 and Mrank = 13.

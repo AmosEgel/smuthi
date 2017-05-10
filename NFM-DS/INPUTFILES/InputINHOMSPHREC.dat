@@ -1,0 +1,126 @@
+OptProp        
+ 0.628318530717959
+ 1.0           
+ 1.2            
+(1.25,0.0)     
+Variables:
+- wavelength  - wavelength of the incident light in vacuo. 
+- ind_refMed  - refractive index of the ambient medium.  
+- ind_refRel  - relative refractive index of the host particle with 
+                respect to the ambient medium.  
+- ind_refRel1 - relative refractive index of the inclusions with 
+                respect to the host particle.
+
+
+GenProp        
+ 50                  
+  1.0                
+  3                  
+  10000				
+Variables:
+- Npart - number of spherical inclusions.
+- anorm - characteristic length of the host particle which is used to     
+          normalize the differential scattering cross sections.
+- Ncs   - number of concentric spheres.
+- Ntry  - maximum number of calls of the sequential addition method     
+          routine for generating the desired random distribution of 
+          particles.
+
+
+ConvTest       
+.true.        
+.true.        
+Variables:
+- DoConvTest  - if DoConvTest = t, the convergence tests over           
+                NrankCirc(Ncs) and MrankCirc(Ncs) are performed.          
+- ExtThetaDom - if ExtThetaDom = t the DSCS is computed for scattering 
+                angles ranging from 0° to 180° in the azimuthal plane 
+                phiGS = 0°, and from 180° to 0° in the azimuthal plane 
+                phiGS = 180°.
+
+
+TmatPart       
+ 0.03                 
+ 3                    
+ 3                    
+Variables:
+- r     - radius of spherical inclusions.
+- Nrank - maximum expansion order for the inclusions.
+- Mrank - maximum azimuthal order for the inclusions.
+
+
+*** auxiliary sphere 1 ***
+RecProp        
+ 0.22            
+ 6                
+ 4                
+Variables:
+- Rcirc     - radius of the actual auxiliary sphere.               
+- NrankCirc - maximum expansion order corresponding to the actual 
+              auxiliary sphere.                
+- MrankCirc - maximum azimuthal order corresponding to the actual 
+              auxiliary sphere.    
+
+
+*** auxiliary sphere 2 ***
+RecProp        
+ 0.27
+ 6
+ 4                
+Variables:
+- Rcirc               
+- NrankCirc                 
+- MrankCirc 
+
+			           
+*** auxiliary sphere 3 ***          
+RecProp        
+ 0.35
+ 8
+ 5                
+Variables:
+- Rcirc               
+- NrankCirc                 
+- MrankCirc 
+! *** end auxiliary spheres parameters *** 
+
+
+Errors         
+ 5.e-2             
+ 5.e-2             
+Variables:
+- epsNrank - error tolerance for the expansion order test.
+- epsMrank - error tolerance for the azimuthal order test.
+
+            
+Tmat           
+'../TMATFILES/TmatInhomSphereRec.dat'
+Variable:
+- FileTmat  - name of the file to which the T matrix of the 
+              inhomogeneous spherical particle is written. 
+
+  
+PrintProgress  
+.true.         
+Variable:
+- PrnProgress - if PrnProgress = t, the progress of calculation 
+                is printed.
+
+
+Comment
+As provided, the input file is setup to calculate scattering by an 
+inhomogeneous sphere with radius Rcirc = 0.35 micrometer, at a wavelength 
+of 0.2 * Pi micrometer. The inclusions are spheres with radius r = 0.03 
+micrometer. The number of spherical inclusions is Npart = 50, while the 
+maximum expansion and azimuthal orders of the inclusion are Nrank = 3 and 
+Mrank = 3. Three auxiliary surfaces of radii 0.22, 0.27 and 0.35 micrometer 
+are considered.
+
+
+
+
+
+
+
+
+

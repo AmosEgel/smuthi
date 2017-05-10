@@ -1,0 +1,139 @@
+
+  Input Parameters of the Scattering Problem:
+
+  wavelength of the free space, wavelength =    5.5000E+02;
+  refractive index of the ambient medium, ind_refMed =  1.000E+00;
+  relative refractive index of the particle, ind_refRel = ( 2.500E+00, 0.000E+00);
+
+  index of the particle geometry, TypeGeom =  1;
+  spheroid;
+  number of surface parameters, Nsurf =  2;
+  surface parameters:
+  surf( 1) =  8.000E+01,
+  surf( 2) =  1.400E+02,
+  where surf(1) is the semi-axis along the symmetry axis,
+  and   surf(2) is the second semi-axis;
+  number of integration surfaces, Nparam =  1;
+  characteristic length of the particle, anorm =  1.000E+00;
+  radius of the circumscribing sphere, Rcirc =  1.000E+00;
+
+  dielectric particle;
+
+  computation with distributed sources;
+  the sources are generated automatically;
+
+  z - coordinates of the sources:
+  first configuration:
+  zRe(  1) =  0.000E+00, zIm(  1) = -1.330E+02,
+  zRe(  2) =  0.000E+00, zIm(  2) = -6.650E+01,
+  zRe(  3) =  0.000E+00, zIm(  3) =  0.000E+00,
+  zRe(  4) =  0.000E+00, zIm(  4) =  6.650E+01,
+  zRe(  5) =  0.000E+00, zIm(  5) =  1.330E+02;
+
+  integration tolerance, epsNint =  5.000E-02;
+  maximum expansion order tolerance, epsNrank =  5.000E-02;
+  maximum azimuthal order tolerance, epsMrank =  1.000E-02;
+  integration step, dNint =   4.
+  integration step for Mrank calculation, dNintMrank =  50.
+
+
+     --- Convergence Test over Mrank ---
+
+           Nint =   200, Nrank =   5
+
+                  m =   0
+
+ normalized differential scattering cross section
+
+  theta         parallel        perpendicular
+
+   0.00        5.4326E+02        5.4326E+02
+  20.00        1.2665E+02        6.0907E+02
+  40.00        1.2775E+01        6.2480E+02
+  60.00        3.0602E+02        5.8261E+02
+  80.00        7.4724E+02        5.0280E+02
+ 100.00        1.0228E+03        4.1686E+02
+ 120.00        1.0325E+03        3.4707E+02
+ 140.00        8.4365E+02        3.0067E+02
+ 160.00        5.5756E+02        2.7520E+02
+ 180.00        2.6446E+02        2.6446E+02
+
+
+                  m =   1
+
+ normalized differential scattering cross section
+
+  theta         parallel        perpendicular
+
+   0.00        8.1736E+03        8.1736E+03
+  20.00        7.7769E+03        7.7442E+03
+  40.00        6.6979E+03        6.2511E+03
+  60.00        5.4858E+03        4.1903E+03
+  80.00        4.4456E+03        2.2652E+03
+ 100.00        3.5732E+03        9.6131E+02
+ 120.00        2.7738E+03        3.8834E+02
+ 140.00        2.0075E+03        3.8502E+02
+ 160.00        1.3196E+03        6.4413E+02
+ 180.00        8.0449E+02        8.0449E+02
+
+
+                  m =   2
+
+ normalized differential scattering cross section
+
+  theta         parallel        perpendicular
+
+   0.00        8.7063E+03        8.7063E+03
+  20.00        8.3826E+03        7.8747E+03
+  40.00        7.0509E+03        5.9772E+03
+  60.00        5.5472E+03        3.6953E+03
+  80.00        4.4308E+03        1.7644E+03
+ 100.00        3.6576E+03        5.7193E+02
+ 120.00        2.9532E+03        1.2847E+02
+ 140.00        2.1772E+03        2.3099E+02
+ 160.00        1.3932E+03        5.6574E+02
+ 180.00        7.7365E+02        7.7365E+02
+
+
+                  m =   3
+
+ normalized differential scattering cross section
+
+  theta         parallel        perpendicular
+
+   0.00        8.7196E+03        8.7196E+03
+  20.00        8.3948E+03        7.8715E+03
+  40.00        7.0503E+03        5.9685E+03
+  60.00        5.5454E+03        3.6925E+03
+  80.00        4.4362E+03        1.7688E+03
+ 100.00        3.6595E+03        5.8024E+02
+ 120.00        2.9442E+03        1.3827E+02
+ 140.00        2.1654E+03        2.4072E+02
+ 160.00        1.3890E+03        5.7308E+02
+ 180.00        7.7661E+02        7.7661E+02
+
+
+                  m =   4
+
+ normalized differential scattering cross section
+
+  theta         parallel        perpendicular
+
+   0.00        8.7199E+03        8.7199E+03
+  20.00        8.3950E+03        7.8713E+03
+  40.00        7.0502E+03        5.9685E+03
+  60.00        5.5454E+03        3.6926E+03
+  80.00        4.4360E+03        1.7690E+03
+ 100.00        3.6592E+03        5.8022E+02
+ 120.00        2.9443E+03        1.3809E+02
+ 140.00        2.1657E+03        2.4044E+02
+ 160.00        1.3891E+03        5.7284E+02
+ 180.00        7.7653E+02        7.7653E+02
+
+
+      scattering efficiency =    7.5957E+04
+      extinction efficiency =    7.5956E+04
+
+ --- the solution converges in 10 points ---
+ --- with an relative error of  1.00 %    ---
+
