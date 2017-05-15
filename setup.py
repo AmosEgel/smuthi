@@ -4,7 +4,7 @@ from setuptools import setup
 from setuptools.command.install import install
 import os
 import sys
-from subprocess import Popen, PIPE
+import subprocess
 
 # chdir to smuthi project folder
 smuthi_folder_path = os.path.normpath(os.path.dirname(os.path.realpath(__file__)))
@@ -21,10 +21,10 @@ class CustomInstallCommand(install):
         os.chdir('NFM-DS/TMATSOURCES')
         try:
             if sys.platform.startswith('win'):
-                p = Popen('gfortran TAXSYM.f90 -o taxsym.exe', stdin=PIPE, universal_newlines=True)
+                subprocess.call(['gfortran', 'TAXSYM.f90', '-o',  'taxsym.exe'])
                 print('successfully compiled TAXSYM.f90')
             elif sys.platform.startswith('linux'):
-                p = Popen('gfortran TAXSYM.f90 -o taxsym.out', stdin=PIPE, universal_newlines=True)
+                subprocess.call(['gfortran', 'TAXSYM.f90', '-o', 'taxsym.out'])
                 print('successfully compiled TAXSYM.f90')
             else:
                 raise AssertionError('Platform neither windows nor linux.')

@@ -46,13 +46,12 @@ def taxsym_run():
     smuthi_folder_path = os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + '/../')
     original_path = os.getcwd()
     os.chdir(smuthi_folder_path)
-
-    with open('NFM-DS/nfmds.log', 'w') as nfmds_log:
+    with open(smuthi_folder_path + '/NFM-DS/nfmds.log', 'w') as nfmds_log:
         os.chdir('NFM-DS/TMATSOURCES')
         if sys.platform.startswith('win'):
-            subprocess.run('taxsym.exe', stdout=nfmds_log)
+            subprocess.call(os.getcwd() + '/taxsym.exe', stdout=nfmds_log)
         elif sys.platform.startswith('linux'):
-            subprocess.run('taxsym.out', stdout=nfmds_log)
+            subprocess.call(os.getcwd() + '/taxsym.out', stdout=nfmds_log)
         else:
             raise AssertionError('Platform neither windows nor linux.')
     os.chdir(original_path)
