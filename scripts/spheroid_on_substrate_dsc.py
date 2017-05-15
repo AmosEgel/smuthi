@@ -29,7 +29,7 @@ dsc_polar_angles = np.linspace(0, 89, 90) * np.pi / 180
 dsc_azimuthal_angles = [0, np.pi / 2]
 
 lmax = 10
-neff_max = 7
+neff_max = 2
 dneff = 1e-2
 nrank = 10
 # --------------------------------------------
@@ -67,7 +67,24 @@ scs = pp.scattering_cross_section(initial_field_collection=simulation.initial_fi
                                   linear_system=simulation.linear_system,
                                   layer_system=simulation.layer_system)
 
+
+# compare to DSC results:
+dsc00_data = np.loadtxt('data/DSC00.dat', skiprows=2)
+ind_sel = (dsc00_data[:, 0] >= 0)
+
 plt.figure()
-plt.semilogy(scs['polar angles'] * 180 / np.pi, scs['differential'][0, :, 0] + scs['differential'][1, :, 0])
-plt.semilogy(scs['polar angles'] * 180 / np.pi, scs['differential'][0, :, 1] + scs['differential'][1, :, 1])
+plt.semilogy(scs['polar angles'] * 180 / np.pi, scs['differential'][0, :, 0] + scs['differential'][1, :, 0],
+             label='TE, smuthi')
+plt.semilogy(scs['polar angles'] * 180 / np.pi, scs['differential'][0, :, 1] + scs['differential'][1, :, 1],
+             label='TM, smuthi')
+
+plt.semilogy(dsc00_data[ind_sel, 0], dsc00_data[ind_sel, 1], '.', label='TE, DS')
+plt.semilogy(dsc00_data[ind_sel, 0], dsc00_data[ind_sel, 2], '.', label='TM, DS')
+plt.legend()
+
+plt.xlabel('polar angle (degree)')
+plt.ylabel('DCS in micron^2')
+plt.title('Dielectric spheroid (n=1.6) on dielectric substrate (n=1.52)')
+
+
 plt.show()
