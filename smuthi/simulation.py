@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 class Simulation:
     def __init__(self, layer_system=None, particle_collection=None, initial_field_collection=None, linear_system=None,
-                 wr_neff_contour=None, post_processing=None, tmatrix_method=None):
+                 wr_neff_contour=None, post_processing=None, tmatrix_method=None, length_unit='length unit'):
         """Initialize
 
         input:
@@ -35,7 +35,6 @@ class Simulation:
         if tmatrix_method is None:
             tmatrix_method = {}
 
-
         self.layer_system = layer_system
         self.particle_collection = particle_collection
         self.initial_field_collection = initial_field_collection
@@ -43,6 +42,7 @@ class Simulation:
         self.wr_neff_contour = wr_neff_contour
         self.post_processing = post_processing
         self.tmatrix_method = tmatrix_method
+        self.length_unit = length_unit
 
     def run(self):
         clear_console()

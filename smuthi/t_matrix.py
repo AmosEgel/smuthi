@@ -96,7 +96,7 @@ def rotate_t_matrix(t, euler_angles):
         raise ValueError('Non-trivial rotation not yet implemented')
 
 
-def t_matrix_collection(vacuum_wavelength, particle_collection, layer_system, method):
+def t_matrix_collection(vacuum_wavelength, particle_collection, layer_system, method=None):
     """Return the T-matrices for all particles as a numpy.ndarray, in the format (NS, blocksize, blocksize) where NS is
     the number of particles and blocksize is the number of SWE terms per particle.
 
