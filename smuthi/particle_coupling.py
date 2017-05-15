@@ -183,58 +183,59 @@ def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system)
     # direct coupling inside each layer
     pos_array = np.array(particle_collection.particle_positions())
     for i_layer in range(layer_system.number_of_layers()):
+        if len(particle_layer_indices[i_layer]) > 1:
 
-        k = omega * layer_system.refractive_indices[i_layer]
+            k = omega * layer_system.refractive_indices[i_layer]
 
-        # coordinates
-        x = pos_array[particle_layer_indices[i_layer], 0]
-        y = pos_array[particle_layer_indices[i_layer], 1]
-        z = pos_array[particle_layer_indices[i_layer], 2]
-        dx = x[:, np.newaxis] - x[np.newaxis, :]
-        dy = y[:, np.newaxis] - y[np.newaxis, :]
-        dz = z[:, np.newaxis] - z[np.newaxis, :]
-        d = np.sqrt(dx**2 + dy**2 + dz**2)
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="invalid value encountered in true_divide")
-            cos_theta = dz / d
-            sin_theta = np.sqrt(dx**2 + dy**2) / d
-        phi = np.arctan2(dy, dx)
+            # coordinates
+            x = pos_array[particle_layer_indices[i_layer], 0]
+            y = pos_array[particle_layer_indices[i_layer], 1]
+            z = pos_array[particle_layer_indices[i_layer], 2]
+            dx = x[:, np.newaxis] - x[np.newaxis, :]
+            dy = y[:, np.newaxis] - y[np.newaxis, :]
+            dz = z[:, np.newaxis] - z[np.newaxis, :]
+            d = np.sqrt(dx**2 + dy**2 + dz**2)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="invalid value encountered in true_divide")
+                cos_theta = dz / d
+                sin_theta = np.sqrt(dx**2 + dy**2) / d
+            phi = np.arctan2(dy, dx)
 
-        npart_layer = len(x)
-        w_layer = np.zeros((npart_layer, blocksize, npart_layer, blocksize), dtype=complex)
-        # indices: receiv. part., receiv. idx, emit. part., emit. idx
+            npart_layer = len(x)
+            w_layer = np.zeros((npart_layer, blocksize, npart_layer, blocksize), dtype=complex)
+            # indices: receiv. part., receiv. idx, emit. part., emit. idx
 
-        # spherical functions
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="Casting complex values to real discards the imaginary part")
-            bessel_h = [sf.spherical_hankel(n, k * d) for n in range(2 * lmax + 1)]
-        legendre, _, _ = sf.legendre_normalized(cos_theta, sin_theta, 2 * lmax)
+            # spherical functions
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="Casting complex values to real discards the imaginary part")
+                bessel_h = [sf.spherical_hankel(n, k * d) for n in range(2 * lmax + 1)]
+            legendre, _, _ = sf.legendre_normalized(cos_theta, sin_theta, 2 * lmax)
 
-        for m1 in range(-mmax, mmax + 1):
-            for m2 in range(-mmax, mmax + 1):
-                eimph = np.exp(1j * (m1 - m2) * phi)
-                for l1 in range(max(1, abs(m1)), lmax + 1):
-                    for l2 in range(max(1, abs(m2)), lmax + 1):
-                        A, B = complex(0), complex(0)
-                        for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
-                            a5, b5 = vwf.ab5_coefficients(l1, m1, l2, m2, ld)
-                            A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
-                            B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
-                        A, B = eimph * A, eimph * B
-                        for tau1 in range(2):
-                            n1 = idx.multi_to_single_index(tau1, l1, m1)
-                            for tau2 in range(2):
-                                n2 = idx.multi_to_single_index(tau2, l2, m2)
-                                if tau1 == tau2:
-                                    w_layer[:, n2, :, n1] = A  # remember that w = A.T
-                                else:
-                                    w_layer[:, n2, :, n1] = B
+            for m1 in range(-mmax, mmax + 1):
+                for m2 in range(-mmax, mmax + 1):
+                    eimph = np.exp(1j * (m1 - m2) * phi)
+                    for l1 in range(max(1, abs(m1)), lmax + 1):
+                        for l2 in range(max(1, abs(m2)), lmax + 1):
+                            A, B = complex(0), complex(0)
+                            for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
+                                a5, b5 = vwf.ab5_coefficients(l1, m1, l2, m2, ld)
+                                A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
+                                B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
+                            A, B = eimph * A, eimph * B
+                            for tau1 in range(2):
+                                n1 = idx.multi_to_single_index(tau1, l1, m1)
+                                for tau2 in range(2):
+                                    n2 = idx.multi_to_single_index(tau2, l2, m2)
+                                    if tau1 == tau2:
+                                        w_layer[:, n2, :, n1] = A  # remember that w = A.T
+                                    else:
+                                        w_layer[:, n2, :, n1] = B
 
-        for i1 in range(npart_layer):
-            for i2 in range(npart_layer):
-                if not i1 == i2:
-                    s1 = particle_layer_indices[i_layer][i1]
-                    s2 = particle_layer_indices[i_layer][i2]
-                    w[s1, :, s2, :] = w_layer[i1, :, i2, :]
+            for i1 in range(npart_layer):
+                for i2 in range(npart_layer):
+                    if not i1 == i2:
+                        s1 = particle_layer_indices[i_layer][i1]
+                        s2 = particle_layer_indices[i_layer][i2]
+                        w[s1, :, s2, :] = w_layer[i1, :, i2, :]
 
     return w
