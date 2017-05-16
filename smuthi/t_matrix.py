@@ -3,7 +3,7 @@
 import numpy as np
 import smuthi.spherical_functions
 import smuthi.index_conversion
-import smuthi.nfmds_wrappers as nf_wrp
+import smuthi.nfmds.wrappers as nf_wrp
 
 
 def mie_coefficient(tau, l, k_medium, k_particle, radius):
