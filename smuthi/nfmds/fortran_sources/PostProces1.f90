@@ -387,7 +387,12 @@ subroutine readinputSCT ( CompleteFile, wavelength, k, FileTmat, Nrank, Mrank,  
     end if
     k = 2._O * Pi / wavelength
 !
-    FileTmat = '../TMATFILES/T.dat'
+! The following lines were removed from the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>
+!    FileTmat = '../TMATFILES/T.dat'
+!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    FileTmat = 'smuthi/nfmds/data/T.dat'
+!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     Nrank  = 7
     Mrank  = 4  
     axsym  = .true.
@@ -465,7 +470,12 @@ subroutine readinputSCT ( CompleteFile, wavelength, k, FileTmat, Nrank, Mrank,  
   NthetaGS     = 91 
   ExtThetaDom  = .true. 
   normalized   = .true.   
-  FileDSCS     = '../OUTPUTFILES/dscs.dat'
+! The following lines were removed from the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>
+!    FileDSCS     = '../OUTPUTFILES/dscs.dat'
+!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    FileDSCS     = 'smuthi/nfmds/data/dscs.dat'
+!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   ComputeScatPar = .true.
   NthetaRND    = 1
   thetaminRND  = 0._O 
@@ -477,7 +487,12 @@ subroutine readinputSCT ( CompleteFile, wavelength, k, FileTmat, Nrank, Mrank,  
     thetamin(iphi) = 0._O
     thetamax(iphi) = 0._O  
   end do      
-  FileScat = '../OUTPUTFILES/scat.dat'
+! The following lines were removed from the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>
+!    FileScat = '../OUTPUTFILES/scat.dat'
+!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    FileScat = 'smuthi/nfmds/data/scat.dat'
+!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  
   Nelem         =  6
   MatrixElem(1) = 11
   MatrixElem(2) = 11
@@ -2299,8 +2314,14 @@ subroutine readinputPARTSUB1 ( beta, alphap, ComputeDSCS, ComputeFields, NthetaG
     thetamax(iphi) = 0._O  
   end do 
   normalized = .true.
-  FileDSCS   = '../OUTPUTFILES/DSCSpartsub.dat'
-  FileEMF    = '../OUTPUTFILES/EMFields.dat'
+! The following lines were removed from the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>
+!  FileDSCS   = '../OUTPUTFILES/DSCSpartsub.dat'
+!  FileEMF    = '../OUTPUTFILES/EMFields.dat'
+!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  FileDSCS   = 'smuthi/nfmds/data/DSCSpartsub.dat'
+  FileEMF    = 'smuthi/nfmds/data/EMFields.dat'
+!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  
   WriteInputInfo = .true.
   string     = 'DSCSEM'
   if (XFindPar (iInputPARTSUB, string)) then

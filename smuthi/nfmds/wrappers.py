@@ -43,9 +43,8 @@ def taxsym_tmatrix_spheroid(vacuum_wavelength=None, layer_refractive_index=None,
 
 def taxsym_run():
     """Call TAXSYM.f90 routine."""
-
     smuthi.nfmds.taxsym.taxsym()
-
+    
     
 def taxsym_write_input_spheroid(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
                                 semi_axis_c=None, semi_axis_a=None, use_ds=True, nint=None, nrank=None,
@@ -94,7 +93,7 @@ def taxsym_write_input_spheroid(vacuum_wavelength=None, layer_refractive_index=N
     f.write('\n')
     f.write('GeomProp\n')
     f.write('.false.\n')
-    f.write("'../GEOMFILES/prolate.fem'\n")
+    f.write("'smuthi/nfmds/data/prolate.fem'\n")
     f.write('1\n')                          # TypeGeom = 1 for spheroid
     f.write('2\n')                          # Nsurf = 2 for spheroid
     f.write(str(float(semi_axis_c)) + '\n')        # half-height of spheroid
