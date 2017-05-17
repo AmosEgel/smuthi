@@ -1,4 +1,4 @@
-  The T matrix is stored in the filesmuthi/nfmds/data/T_matrix_spheroid.dat                
+  The T matrix is stored in the filedata/T_matrix_spheroid.dat                
   The scatterer is an axisymmetric particle.
   The dimensions of the T matrix are given by:
   - maximum expansion order,   Nrank =   5,

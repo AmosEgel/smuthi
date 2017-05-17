@@ -3,7 +3,7 @@
 import numpy as np
 import smuthi.spherical_functions
 import smuthi.index_conversion
-import smuthi.nfmds.wrappers as nf_wrp
+import smuthi.nfmds.t_matrix_axsym as nftaxs
 
 
 def mie_coefficient(tau, l, k_medium, k_particle, radius):
@@ -76,7 +76,7 @@ def t_matrix(vacuum_wavelength, n_medium, particle, method={}):
     elif particle['shape'] == 'spheroid':
         if not particle['euler angles'] == [0, 0, 0]:
             raise ValueError('T-matrix for rotated particles currently not implemented.')
-        t = nf_wrp.taxsym_tmatrix_spheroid(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=n_medium,
+        t = nftaxs.taxsym_tmatrix_spheroid(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=n_medium,
                                            particle_refractive_index=particle['refractive index'],
                                            semi_axis_c=particle['semi axis c'], semi_axis_a=particle['semi axis a'],
                                            use_ds=method.get('use discrete sources', True),

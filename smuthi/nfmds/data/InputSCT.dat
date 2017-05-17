@@ -90,7 +90,7 @@ CompletePDF - DSCS
 (1.0,0.0)         
  0.0                               
 .true.          
-'smuthi/nfmds/data/DscsRandom.dat'     			   
+'data/DscsRandom.dat'     			   
 Variables:
 - ComputeDSCS - if ComputeDSCS = t, the average differential scattering 
                 cross sections are computed in the azimuthal plane phiGS.
@@ -114,7 +114,7 @@ CompletePDF - ScatPars
  91
   0.0
 180.0  
-'smuthi/nfmds/data/ScatRandom.dat'
+'data/ScatRandom.dat'
  10
  11
  22
@@ -226,7 +226,7 @@ IncompletePDF - DSCS
 181             
 .false.         
 .true.          
-'smuthi/nfmds/data/Dscs.dat'     			   
+'data/Dscs.dat'     			   
 Variables:
 - ComputeDSCS - if ComputeDSCS = t, the average differential scattering 
                 cross sections are computed in the azimuthal plane phiGS.
@@ -258,7 +258,7 @@ IncompletePDF - ScatPars
   3 
  30.0
 150.0
-'smuthi/nfmds/data/Scat.dat'
+'data/Scat.dat'
  10
  11
  22

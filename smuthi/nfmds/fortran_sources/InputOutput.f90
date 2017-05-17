@@ -553,8 +553,8 @@ subroutine write_InfoFileTmat (FileTmat, Mrank, Nrank, axsym, sphere, chiral)
 !  FileTmatInfo = '../TMATFILES/Info' // FileTmatRoot(1:LenString(FileTmatRoot))
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 ! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  FileTmatRoot = FileTmat(19:LenString(FileTmat))
-  FileTmatInfo = 'smuthi/nfmds/data/Info' // FileTmatRoot(1:LenString(FileTmatRoot))
+  FileTmatRoot = FileTmat(6:LenString(FileTmat))
+  FileTmatInfo = 'data/Info' // FileTmatRoot(1:LenString(FileTmatRoot))
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   
   open (unit = iTmatInfo, file = FileTmatInfo, status = 'replace')      

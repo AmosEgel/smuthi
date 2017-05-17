@@ -18,7 +18,7 @@ MatProp
 
 GeomProp
 .false.
-'smuthi/nfmds/data/prolate.fem'
+'data/prolate.fem'
 1
 2
 80.0
@@ -106,12 +106,12 @@ Errors
                 calculation.
 
 Tmat
-'smuthi/nfmds/data/T_matrix_spheroid.dat'
+'data/T_matrix_spheroid.dat'
  Variable:
  - FileTmat - name of the file to which the T matrix is written.  
 
 PrintProgress
-.true.
+.false.
  Variable:
  - PrnProgress - if PrnProgress = t, the progress of calculation 
                  is printed. 

@@ -82,31 +82,31 @@ module parameters
 !                FileInputSCTAVRGSPH  = "../INPUTFILES/InputSCTAVRGSPH.dat"
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 ! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                FileOutput           = "smuthi/nfmds/data/Output.dat",             &
-                FileInput            = "smuthi/nfmds/data/Input.dat",                    &
-                FileInputAXSYM       = "smuthi/nfmds/data/InputAXSYM.dat",               &
-                FileInputNONAXSYM    = "smuthi/nfmds/data/InputNONAXSYM.dat",                &
-                FileInputNONAXSYMFEM = "smuthi/nfmds/data/InputNONAXSYMFEM.dat",             &
-                FileInputCOMP        = "smuthi/nfmds/data/InputCOMP.dat",                    &
-                FileInputLAY         = "smuthi/nfmds/data/InputLAY.dat",                     &
+                FileOutput           = "data/Output.dat",             &
+                FileInput            = "data/Input.dat",                    &
+                FileInputAXSYM       = "data/InputAXSYM.dat",               &
+                FileInputNONAXSYM    = "data/InputNONAXSYM.dat",                &
+                FileInputNONAXSYMFEM = "data/InputNONAXSYMFEM.dat",             &
+                FileInputCOMP        = "data/InputCOMP.dat",                    &
+                FileInputLAY         = "data/InputLAY.dat",                     &
 !
-                FileInputINHOM       = "smuthi/nfmds/data/InputINHOM.dat",                   &
-                FileInputINHOM2SPH   = "smuthi/nfmds/data/InputINHOM2SPH.dat",               & 
-                FileInputINHOMSPH    = "smuthi/nfmds/data/InputINHOMSPH.dat" ,               &
-                FileInputINHOMSPHREC = "smuthi/nfmds/data/InputINHOMSPHREC.dat",             &
+                FileInputINHOM       = "data/InputINHOM.dat",                   &
+                FileInputINHOM2SPH   = "data/InputINHOM2SPH.dat",               & 
+                FileInputINHOMSPH    = "data/InputINHOMSPH.dat" ,               &
+                FileInputINHOMSPHREC = "data/InputINHOMSPHREC.dat",             &
 !               			
-                FileInputMULT        = "smuthi/nfmds/data/InputMULT.dat",                    &
-                FileInputMULT2SPH    = "smuthi/nfmds/data/InputMULT2SPH.dat" ,               &
-                FileInputMULTSPH     = "smuthi/nfmds/data/InputMULTSPH.dat",                 &
-                FileInputMULTSPHREC  = "smuthi/nfmds/data/InputMULTSPHREC.dat",              &
+                FileInputMULT        = "data/InputMULT.dat",                    &
+                FileInputMULT2SPH    = "data/InputMULT2SPH.dat" ,               &
+                FileInputMULTSPH     = "data/InputMULTSPH.dat",                 &
+                FileInputMULTSPHREC  = "data/InputMULTSPHREC.dat",              &
 !               									
-                FileInputSPHERE      = "smuthi/nfmds/data/InputSPHERE.dat",                  &
-                FileInputPARTSUB     = "smuthi/nfmds/data/InputPARTSUB.dat",                 &
-                FileInputANIS        = "smuthi/nfmds/data/InputANIS.dat",                    &
-                FileInputEFMED       = "smuthi/nfmds/data/InputEFMED.dat",                   &
+                FileInputSPHERE      = "data/InputSPHERE.dat",                  &
+                FileInputPARTSUB     = "data/InputPARTSUB.dat",                 &
+                FileInputANIS        = "data/InputANIS.dat",                    &
+                FileInputEFMED       = "data/InputEFMED.dat",                   &
 !
-                FileInputSCT         = "smuthi/nfmds/data/InputSCT.dat",                     &
-                FileInputSCTAVRGSPH  = "smuthi/nfmds/data/InputSCTAVRGSPH.dat"
+                FileInputSCT         = "data/InputSCT.dat",                     &
+                FileInputSCTAVRGSPH  = "data/InputSCTAVRGSPH.dat"
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 !
 ! The following lines were removed from the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -115,9 +115,9 @@ module parameters
 !                             PathGEOM   = "../GEOMFILES/"                       
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 ! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  character(15),parameter :: PathOUTPUT = "smuthi/nfmds/data/",                          &
-                             PathTEMP   = "smuthi/nfmds/temp/",                          &
-                             PathGEOM   = "smuthi/nfmds/data/"
+  character(15),parameter :: PathOUTPUT = "data/",                          &
+                             PathTEMP   = "temp/",                          &
+                             PathGEOM   = "data/"
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<							 
 end module parameters
 ! **************************************************************************************

@@ -391,7 +391,7 @@ subroutine readinputSCT ( CompleteFile, wavelength, k, FileTmat, Nrank, Mrank,  
 !    FileTmat = '../TMATFILES/T.dat'
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 ! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    FileTmat = 'smuthi/nfmds/data/T.dat'
+    FileTmat = 'data/T.dat'
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     Nrank  = 7
     Mrank  = 4  
@@ -474,7 +474,7 @@ subroutine readinputSCT ( CompleteFile, wavelength, k, FileTmat, Nrank, Mrank,  
 !    FileDSCS     = '../OUTPUTFILES/dscs.dat'
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 ! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    FileDSCS     = 'smuthi/nfmds/data/dscs.dat'
+    FileDSCS     = 'data/dscs.dat'
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   ComputeScatPar = .true.
   NthetaRND    = 1
@@ -491,7 +491,7 @@ subroutine readinputSCT ( CompleteFile, wavelength, k, FileTmat, Nrank, Mrank,  
 !    FileScat = '../OUTPUTFILES/scat.dat'
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 ! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    FileScat = 'smuthi/nfmds/data/scat.dat'
+    FileScat = 'data/scat.dat'
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  
   Nelem         =  6
   MatrixElem(1) = 11
@@ -2319,8 +2319,8 @@ subroutine readinputPARTSUB1 ( beta, alphap, ComputeDSCS, ComputeFields, NthetaG
 !  FileEMF    = '../OUTPUTFILES/EMFields.dat'
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 ! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  FileDSCS   = 'smuthi/nfmds/data/DSCSpartsub.dat'
-  FileEMF    = 'smuthi/nfmds/data/EMFields.dat'
+  FileDSCS   = 'data/DSCSpartsub.dat'
+  FileEMF    = 'data/EMFields.dat'
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  
   WriteInputInfo = .true.
   string     = 'DSCSEM'
