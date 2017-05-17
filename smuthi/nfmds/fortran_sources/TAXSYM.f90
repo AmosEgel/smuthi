@@ -39,7 +39,6 @@ include 'TMULTSPHREC.f90'
 include 'TNONAXSYM.f90'
 include 'TPARTSUB.f90'
 include 'TSPHERE.f90'
-
 subroutine TAXSYM
 !------------------------------------------------------------------------------------
 ! 1. General Considerations                                                         !
@@ -678,58 +677,58 @@ subroutine TAXSYM
   if (.not. DS) then
     if (DoConvTest) then                      
       if (MishConvTest) then                         
-        print "(/,2x, a)",                                                          &
-       'Estimates of Nint and Nrank Using Mishchenko''s Convergence Procedure' 
-        print "(  2x, a)",                                                          &
-       '---------------------------------------------------------------------'                                         
+! this line was removed from the original file:        print "(/,2x, a)",                                                          &
+! this line was removed from the original file:       'Estimates of Nint and Nrank Using Mishchenko''s Convergence Procedure' 
+! this line was removed from the original file:        print "(  2x, a)",                                                          &
+! this line was removed from the original file:       '---------------------------------------------------------------------'                                         
         call estimateNrankMishchenko (TypeGeom, k, ind_refRel, Nsurf, surf,         &
              zRe, zIm, Nparam, miror, perfectcond, DS, ComplexPlane,                &
              epsZReIm, x, delta, Ndgs, Nint, Nrank, NrankMax, Cscat1, Cext1)
         call estimateNintMishchenko (TypeGeom, k, ind_refRel, Nsurf, surf,          &
              zRe, zIm, Nparam, miror, perfectcond, DS, x, delta, Ndgs, Nint,        &
              dNint, Nrank, NrankMax, Cscat1, Cext1)
-        print "(/,2x,'Convergence Test for an Axisymmetric Particle')"
-        print "(  2x,'---------------------------------------------')"	       
-        print "(/,2x,'- enter the estimated values of Nint and Nrank;')"            
+! this line was removed from the original file:        print "(/,2x,'Convergence Test for an Axisymmetric Particle')"
+! this line was removed from the original file:        print "(  2x,'---------------------------------------------')"	       
+! this line was removed from the original file:        print "(/,2x,'- enter the estimated values of Nint and Nrank;')"            
         call read_integer2 (Nint, Nrank)                                
       else 
-        print "(/,2x,'Convergence Test for an Axisymmetric Particle')"
-        print "(  2x,'---------------------------------------------')"             
-        print "(/,2x,'Nrank estimate:')"                                                            
-        print "(  2x, a, i3, a)",                                                   &  
-       'the estimated value of Nrank from Wiscombe''s criterion is ', NrankW, ';'
+! this line was removed from the original file:        print "(/,2x,'Convergence Test for an Axisymmetric Particle')"
+! this line was removed from the original file:        print "(  2x,'---------------------------------------------')"             
+! this line was removed from the original file:        print "(/,2x,'Nrank estimate:')"                                                            
+! this line was removed from the original file:        print "(  2x, a, i3, a)",                                                   &  
+! this line was removed from the original file:       'the estimated value of Nrank from Wiscombe''s criterion is ', NrankW, ';'
         if (.not. FileGeom) then
-          print "(/,2x, a)",                                                        &
-         '- enter the estimated values of Nint and Nrank, where Nint = Ndgs * Nrank'
-          print "(  2x,'  and Ndgs = 3,4,...;')"
+! this line was removed from the original file:          print "(/,2x, a)",                                                        &
+! this line was removed from the original file:         '- enter the estimated values of Nint and Nrank, where Nint = Ndgs * Nrank'
+! this line was removed from the original file:          print "(  2x,'  and Ndgs = 3,4,...;')"
           call read_integer2 (Nint, Nrank)                                                                      
         else
-          print "(/,2x,'- enter the estimated value of Nrank;')"              
+! this line was removed from the original file:          print "(/,2x,'- enter the estimated value of Nrank;')"              
           call read_integer (Nrank)     
         end if  
       end if
       if (.not. FileGeom) then        
-        print "(/,2x, a)",                                                          &
-       '- enter the type of convergence test: 1 - Nint, 2 - Nrank, 3 - Mrank;' 
+! this line was removed from the original file:        print "(/,2x, a)",                                                          &
+! this line was removed from the original file:       '- enter the type of convergence test: 1 - Nint, 2 - Nrank, 3 - Mrank;' 
         call read_integerbound (TypeConvTest, 1, 3)
       else
-        print "(/,2x,'- enter the type of convergence test: 2 - Nrank, 3 - Mrank;')"
+! this line was removed from the original file:        print "(/,2x,'- enter the type of convergence test: 2 - Nrank, 3 - Mrank;')"
         call read_integerbound (TypeConvTest, 2, 3)
       end if
     else
-      print "(/,2x,'Convergence Test for an Axisymmetric Particle over Mrank')" 
-      print "(  2x,'--------------------------------------------------------')"
-      print "(/,2x,'Input values:')"
+! this line was removed from the original file:      print "(/,2x,'Convergence Test for an Axisymmetric Particle over Mrank')" 
+! this line was removed from the original file:      print "(  2x,'--------------------------------------------------------')"
+! this line was removed from the original file:      print "(/,2x,'Input values:')"
       if (.not. FileGeom) then
-        print "(  2x, a, i4, a, i4, a)",                                            & 
-       'the input values of Nint and Nrank are ', Nint, ' and ', Nrank,             &
-       ', respectively,'  
-        print "(  2x, a, i3, a)",                                                   &
-       'while the estimated value of Nrank from Wiscombe''s criterion is ', NrankW,';'
+! this line was removed from the original file:        print "(  2x, a, i4, a, i4, a)",                                            & 
+! this line was removed from the original file:       'the input values of Nint and Nrank are ', Nint, ' and ', Nrank,             &
+! this line was removed from the original file:       ', respectively,'  
+! this line was removed from the original file:        print "(  2x, a, i3, a)",                                                   &
+! this line was removed from the original file:       'while the estimated value of Nrank from Wiscombe''s criterion is ', NrankW,';'
       else
-        print "(  2x,'the input value of Nrank is ', i4,', while')", Nrank
-        print "(  2x, a, i3, a)",                                                   &
-       'the estimated value of Nrank from Wiscombe''s criterion is ', NrankW, ';' 
+! this line was removed from the original file:        print "(  2x,'the input value of Nrank is ', i4,', while')", Nrank
+! this line was removed from the original file:        print "(  2x, a, i3, a)",                                                   &
+! this line was removed from the original file:       'the estimated value of Nrank from Wiscombe''s criterion is ', NrankW, ';' 
       end if                                                                          
       TypeConvTest = 3      
     end if
@@ -738,35 +737,35 @@ subroutine TAXSYM
     if (autGenDS) then
       if (DoConvTest) then                        
         if (MishConvTest) then           
-          print "(/,2x, a)",                                                        &
-         'Estimates of Nint and Nrank Using Mishchenko''s Convergence Procedure'
-          print "(  2x, a)",                                                        &
-         '---------------------------------------------------------------------'	  	 	 	                    
+! this line was removed from the original file:          print "(/,2x, a)",                                                        &
+! this line was removed from the original file:         'Estimates of Nint and Nrank Using Mishchenko''s Convergence Procedure'
+! this line was removed from the original file:          print "(  2x, a)",                                                        &
+! this line was removed from the original file:         '---------------------------------------------------------------------'	  	 	 	                    
           call estimateNrankMishchenko (TypeGeom, k, ind_refRel, Nsurf, surf,       &
                zRe, zIm, Nparam, miror, perfectcond, DS, ComplexPlane,              &
                epsZReIm, x, delta, Ndgs, Nint, Nrank, NrankMax, Cscat1, Cext1)
           call estimateNintMishchenko (TypeGeom, k, ind_refRel, Nsurf, surf,        &
                zRe, zIm, Nparam, miror, perfectcond, DS, x, delta, Ndgs, Nint,      &
                dNint, Nrank, NrankMax, Cscat1, Cext1)   
-          print "(/,2x,'Convergence Test for an Axisymmetric Particle')"
-          print "(  2x,'---------------------------------------------')"	       
-          print "(/,2x,'- enter the estimated values of Nint and Nrank;')"           
+! this line was removed from the original file:          print "(/,2x,'Convergence Test for an Axisymmetric Particle')"
+! this line was removed from the original file:          print "(  2x,'---------------------------------------------')"	       
+! this line was removed from the original file:          print "(/,2x,'- enter the estimated values of Nint and Nrank;')"           
           call read_integer2 (Nint, Nrank)                               
         else
-          print "(/,2x,'Convergence Test for an Axisymmetric Particle')"
-          print "(  2x,'---------------------------------------------')"	
-          print "(/,2x,'Nrank estimate:')"                                                                
-          print "(  2x, a, i3, a)",                                                 &
-         'the estimated value of Nrank from Wiscombe''s criterion is ', NrankW, ';'
-          print "(/,2x, a)",                                                        &
-         '- enter the estimated values of Nint and Nrank, where Nint = Ndgs * Nrank'
-          print "(  2x,'  and Ndgs = 5,6,...;')"
+! this line was removed from the original file:          print "(/,2x,'Convergence Test for an Axisymmetric Particle')"
+! this line was removed from the original file:          print "(  2x,'---------------------------------------------')"	
+! this line was removed from the original file:          print "(/,2x,'Nrank estimate:')"                                                                
+! this line was removed from the original file:          print "(  2x, a, i3, a)",                                                 &
+! this line was removed from the original file:         'the estimated value of Nrank from Wiscombe''s criterion is ', NrankW, ';'
+! this line was removed from the original file:          print "(/,2x, a)",                                                        &
+! this line was removed from the original file:         '- enter the estimated values of Nint and Nrank, where Nint = Ndgs * Nrank'
+! this line was removed from the original file:          print "(  2x,'  and Ndgs = 5,6,...;')"
           call read_integer2 (Nint, Nrank)                                                                                 
         end if      
         call check_MaxNrank (Nrank)             
         call zDSAXSYM (TypeGeom, Nsurf, surf, Nrank, ComplexPlane, epsZReIm, zRe, zIm)     
-        print "(/,2x, a)",                                                          &
-       '- enter the type of convergence test: 1 - Nint, 2 - Nrank, 3 - Mrank;'
+! this line was removed from the original file:        print "(/,2x, a)",                                                          &
+! this line was removed from the original file:       '- enter the type of convergence test: 1 - Nint, 2 - Nrank, 3 - Mrank;'
         call read_integerbound (TypeConvTest, 1, 3)
         if (TypeConvTest == 2) then
           Nrank1 = Nrank - 1
@@ -774,14 +773,14 @@ subroutine TAXSYM
                zRe1, zIm1)         
         end if
       else
-        print "(/,2x,'Convergence Test for an Axisymmetric Particle over Mrank')" 
-        print "(  2x,'--------------------------------------------------------')"
-        print "(/,2x,'Input values:')"
-        print "(  2x, a, i4, a, i4, a)",                                            &
-       'the input values of Nint and Nrank are ', Nint, ' and ', Nrank,             &
-       ', respectively,' 
-        print "(  2x, a, i3, a)",                                                   &
-       'while the estimated value of Nrank from Wiscombe''s criterion is ', NrankW,';'         
+! this line was removed from the original file:        print "(/,2x,'Convergence Test for an Axisymmetric Particle over Mrank')" 
+! this line was removed from the original file:        print "(  2x,'--------------------------------------------------------')"
+! this line was removed from the original file:        print "(/,2x,'Input values:')"
+! this line was removed from the original file:        print "(  2x, a, i4, a, i4, a)",                                            &
+! this line was removed from the original file:       'the input values of Nint and Nrank are ', Nint, ' and ', Nrank,             &
+! this line was removed from the original file:       ', respectively,' 
+! this line was removed from the original file:        print "(  2x, a, i3, a)",                                                   &
+! this line was removed from the original file:       'while the estimated value of Nrank from Wiscombe''s criterion is ', NrankW,';'         
         call check_MaxNrank (Nrank)
         call zDSAXSYM (TypeGeom, Nsurf, surf, Nrank, ComplexPlane, epsZReIm, zRe, zIm) 
         TypeConvTest = 3    
@@ -789,40 +788,40 @@ subroutine TAXSYM
       Nrank1 = Nrank - 1 ! redundant  
     else 
       if (DoConvTest) then      
-        print "(/,2x,'Convergence Test for an Axisymmetric Particle')"
-        print "(  2x,'---------------------------------------------')"
-        print "(/,2x,'Input values:')"
-        print "(  2x,'the input value of Nrank is ', i4,', while')", Nrank
-        print "(  2x, a, i3, a)",                                                   &
-       'the estimated value of Nrank from Wiscombe''s criterion is ', NrankW, ';'
+! this line was removed from the original file:        print "(/,2x,'Convergence Test for an Axisymmetric Particle')"
+! this line was removed from the original file:        print "(  2x,'---------------------------------------------')"
+! this line was removed from the original file:        print "(/,2x,'Input values:')"
+! this line was removed from the original file:        print "(  2x,'the input value of Nrank is ', i4,', while')", Nrank
+! this line was removed from the original file:        print "(  2x, a, i3, a)",                                                   &
+! this line was removed from the original file:       'the estimated value of Nrank from Wiscombe''s criterion is ', NrankW, ';'
         if (.not. FileGeom) then                                            
-          print "(/,2x, a)",                                                        &
-         '- enter the estimated value of Nint, where Nint = Ndgs * Nrank'
-          print "(  2x,'  and Ndgs = 5,6,...;')"
+! this line was removed from the original file:          print "(/,2x, a)",                                                        &
+! this line was removed from the original file:         '- enter the estimated value of Nint, where Nint = Ndgs * Nrank'
+! this line was removed from the original file:          print "(  2x,'  and Ndgs = 5,6,...;')"
           call read_integer (Nint) 
-          print "(/,2x, a)",                                                        &
-         '- enter the type of convergence test: 1 - Nint, 2 - Nrank, 3 - Mrank;'
+! this line was removed from the original file:          print "(/,2x, a)",                                                        &
+! this line was removed from the original file:         '- enter the type of convergence test: 1 - Nint, 2 - Nrank, 3 - Mrank;'
           call read_integerbound (TypeConvTest, 1, 3)
         else
-          print "(/,2x,'- enter the type of convergence test: 2 - Nrank, 3 - Mrank;')"
+! this line was removed from the original file:          print "(/,2x,'- enter the type of convergence test: 2 - Nrank, 3 - Mrank;')"
           call read_integerbound (TypeConvTest, 2, 3)
         end if
         if (TypeConvTest == 2) Nrank1 = Nrank - 1
       else
-        print "(/,2x,'Convergence Test for an Axisymmetric Particle over Mrank')" 
-        print "(  2x,'--------------------------------------------------------')" 
-        print "(/,2x,'Input values:')" 
+! this line was removed from the original file:        print "(/,2x,'Convergence Test for an Axisymmetric Particle over Mrank')" 
+! this line was removed from the original file:        print "(  2x,'--------------------------------------------------------')" 
+! this line was removed from the original file:        print "(/,2x,'Input values:')" 
         if (.not. FileGeom) then                  
-          print "(  2x, a, i4, a, i4, a)",                                          &
-         'the input values of Nint and Nrank are ', Nint, ' and ', Nrank,           &
-         ', respectively,' 
-          print "(  2x, a, i3, a)",                                                 &
-         'while the estimated value of Nrank from Wiscombe''s criterion is ',       &
-          NrankW,';' 
+! this line was removed from the original file:          print "(  2x, a, i4, a, i4, a)",                                          &
+! this line was removed from the original file:         'the input values of Nint and Nrank are ', Nint, ' and ', Nrank,           &
+! this line was removed from the original file:         ', respectively,' 
+! this line was removed from the original file:          print "(  2x, a, i3, a)",                                                 &
+! this line was removed from the original file:         'while the estimated value of Nrank from Wiscombe''s criterion is ',       &
+! this line was removed from the original file:          NrankW,';' 
         else
-          print "(  2x,'the input value of Nrank is ', i4,', while')", Nrank
-          print "(  2x, a, i3, a)",                                                 &
-         'the estimated value of Nrank from Wiscombe''s criterion is ', NrankW, ';' 
+! this line was removed from the original file:          print "(  2x,'the input value of Nrank is ', i4,', while')", Nrank
+! this line was removed from the original file:          print "(  2x, a, i3, a)",                                                 &
+! this line was removed from the original file:         'the estimated value of Nrank from Wiscombe''s criterion is ', NrankW, ';' 
         end if
         TypeConvTest = 3              
       end if
@@ -1717,16 +1716,16 @@ subroutine convergence_MrankAXSYM (FileGeom, TypeGeom, k, ind_ref, snorm, Nsurf,
   call write_Effic (Qscat, Qext)
   call write_MrankConvRes (NthetaConv, epsMrank)
   if (NthetaConv >= int(0.8*Nteta)) then
-    print "(/,2x,'Convergence criterion for Mrank is satisfied;')"                                              
+! this line was removed from the original file:    print "(/,2x,'Convergence criterion for Mrank is satisfied;')"                                              
   else
     print "(/,2x,'Convergence criterion for Mrank is not satisfied;')"
   end if
   call write_InfoFileTmat (FileTmat, Mrank, Nrank, .true., .false., chiral)
   call ScatCharact (k, FileTmat, Mrank, Nrank, .true., .false., chiral)
-  print "(/,2x,'T matrix is stored in ',a50)", FileTmat
-  print "(  2x,'The dimensions of the T matrix are given by:')"      
-  print "(  2x,'- maximum expansion order,   Nrank = ',i3,',')", Nrank
-  print "(  2x,'- number of azimuthal modes, Mrank = ',i3,';')", Mrank                     
+! this line was removed from the original file:  print "(/,2x,'T matrix is stored in ',a50)", FileTmat
+! this line was removed from the original file:  print "(  2x,'The dimensions of the T matrix are given by:')"      
+! this line was removed from the original file:  print "(  2x,'- maximum expansion order,   Nrank = ',i3,',')", Nrank
+! this line was removed from the original file:  print "(  2x,'- number of azimuthal modes, Mrank = ',i3,';')", Mrank                     
   deallocate (a, b, c, c1, cc, h, v, oldh, oldv, paramG, weightsG, Nintparam)
 end subroutine convergence_MrankAXSYM
 !***********************************************************************************
@@ -2161,15 +2160,15 @@ subroutine convergence_MrankDSAXSYM (FileGeom, TypeGeom, k, ind_ref, snorm, Nsur
   call write_Effic (Qscat, Qext)
   call write_MrankConvRes (NthetaConv, epsMrank)
   if (NthetaConv >= int(0.8*Nteta)) then
-    print "(/,2x,'Convergence criterion for Mrank is satisfied;')"                                   
+! this line was removed from the original file:    print "(/,2x,'Convergence criterion for Mrank is satisfied;')"                                   
   else
     print "(/,2x,'Convergence criterion for Mrank is not satisfied;')"
   end if
   call write_InfoFileTmat (FileTmat, Mrank, Nrank, .true., .false., chiral)     
   call ScatCharact (k, FileTmat, Mrank, Nrank, .true., .false., chiral) 
-  print "(/,2x,'T matrix is stored in ',a50)", FileTmat
-  print "(  2x,'The dimensions of the T matrix are given by:')"
-  print "(  2x,'- maximum expansion order,   Nrank = ',i3,',')", Nrank 
-  print "(  2x,'- number of azimuthal modes, Mrank = ',i3,';')", Mrank             
+! this line was removed from the original file:  print "(/,2x,'T matrix is stored in ',a50)", FileTmat
+! this line was removed from the original file:  print "(  2x,'The dimensions of the T matrix are given by:')"
+! this line was removed from the original file:  print "(  2x,'- maximum expansion order,   Nrank = ',i3,',')", Nrank 
+! this line was removed from the original file:  print "(  2x,'- number of azimuthal modes, Mrank = ',i3,';')", Mrank             
   deallocate (a, b, c, c1, cc, h, v, oldh, oldv, paramG, weightsG, Nintparam)
 end subroutine convergence_MrankDSAXSYM

@@ -7,7 +7,14 @@ The latest release of NFM-DS can be downloaded from: https://scattport.org
 We thank the authors for allowing us to use their routines.
 
 For the purpose of integrating the code for the generation of the T-matrix of axisymmetric particles into the SMUTHI project,
-some files were adapted. Changes to the original code were highlighted like this:
+some files were adapted. 
+
+The changes affect:
+- explicit include of other modules in file TAXSYM.f90
+- replacements of relative paths like "../INPUTFILES/" by path "smuthi/nfmds/data/" and similar
+- suppressing the console output of taxsym by commenting out the print commands.
+
+Changes to the original code were highlighted through comments, e.g. like this:
 
 ! The following lines were removed from the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>
 !lines of original file that were removed (commented out)

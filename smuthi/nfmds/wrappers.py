@@ -201,7 +201,7 @@ def taxsym_write_input_spheroid(vacuum_wavelength=None, layer_refractive_index=N
 
     f.write('\n')
     f.write('PrintProgress\n')
-    f.write('.true.\n')
+    f.write('.false.\n')
     f.write(' Variable:\n')
     f.write(' - PrnProgress - if PrnProgress = t, the progress of calculation \n')
     f.write('                 is printed. \n')

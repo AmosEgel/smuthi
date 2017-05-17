@@ -156,8 +156,8 @@ subroutine ScatCharact (k, FileTmat, Mrank, Nrank, axsym, sphere, chiral)
     end if                       
     deallocate (SS)   
   else      
-    print "(/,2x,'Scattering Characteristics of a Nonrandomly Oriented Particle')" 
-    print "(  2x,'-------------------------------------------------------------')" 
+! this line was removed from the original file:    print "(/,2x,'Scattering Characteristics of a Nonrandomly Oriented Particle')" 
+! this line was removed from the original file:    print "(  2x,'-------------------------------------------------------------')" 
     allocate (walpha(Nalpha), xalpha(Nalpha), wbeta(Nbeta), xbeta(Nbeta),           &
               wgamma(Ngamma), xgamma(Ngamma))                                   
     NphiAL   = Nphi

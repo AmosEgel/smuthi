@@ -52,8 +52,8 @@ subroutine SCT
 !                                       Main                                        !
 ! -----------------------------------------------------------------------------------              
   if (RandomOrientation) then          
-    print "(/,2x,'Scattering Characteristics of a Randomly Oriented Particle')"  
-    print "(  2x,'----------------------------------------------------------')"     
+! this line was removed from the original file:    print "(/,2x,'Scattering Characteristics of a Randomly Oriented Particle')"  
+! this line was removed from the original file:    print "(  2x,'----------------------------------------------------------')"     
     allocate (SS(10,NthetaGS))    
     if (PrnProgress)                                                                &
     print "(/,2x,'progress of main calculation for the average matrix <SS*>:')"
