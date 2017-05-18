@@ -1,4 +1,4 @@
-! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+﻿! The following lines were added to the original code: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 include 'Parameters.f90'
 include 'Allocation.f90'
 include 'AdditonTh.f90'

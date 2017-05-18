@@ -1,4 +1,4 @@
-program TMATRIX
+﻿program TMATRIX
   implicit none
   integer  :: TypeCode 
 ! -----------------------------------------------------------------------------------

@@ -10,8 +10,6 @@ https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds
 import smuthi.index_conversion as idx
 import smuthi.nfmds.taxsym
 import os
-import sys
-import subprocess
 import numpy as np
 import pkg_resources
 import tempfile

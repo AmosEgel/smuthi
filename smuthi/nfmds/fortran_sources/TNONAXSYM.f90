@@ -1,4 +1,4 @@
-subroutine TNONAXSYM
+﻿subroutine TNONAXSYM
 !------------------------------------------------------------------------------------
 ! 1. General Considerations                                                         !
 ! --------------------------                                                        !

@@ -1,4 +1,4 @@
-subroutine TINHOMSPHREC
+﻿subroutine TINHOMSPHREC
 !------------------------------------------------------------------------------------
 ! 1. General Considerations                                                         !
 ! --------------------------                                                        !

@@ -1,4 +1,4 @@
-module parameters
+﻿module parameters
   implicit none
   integer,parameter       :: O = kind(1.d0)
 !

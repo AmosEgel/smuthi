@@ -1,4 +1,4 @@
-subroutine TINHOM2SPH
+﻿subroutine TINHOM2SPH
 !------------------------------------------------------------------------------------
 ! 1. General Considerations                                                         !
 ! --------------------------                                                        !
