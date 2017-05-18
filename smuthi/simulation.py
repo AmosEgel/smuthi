@@ -11,6 +11,7 @@ import smuthi.coordinates as coord
 import smuthi.post_processing as pp
 import sys
 import matplotlib.pyplot as plt
+import pkg_resources
 
 
 class Simulation:
@@ -94,8 +95,10 @@ class Simulation:
 
 
 def welcome_message():
-    msg = ("********************************\n"
-           "*         SMUTHI  v0.1         *\n"
+    version = pkg_resources.get_distribution("smuthi").version
+    msg = ("\n"
+           "********************************\n"
+           "    SMUTHI version " + version + "\n"
            "********************************\n")
     return msg
 

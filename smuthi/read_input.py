@@ -4,9 +4,11 @@ import smuthi.simulation
 import numpy as np
 import smuthi.index_conversion as idx
 import smuthi.coordinates as coord
+import os
 
 
 def read_input_yaml(filename):
+    print('\nReading ' + os.path.abspath(filename))
     with open(filename, 'r') as input_file:
         input_data = yaml.load(input_file.read())
 

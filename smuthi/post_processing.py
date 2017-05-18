@@ -55,42 +55,65 @@ class PostProcessing:
                                                                          layerresponse_precision=layerresponse_precision)
 
                 # distinguish the cases of top/bottom illumination
-                print('cross sections:')
+                print()
+                print('-----------------------------------------------------------------')
+                print('Cross sections:')
                 if i_P == 0:
-                    print('Scattering cross section in bottom layer (diffuse reflection): ',
+                    print('Scattering into bottom layer (diffuse reflection):  ',
                           self.scattering_cross_section['total bottom'][0]
-                          + self.scattering_cross_section['total bottom'][1])
+                          + self.scattering_cross_section['total bottom'][1], ' ' + simulation.length_unit + '^2')
+
                     if n_transm.imag == 0:
-                        print('Scattering cross section in top layer (diffuse transmission): ',
+                        print('Scattering into top layer (diffuse transmission):   ',
                               self.scattering_cross_section['total top'][0]
-                              + self.scattering_cross_section['total top'][1])
-                        print('Total scattering cross section (diffuse reflection plus transmission): ',
-                              self.scattering_cross_section['total'][0] + self.scattering_cross_section['total'][1])
+                              + self.scattering_cross_section['total top'][1],
+                              ' ' + simulation.length_unit + '^2')
 
-                    print('Bottom layer extinction cross section (extinction of reflection): ',
-                          self.extinction_cross_section['bottom'])
+                        print('Total scattering cross section:                     ',
+                              self.scattering_cross_section['total'][0] + self.scattering_cross_section['total'][1],
+                              ' ' + simulation.length_unit + '^2')
+
+                    print('Bottom layer extinction (extinction of reflection): ',
+                          self.extinction_cross_section['bottom'].real,
+                          ' ' + simulation.length_unit + '^2')
+
                     if n_transm.imag == 0:
-                        print('Top layer extinction cross section (extinction of transmission): ',
-                              self.extinction_cross_section['top'])
-                        print('Total extinction cross section: ', self.extinction_cross_section['top']
-                              + self.extinction_cross_section['bottom'])
+                        print('Top layer extinction (extinction of transmission):  ',
+                              self.extinction_cross_section['top'].real,
+                              ' ' + simulation.length_unit + '^2')
+
+                        print('Total extinction cross section:                     ',
+                              (self.extinction_cross_section['top'] + self.extinction_cross_section['bottom']).real,
+                              ' ' + simulation.length_unit + '^2')
+
                 else:
-                    print('Scattering cross section in top layer (diffuse reflection): ',
-                          self.scattering_cross_section['total top'][0] + self.scattering_cross_section['total top'][1])
-                    if n_transm.imag == 0:
-                        print('Scattering cross section in bottom layer (diffuse transmission): ',
-                              self.scattering_cross_section['total bottom'][0] +
-                              self.scattering_cross_section['total bottom'][1])
-                        print('Total scattering cross section (diffuse reflection plus transmission): ',
-                              self.scattering_cross_section['total'][0] + self.scattering_cross_section['total'][1])
+                    print('Scattering into top layer (diffuse reflection):       ',
+                          self.scattering_cross_section['total top'][0] + self.scattering_cross_section['total top'][1],
+                          ' ' + simulation.length_unit + '^2')
 
-                    print('Top layer extinction cross section (extinction of reflection): ',
-                          self.extinction_cross_section['top'])
                     if n_transm.imag == 0:
-                        print('Bottom layer extinction cross section (extinction of transmission): ',
-                              self.extinction_cross_section['bottom'])
-                        print('Total extinction cross section: ',
-                              self.extinction_cross_section['top'] + self.extinction_cross_section['bottom'])
+                        print('Scattering into bottom layer (diffuse transmission):  ',
+                              self.scattering_cross_section['total bottom'][0] +
+                              self.scattering_cross_section['total bottom'][1],
+                              ' ' + simulation.length_unit + '^2')
+
+                        print('Total scattering cross section:                       ',
+                              self.scattering_cross_section['total'][0] + self.scattering_cross_section['total'][1],
+                              ' ' + simulation.length_unit + '^2')
+
+                    print('Top layer extinction (extinction of reflection):      ',
+                          self.extinction_cross_section['top'],
+                          ' ' + simulation.length_unit + '^2')
+
+                    if n_transm.imag == 0:
+                        print('Bottom layer extinction (extinction of transmission): ',
+                              self.extinction_cross_section['bottom'],
+                              ' ' + simulation.length_unit + '^2')
+
+                        print('Total extinction cross section:                       ',
+                              self.extinction_cross_section['top'] + self.extinction_cross_section['bottom'],
+                              ' ' + simulation.length_unit + '^2')
+                print('-----------------------------------------------------------------')
 
                 if item.get('show plots', False):
 
