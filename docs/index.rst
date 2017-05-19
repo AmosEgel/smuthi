@@ -8,32 +8,31 @@
    
 Welcome to SMUTHI's documentation!
 ==================================
-SMUTHI means 'Scattering by MUltiple particles in THIn-film systems'. 
-The software allows you to simulate light scattering
-by multiple particles near or inside a system of planar layer interfaces. 
+SMUTHI stands for 'scattering by multiple particles in thin-film systems'.
+The software allows you to solve light scattering problems involving
+one ore multiple particles near or inside a system of planar layer interfaces.
 It is based on the T-matrix method for the single particle scattering, 
 and on the scattering-matrix method for the propagation through the layered medium.
-  
-SMUTHI is implemented in Python 3.5. 
-To run the program, you first need to make sure that Python 3 is installed on your computer.
-If this is not the case, see :doc:`here<how_install_python>`.
 
-There are two different ways to run simulations:
+SMUTHI ...
 
-   * From the command line with an input file. No programming skills are required. 
-	 
-   * From a Python script. This is more flexible how to run and evaluate the simulations.
-     
-Run from command line
-=================================
+ - ... exactly solves Maxwell's equations (wave optics) in frequency domain (one wavelength per simulation).
+ - ... allows for the simulation of an arbitrary number of spheres and spheroids. For spheres, the T-matrix is given by the Mie-coefficients. For
+   spheroids, SMUTHI calls the NFM-DS, a Fortran software package written by A. Doicu, T. Wriedt and Y. Eremin, based on
+   the "Null-field method with discrete sources".
+ - ... returns the total and differential scattering cross section as well as the extinction cross section.
+   The difference between scattering and extinction cross section refers to absorption (and incoupling to waveguide
+   modes).
+
 
 Installing SMUTHI
-~~~~~~~~~~~~~~~~~
-To run from the command line, SMUTHI needs to be installed. Using pip, you can do that simply by::
+===================
+First make sure that Python 3 is installed on your computer (otherwise, see :doc:`here<how_install_python>`).
+Using pip, you can then install SMUTHI simply by::
 
    pip install smuthi
 
-Alternatively, you can download the SMUTHI project folder manually from `here <https://gitlab.com/AmosEgel/smuthi/tags>`_. 
+Alternatively, you can download the SMUTHI project folder manually from `here <https://gitlab.com/AmosEgel/smuthi/tags>`_.
 Open a command prompt and change directory to the SMUTHI project folder. Then, enter (Windows)::
 
    python setup.py install
@@ -42,7 +41,18 @@ or (Ubuntu)::
 
    python3 setup.py install
 
-SMUTHI is executed from the command line together with one argument, 
+Running a simulation
+======================
+There are two different ways to call smuthi:
+
+   * From the command line with an input file. No programming skills are required. 
+	 
+   * From a Python script. This option is more flexible regarding how to run and evaluate the simulations.
+     
+Run from command line
+---------------------
+
+SMUTHI is executed from the command line together with one argument,
 specifying the input file that contains all parameters of the configuration to be simulated, 
 see `The input file`_.
 
