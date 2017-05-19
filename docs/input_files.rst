@@ -129,9 +129,31 @@ as well as its discretization scale::
 
    neff discretization: 1e-3
 
-The :code:`neff waypoints` define a piecewise linear trajectory in the complex plane. This trajectory should start at :code:`0` and end at a suitable real truncation parameter (somewhere above the highest layer refractive index). 
+The :code:`neff waypoints` define a piecewise linear trajectory in the complex plane. This trajectory should start at
+:code:`0` and end at a suitable real truncation parameter (somewhere above the highest layer refractive index).
 A simple contour would be for example :code:`neff waypoints: [0, 4]`. However
-The trajectory can be deflected into the lower complex half plaen such that it does not come close to waveguide mode resonances of the layer system.
+The trajectory can be deflected into the lower complex half plaen such that it does not come close to waveguide mode
+resonances of the layer system.
+
+T-matrix method for non-spherical particles
+-------------------------------------------
+Spheroids can currently be modelled using the NFM-DS method. Specify the parameters for the algorithm like this::
+
+   tmatrix method:
+   - algorithm: nfm-ds
+     use discrete sources: true
+     nint: 200
+     nrank: 8
+
+The :code:`use discrete sources` flag determines, if during the NFM-DS method, the discrete sources functionality is
+activated. Generally, it leads to a better accuracy for particle shapes deviating strongly from that of a sphere.
+:code:`nint` is the truncation multipole degree used inside the NFM-DS algorithm, and is by default set to
+:code:`lmax + 2`. :code:`nrank` is a parameter that specifies how fine the numerical integrations in the NFM-DS are
+discretized. See the
+`NFM-DS documentation <https://scattport.org/images/scattering-code/NFM-DS_program-description.pdf>`_ for further
+details information.
+
+
 
 Post procesing
 -----------------
@@ -155,6 +177,12 @@ The file containing the particle specifications needs to be written in the follo
    -300        -200        750         200         2.1         0.01
    ...         ...         ...         ...         ...         ...
    
-An examplary particle specifiacations file with the name :code:`particle_specs.dat` is provided in the SMUTHI project folder and can be downloaded  :download:`here <../particle_specs.dat>`.
+   # spheroids
+   # x, y, z, semi-axis c, semi-axis a, refractive index, exctinction coefficient
+   -250	       0           350		   80          140         2.5       0.05
+   ...         ...         ...         ...         ...         ...       ...
+
+An examplary particle specifiacations can be downloaded from
+:download:`here <../smuthi/data/example_particle_specs.dat>`.
 
 Back to :doc:`main page <index>`

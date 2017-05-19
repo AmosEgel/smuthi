@@ -1,5 +1,5 @@
 import smuthi.index_conversion as idx
-import smuthi.nfmds_wrappers
+import smuthi.nfmds.t_matrix_axsym
 
 idx.set_swe_specs(l_max=4)
 
@@ -12,11 +12,11 @@ use_ds = True
 n_int = 300
 n_rank = 8
 
-t = smuthi.nfmds_wrappers.taxsym_tmatrix_spheroid(vacuum_wavelength=vacuum_wavelength,
-                                                  layer_refractive_index=layer_refractive_index,
-                                                  particle_refractive_index=particle_refractive_index,
-                                                  semi_axis_c=half_axis_z, semi_axis_a=half_axis_xy, use_ds=use_ds,
-                                                  nint=n_int, nrank=n_rank)
+t = smuthi.nfmds.t_matrix_axsym.tmatrix_spheroid(vacuum_wavelength=vacuum_wavelength,
+                                                 layer_refractive_index=layer_refractive_index,
+                                                 particle_refractive_index=particle_refractive_index,
+                                                 semi_axis_c=half_axis_z, semi_axis_a=half_axis_xy, use_ds=use_ds,
+                                                 nint=n_int, nrank=n_rank)
 
 
 def test_spheroid_tmatrix_against_prototype():

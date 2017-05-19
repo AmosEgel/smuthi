@@ -21,8 +21,8 @@ if smuthi.nfmds.nfmds_installation_path == '':
     imp.reload(smuthi.nfmds)
 
 
-def taxsym_tmatrix_spheroid(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
-                            semi_axis_c=None, semi_axis_a=None, use_ds=True, nint=None, nrank=None):
+def tmatrix_spheroid(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
+                     semi_axis_c=None, semi_axis_a=None, use_ds=True, nint=None, nrank=None):
     """Return T-matrix for spheroid, using the TAXSYM.f90 routine from the NFM-DS.
 
     Input:

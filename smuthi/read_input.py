@@ -20,17 +20,27 @@ def read_input_yaml(filename):
     # particle collection
     particle_input = input_data['scattering particles']
     if isinstance(particle_input, str):
-        with open(particle_input, 'r') as f:
-            first_line = f.readline()
-        if first_line[0:-1] == '# spheres':
-            particle_data = np.loadtxt(particle_input, skiprows=2)
-            for prtcl in particle_data:
-                r = prtcl[3]
-                n = prtcl[4] + 1j * prtcl[5]
-                pos = prtcl[:3]
-                simulation.particle_collection.add_sphere(radius=r, refractive_index=n, position=pos)
-        else:
-            raise ValueError('Currently, only spheres are implemented')
+        particle_type = 'sphere'
+        with open(particle_input, 'r') as particle_specs_file:
+            for line in particle_specs_file:
+                if len(line.split()) > 0:
+                    if line.split()[-1] == 'spheres':
+                        particle_type = 'sphere'
+                    elif line.split()[-1] == 'spheroids':
+                        particle_type = 'spheroid'
+                    if not line.split()[0] == '#':
+                        numeric_line_data = [float(x) for x in line.split()]
+                        pos = numeric_line_data[:3]
+                        if particle_type == 'sphere':
+                            r = numeric_line_data[3]
+                            n = numeric_line_data[4] + 1j * numeric_line_data[5]
+                            simulation.particle_collection.add_sphere(radius=r, refractive_index=n, position=pos)
+                        if particle_type == 'spheroid':
+                            c = numeric_line_data[3]
+                            a = numeric_line_data[4]
+                            n = numeric_line_data[5] + 1j * numeric_line_data[6]
+                            simulation.particle_collection.add_spheroid(semi_axis_c=c, semi_axis_a=a,
+                                                                        refractive_index=n, position=pos)
     else:
         for prtcl in input_data['scattering particles']:
             if prtcl['shape'] == 'sphere':

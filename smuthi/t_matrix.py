@@ -76,12 +76,11 @@ def t_matrix(vacuum_wavelength, n_medium, particle, method={}):
     elif particle['shape'] == 'spheroid':
         if not particle['euler angles'] == [0, 0, 0]:
             raise ValueError('T-matrix for rotated particles currently not implemented.')
-        t = nftaxs.taxsym_tmatrix_spheroid(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=n_medium,
-                                           particle_refractive_index=particle['refractive index'],
-                                           semi_axis_c=particle['semi axis c'], semi_axis_a=particle['semi axis a'],
-                                           use_ds=method.get('use discrete sources', True),
-                                           nint=method.get('nint', 200),
-                                           nrank=method.get('nrank', smuthi.index_conversion.l_max + 2))
+        t = nftaxs.tmatrix_spheroid(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=n_medium,
+                                    particle_refractive_index=particle['refractive index'],
+                                    semi_axis_c=particle['semi axis c'], semi_axis_a=particle['semi axis a'],
+                                    use_ds=method.get('use discrete sources', True), nint=method.get('nint', 200),
+                                    nrank=method.get('nrank', smuthi.index_conversion.l_max + 2))
     else:
         raise ValueError('T-matrix for ' + particle['shape'] + ' currently not implemented.')
 
