@@ -1,0 +1,155 @@
+OptProp            
+ 0.628318530717959
+ 1.0 
+Variables:       
+- wavelength - wavelength of the incident light in vacuo.
+- ind_refMed - refractive index of the ambient medium 
+
+
+GenProp            
+ 2             
+ 1.0          
+ 1.2           
+Variables:
+- Npart  - number of particles.
+- anorm  - characteristic length of the cluster which is used to 
+           normalize the differential scattering cross sections.
+- Rcirc  - characteristic length of the cluster which is used to 
+           compute an estimate of Nrank.
+
+
+*** particle 1 *** 
+TmatPart           
+'../TMATFILES/TProlA4B2.dat'
+.true.    
+.false.   
+ 10        
+  4       
+Variables:                     			                 
+- FileTmatPart - name of the file containing the T matrix of the actual 
+                 particle.
+- axsymPart    - if axsymPart = t, the actual scatterer is a rotationally 
+                 symmetric particle.
+- chiralPart   - if chiralPart = t, the actual scatterer is an optical
+                 activ particle.
+- NrankPart    - the maximum expansion order of the actual particle.
+- MrankPart    - the maximum azimuthal order of the actual particle.
+
+
+GeomPartProp       
+ 0.0         
+ 0.0         
+ 0.0         
+ 0.0         
+ 0.0        
+ 0.0                   
+Variables:
+- xPart     - x-coordinate specifying the position of the actual particle in 
+              the cluster coordinate system.
+- yPart     - y-coordinate specifying the position of the actual particle.
+- zPart     - z-coordinate specifying the position of the actual particle.
+- alphaPart - Euler angle specifying the orientation of the particle 
+              coordinate system with respect to the coordinate system 
+              of the cluster.
+- betaPart  - Euler angle specifying the orientation of the actual particle.
+- gammaPart - Euler angle specifying the orientation of the actual particle.
+
+
+*** particle 2 *** 
+TmatPart           
+'../TMATFILES/TProlA4B2.dat'
+.true.
+.false. 
+ 10
+  4
+Variables:
+- FileTmatPart
+- axsymPart
+- chiralPart
+- NrankPart
+- MrankPart                    			                   
+
+
+GeomPartProp       
+  0.0
+  0.565685424
+  0.565685424
+ 45.0
+ 45.0
+  0.0                   
+Variables:
+- xPart
+- yPart
+- zPart
+- alphaPart
+- betaPart
+- gammaPart	
+*** end particle parameters *** 
+
+
+ConvTest           
+.true.                       
+.false.  
+Variables:
+- DoConvTest  - if DoConvTest = t, the interactive convergence tests
+                over Nrank and Mrank are performed.
+- ExtThetaDom - if ExtThetaDom = t the DSCS is computed for scattering 
+                angles ranging from 0° to 180° in the azimuthal plane 
+                phiGS = 0°, and from 180° to 0° in the azimuthal plane 
+                phiGS = 180°.
+
+
+NrankMrankCluster  
+ 21               
+ 19               
+Variables:
+- Nrank - maximum expansion order for the cluster.
+- Mrank - maximum azimuthal order for the cluster.
+NOTE: THESE VARIABLES MUST BR PROVIDED IF DoConvTest = f.
+
+			
+Errors             
+ 5.e-2         
+ 5.e-2               
+Variables:
+- epsNrank - error tolerance for the expansion order test. 
+- epsMrank - error tolerance for the azimuthal order test.
+
+            
+Tmat               
+'../TMATFILES/TmatSyst2Spheroids.dat'
+Variables:
+- FileTmat  - name of the file to which the T matrix of the cluster 
+              is written. 
+        
+		  
+PrintProgress      
+.true.     
+Variables:
+- PrnProgress - if PrnProgress = t, the progress of calculation 
+                is printed.
+
+
+Comment
+As provided, the input file is setup to calculate scattering by two 
+particles (spheroids) at a wavelength of 0.2 * Pi micrometer. The T 
+matrices of the particles are read from the files FileTmatPart = 
+'../TMATFILES/TProlA4B2.dat' and FileTmatPart = 
+'../TMATFILES/TProlA4B2.dat', i.e., the particles are identical. 
+The maximum expansion and azimuthal orders of the particles are 
+NrankPart = 10 and MrankPart = 4, while the relative refractive index
+with respect to the ambient medium is 1.5. The positions of the 
+particles with respect to the coordinate system of the cluster are 
+given by xPart = yPart = zPart = 0.0 and xPart = 0.0, yPart = zPart 
+= 0.565685424 micrometer. The Euler angles are alphaPart = betaPart 
+= gammaPart = 0° and alphaPart = betaPart = 45°, gammaPart = 0°. 
+Convergence is achieved for Nrank = 21 and Mrank = 19.
+
+
+
+
+
+
+
+
+

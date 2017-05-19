@@ -1,0 +1,252 @@
+OptProp
+ 0.628318530717959
+ 1.0
+Variables:
+- wavelength - wavelength of the incident light in vacuo.
+- ind_refMed - refractive index of the ambient medium.
+
+
+GeomProp         
+ 1             
+ 2              
+ 1.0 
+ 1.0           
+Variables:
+- TypeGeom - parameter specifying the type of the particle geometry.
+- Npart    - number of homogeneous regions.
+- anorm    - characteristic length of the composite particle which is used 
+             to normalize the differential scattering cross sections.
+- Rcirc    - characteristic length of the composite particle for computing 
+             the global Nrank. 
+
+
+ConvTest         
+.true.      
+Variable:
+- DoConvTest - if DoConvTest = t, the interactive convergence tests    
+               over Nint and Nrank are performed.
+
+		
+Sources          
+.false.               
+.true.   	   
+Variable:
+- DS       - if DS = t, distributed sources are used for T-matrix 
+             calculation.
+- autGenDS - if autGenDS = t, the code generates the coordinates of the 
+             distributed sources.
+
+
+NintNrank       
+ 300     
+  20           
+Variable:
+- Nint  - global number of integration points for the composite particle.
+- Nrank - maximum expansion order for the composite particle.
+NOTE: THESE VARIABLES MUST BE PROVIDED IF DoConvTest = f.
+
+
+*** region 1 ***
+OptRegProp       
+(1.5,0.0)
+Variable: 
+- ind_refPartRel - relative refractive index of the actual region     
+                   with respect to the ambient medium.
+
+
+GeomRegProp      
+ 3        
+ 2        
+ 0.5       
+ 1.0     
+ 0.3
+ 0.5       				        				  	       				
+ 0.5       
+Variables: 
+- NsurfPart   - number of surface parameters of the actual region.    
+- NparamPart  - number of smooth curves forming the generatrix curve of 
+                the actual region.    
+- OriginPart  - axial position of the local coordinate system of the actual 
+                region with respect to the global coordinate system of the 
+                composite particle. 
+- surfPart(1) - surface parameter specifying the shape of the actual region.
+- ...
+- surfPart(NsurfPart)
+- lnormPart   - characteristic length of the actual region which is used 
+                to compute an estimate of NrankPart.
+NOTE: FOR TOUCHING HALF-SPHEROIDS (TypeGeom = 1), SET surf(3) = |OriginPart|.
+
+				                           
+SourceRegPosAut  
+.false. 
+ 0.95    
+Variables:
+- ComplexPlanePart - if ComplexPlanePart = t, the distributed sources are 
+                     situated in the complex plane.
+- EpsZReImPart     - input parameter which controlls the distribution of 
+                     the discrete sources.
+NOTE: THESE VARIABLES MUST BE PROVIDED IF (DS = t AND autgenDS = t).  
+
+
+NrankReg         
+ 12             
+Variable:
+- NrankPart - maximum expansion order for the actual region.
+NOTE: THIS VARIABLE MUST BE PROVIDED IF ((DoConvTest = f) OR
+(DS = t AND autgenDS = f))  
+
+
+SourceRegPosInp
+5.000E-02 0.0
+1.318E-01 0.0 
+2.136E-01 0.0 
+2.955E-01 0.0 
+3.773E-01 0.0 
+4.591E-01 0.0 
+5.409E-01 0.0 
+6.227E-01 0.0 
+7.045E-01 0.0 
+7.864E-01 0.0 
+8.682E-01 0.0 
+9.500E-01 0.0
+
+5.000E-02 0.0 
+1.400E-01 0.0 
+2.300E-01 0.0 
+3.200E-01 0.0 
+4.100E-01 0.0                                
+5.000E-01 0.0 
+5.900E-01 0.0 
+6.800E-01 0.0 
+7.700E-01 0.0 
+8.600E-01 0.0 
+9.500E-01 0.0
+Variables: 
+- zRePart(1), zImPart(1)   - coordinates of the distributed sources for 
+                             the actual region and the expansion order 
+                             NrankPart.  
+- ...
+- zRePart(NrankPart), zImPart(NrankPart)
+-
+- zRePart1(1), zImPart1(1) - coordinates of the distributed sources for 
+                             the actual region and the expansion order 
+                             NrankPart - 1.
+- ...
+- zRePart1(NrankPart-1), zImPart1(NrankPart-1)
+NOTE: THESE VARIABLES MUST BE PROVIDED IF (DS = t AND autgenDS = f), AND
+MUST BE SEPARATED BY A BLANK LINE. IF THE EXPANSION ORDER TEST IS NOT PERFORMED 
+(TypeConvTest /= 2), THE INPUT ARRAYS zRePart1 AND zImPart1 CAN BE OMITTED. 
+                        
+         				                            				                             				                             
+*** region 2 ***				
+OptRegProp       
+(1.3,0.0)
+Variable: 
+- ind_refPartRel
+
+
+GeomRegProp      
+ 3        
+ 2        
+-0.5       
+ 1.0     
+ 0.3
+ 0.5       				        				  	       				
+ 0.5       
+Variables: 
+- NsurfPart    
+- NparamPart   
+- OriginPart 
+- surfPart(1)
+- ...
+- surfPart(NsurfPart)
+- lnormPart
+
+				                           
+SourceRegPosAut  
+.false. 
+ 0.95    
+Variables:
+- ComplexPlanePart
+- EpsZReImPart
+
+
+NrankReg         
+ 12             
+Variable:
+- NrankPart
+
+
+SourceRegPosInp
+-9.500E-01 0.0 
+-8.682E-01 0.0 
+-7.864E-01 0.0 
+-7.045E-01 0.0 
+-6.227E-01 0.0 
+-5.409E-01 0.0 
+-4.591E-01 0.0 
+-3.773E-01 0.0 
+-2.955E-01 0.0 
+-2.136E-01 0.0 
+-1.318E-01 0.0 
+-5.000E-02 0.0 
+               
+-9.500E-01 0.0 
+-8.600E-01 0.0 
+-7.700E-01 0.0 
+-6.800E-01 0.0 
+-5.900E-01 0.0 
+-5.000E-01 0.0 
+-4.100E-01 0.0 
+-3.200E-01 0.0 
+-2.300E-01 0.0 
+-1.400E-01 0.0 
+-5.000E-02 0.0
+Variables: 
+- zRePart(1), zImPart(1)
+- ...
+- zRePart(NrankPart), zImPart(NrankPart)
+-
+- zRePart1(1), zImPart1(1)
+- ...
+- zRePart1(NrankPart-1), zImPart1(NrankPart-1)
+*** end region parameters *** 										
+
+
+Errors           
+  5.e-2         
+  5.e-2         
+  5.e-2         
+  4 
+ 30                      
+Variables:
+- epsNint    - error tolerance for the integration test.
+- epsNrank   - error tolerance for the expansion order test.
+- epsMrank   - error tolerance for the azimuthal order test.
+- dNint      - number of division points for the integration test.    
+- dNintMrank - number of division points for azimuthal mode calculation. 
+           
+Tmat             
+'../TMATFILES/TmatCompSpheroid.dat'       
+Variable:
+- FileTmat - name of the file to which the T matrix is written.
+
+          
+PrintProgress    
+.true.       
+Variable: 
+- PrnProgress - if PrnProgress = t, the progress of calculation 
+                is printed. 
+
+
+Comment
+As provided, the file InputCOMP.dat is setup to calculate scattering by 
+two half-spheroids with offset origins. The half-axes are 
+surf(1) = 1.0 micrometer and surf(2) = 0.3 micrometer, the distance 
+between a spheroid basis and the origin of the associated local coordinate 
+system is surf(3) = 0.5 micrometer, while the axial positions of the local 
+coordinate systems with respect to the global coordinate system 
+are given by  OriginPart = 0.5 micrometer and  OriginPart = - 0.5 
+micrometer. The wavelenght in vacuo is wavelenght = 0.2 * Pi micrometer.
+Convergence is achieved for Nrank = 20, NrankPart1 = NrankPart2 = 12 and
+Nint = 300.

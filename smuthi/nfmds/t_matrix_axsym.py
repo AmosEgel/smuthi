@@ -8,12 +8,17 @@ https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds
 """
 
 import smuthi.index_conversion as idx
-import smuthi.nfmds.taxsym
+import smuthi.nfmds
 import os
+import subprocess
 import numpy as np
-import pkg_resources
-import tempfile
-import shutil
+import imp
+import sys
+
+
+if smuthi.nfmds.nfmds_installation_path == '':
+    smuthi.nfmds.install_nfmds()
+    imp.reload(smuthi.nfmds)
 
 
 def taxsym_tmatrix_spheroid(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
@@ -33,28 +38,29 @@ def taxsym_tmatrix_spheroid(vacuum_wavelength=None, layer_refractive_index=None,
     """
 
     filename = 'T_matrix_spheroid.dat'
-    cwd = os.getcwd()
-    tempdirname = tempfile.mkdtemp()
-    datadirname = pkg_resources.resource_filename('smuthi.nfmds', 'data')
-    shutil.copytree(datadirname, tempdirname + '/data')
-    os.chdir(tempdirname)
-    
+
     taxsym_write_input_spheroid(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=layer_refractive_index,
                                 particle_refractive_index=particle_refractive_index, semi_axis_c=semi_axis_c,
                                 semi_axis_a=semi_axis_a, use_ds=use_ds, nint=nint, nrank=nrank, filename=filename)
     taxsym_run()
     t_matrix = taxsym_read_tmatrix(filename=filename)
 
-    os.chdir(cwd)
-    shutil.rmtree(tempdirname)
-
     return t_matrix
 
 
 def taxsym_run():
     """Call TAXSYM.f90 routine."""
-    smuthi.nfmds.taxsym.taxsym()
-    
+    cwd = os.getcwd()
+    os.chdir(smuthi.nfmds.nfmds_installation_path + '/TMATSOURCES')
+    with open('../nfmds.log', 'w') as nfmds_log:
+        if sys.platform.startswith('win'):
+            subprocess.call(['TAXSYM_SMUTHI.exe'], stdout=nfmds_log)
+        elif sys.platform.startswith('linux'):
+            subprocess.call(['./TAXSYM_SMUTHI.out'], stdout=nfmds_log)
+        else:
+            raise AssertionError('Platform neither windows nor linux.')
+    os.chdir(cwd)
+
     
 def taxsym_write_input_spheroid(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
                                 semi_axis_c=None, semi_axis_a=None, use_ds=True, nint=None, nrank=None,
@@ -76,7 +82,8 @@ def taxsym_write_input_spheroid(vacuum_wavelength=None, layer_refractive_index=N
     if layer_refractive_index.imag:
         raise ValueError('Refractive index of surrounding medium  must be real(?)')
 
-    f = open('data/InputAXSYM.dat', 'w')
+    smuthi.nfmds.nfmds_installation_path
+    f = open(smuthi.nfmds.nfmds_installation_path + '/INPUTFILES/InputAXSYM.dat', 'w')
 
     f.write('OptProp\n')
     f.write(str(float(vacuum_wavelength)) + '\n')
@@ -205,7 +212,7 @@ def taxsym_write_input_spheroid(vacuum_wavelength=None, layer_refractive_index=N
 
     f.write('\n')
     f.write('Tmat\n')
-    f.write("'data/" + filename + "'\n")
+    f.write("'../TMATFILES/" + filename + "'\n")
     f.write(' Variable:\n')
     f.write(' - FileTmat - name of the file to which the T matrix is written.  \n')
 
@@ -229,9 +236,8 @@ def taxsym_read_tmatrix(filename):
     filename       Name of the file containing the T-matrix output of TAXSYM.f90
     """
 
-    info_file = open('data/Info' + filename, 'r')
-    info_file_lines = info_file.readlines()
-    info_file.close()
+    with open(smuthi.nfmds.nfmds_installation_path + '/TMATFILES/Info' + filename, 'r') as info_file:
+        info_file_lines = info_file.readlines()
 
     assert 'The scatterer is an axisymmetric particle' in ' '.join(info_file_lines)
 
@@ -242,9 +248,8 @@ def taxsym_read_tmatrix(filename):
         if line.split()[0:5] == ['-', 'number', 'of', 'azimuthal', 'modes,']:
             m_rank = int(line.split()[-1][0:-1])
 
-    tmat_file = open('data/' + filename, 'r')
-    tmat_lines = tmat_file.readlines()
-    tmat_file.close()
+    with open(smuthi.nfmds.nfmds_installation_path + '/TMATFILES/' + filename, 'r') as tmat_file:
+        tmat_lines = tmat_file.readlines()
 
     t_nfmds = [[]]
     column_index = 0

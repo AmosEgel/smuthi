@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+from setuptools import setup
 
-import setuptools
-from setuptools.command.install import install
-import sys
-import subprocess
-from numpy.distutils.core import Extension
-from numpy.distutils.core import setup
 
-with open('README.rst', 'r') as readme:
-    README_TEXT = readme.read()
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
     name="SMUTHI",
@@ -17,13 +13,12 @@ setup(
     author_email="amos.egel@kit.edu",
     url='https://gitlab.com/AmosEgel/smuthi',
     description="Light scattering by multiple particles in thin-film systems",
-    long_description=README_TEXT,
+    long_description=read('README.rst'),
     packages=['smuthi', 'smuthi.nfmds'],
-    package_data={'smuthi.nfmds': ['data/*'],
+    package_data={'smuthi.nfmds': ['NFM-DS/*.txt', 'NFM-DS/TMATSOURCES/*', 'NFM-DS/TMATFILES/*',
+                                   'NFM-DS/INPUTFILES/*.dat', 'NFM-DS/OUTPUTFILES/*'],
                   'smuthi': ['data/*']},
     install_requires=['numpy', 'scipy', 'sympy', 'matplotlib', 'pyyaml', 'argparse'],
     entry_points={'console_scripts': ['smuthi = smuthi.__main__:main']},
     license='MIT',
-    ext_modules=[Extension('smuthi.nfmds.taxsym',
-                           ['smuthi/nfmds/fortran_sources/TAXSYM.f90'])],
 )

@@ -1,0 +1,113 @@
+OptProp        
+ 0.628318530717959 
+ 1.0                  
+Variables:
+- wavelength - wavelength of the incident light in vacuo.
+- ind_refMed - refractive index of the ambient medium.
+
+
+GeomProp       
+ 3                      
+ 1.0                    
+Variables:
+- Npart - number of layers.
+- anorm - characteristic length of the layered particle which 
+          is used to normalize the differential scattering 
+          cross sections.
+
+
+*** layer 1 ***
+OptPartProp    
+(1.2,0.2)     
+Variable:
+- ind_refPartRel - relative refractive index of the actual layer       
+                   with respect to the ambient medium.
+
+                                              
+GeomPartProp   
+ 1.0
+Variable:
+- rPart - radius of the actual layer.                   
+
+
+*** layer 2 ***
+OptPartProp    
+(1.5,0.1)
+Variable:
+- ind_refPartRel
+
+
+GeomPartProp   
+ 0.7
+Variables:
+- rPart
+
+
+*** layer 3 ***
+OptPartProp    
+(1.8,0.3)
+Variable:
+- ind_refPartRel
+
+
+GeomPartProp   
+ 0.4
+Variable:
+- rPart
+*** end layer parameters ***
+
+
+ConvTest       
+.true.          
+Variables:
+- DoConvTest - if DoConvTest = t, the interactive convergence test     
+               over Nrank is performed.
+
+
+NrankSph       
+ 20                    
+Variables:
+- Nrank - maximum expansion order for the host sphere.
+NOTE: THIS VARIABLE MUST BR PROVIDED IF DoConvTest = f.
+
+          
+Errors         
+ 1.e-3               
+Variable:
+- epsNrank - error tolerance for the expansion order test.
+
+
+Tmat           
+'../TMATFILES/TvectSphere.dat'
+Variable:
+- FileTmat - name of the file to which the T matrix is written.
+
+
+PrintProgress  
+.true.           
+Variable:
+- PrnProgress if PrnProgress = t, the progress of calculation is printed.
+
+
+Comment
+As provided, the input file is setup to calculate scattering by a layered 
+sphere with radii rPart = 1.0 micrometer, rPart = 0.7 micrometer and 
+rPart = 0.4 micrometer, at a wavelength of 0.2 * Pi micrometer. The relative 
+refractive indices of the particles are (1.2,0.2), (1.5,0.1) and (1.8,0.3).
+Convergence is achieved for Nrank = 20.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

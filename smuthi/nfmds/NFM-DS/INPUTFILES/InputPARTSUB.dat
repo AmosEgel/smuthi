@@ -1,0 +1,162 @@
+OptProp   
+ 0.488           
+(4.37,0.08)    
+(4.37,0.08)                     
+Variables:
+- wavelength  - wavelength of the incident light in the ambient medium. 
+- ind_refPART - relative refractive index of the particle with respect 
+                to the ambient medium.
+- ind_refSUB  - relative refractive index of the substrate with respect 
+                to the ambient medium.
+
+
+GeomProp   
+ 1             
+ 1              
+ 2            
+ 0.05          
+ 0.025           
+ 1              
+ 0.05           
+ 0.05            
+ 0.05           
+.false.         
+.false.        
+Variables:
+- TypeScat    - if TypeScat = 1, the particle is illuminated by a vector 
+                pane wave traveling in the ambient medium, while for 
+                TypeScat = 2 the particle is illuminated by a vector plane 
+                wave traveling in the substrate.  
+- TypeGeom    - parameter specifying the type of the particle geometry. 
+- Nsurf       - number of surface parameters.     
+- surf(1)     - surface parameter.    
+- ...
+- surf(Nsurf)  
+- Nparam      - number of smooth curves forming the generatrix curve.   
+- z0          - axial position of the substrate with respect to the particle 
+                coordinate system.       
+- anorm       - characteristic length of the particle which is used to          
+                normalize the differential scattering cross sections.    
+- Rcirc       - characteristic length of the particle which is used to 
+                compute an estimate of Nrank.
+- miror       - if miror = t, the particle is mirror symmetric.      
+- perfectcond - if perfectcond = t, the particle is perfectly conducting.
+
+
+ConvTest      
+.true.       
+Variables:
+- DoConvTest - if DoConvTest = t, the interactive convergence tests    
+               over Nint, NXint and Nrank are performed.
+
+
+NintNrank     
+ 60                  
+ 60                 
+ 10                  
+Variables:
+- Nint   - number of integration points in computing integrals over      
+           the generatrix curve.
+- NXint  - number of integration points for computing the elements of   
+           the reflection matrix.
+- Nrank - maximum expansion order.
+NOTE: THESE VARIABLES MUST BR PROVIDED IF DoConvTest = f.
+
+
+Errors        
+ 1.e-2             
+ 1.e-2             
+ 1.e-2             
+ 4                 
+Variables:
+- epsNint  - error tolerance for the integration test.
+- epsNrank - error tolerance for the expansion order test.
+- epsMrank - error tolerance for the azimuthal order test.
+- dNint    - number of division points for the integration test.
+
+
+IncWave       
+ 45.0             
+ 45.0               
+Variables:
+- beta   - incident angle.
+- alphap - polarization angle of the incident wave.
+
+
+DSCSEM        
+.true.      
+.true.       
+ 181             
+   0.0           
+   1              
+   0.0 
+  91
+  90.0 
+ 180.0         
+.true.           
+'../OUTPUTFILES/DSCSPartSub.dat'
+'../OUTPUTFILES/EMFPartSub.dat'
+.true.   
+Variables:
+- ComputeDSCS   - if ComputeDSCS = t, the differential scattering cross 
+                  sections are computed in the azimuthal plane phiGS at 
+                  NthetaGS scattering angles.   
+- ComputeFields - if ComputeFields = t, the electromagnetic fields are 
+                  computed at Nphi scattering planes.
+- NthetaGS      - number of scattering angles at which the differential 
+                  scattering cross section are computed.
+- phiGS         - azimuthal angle of the scattering plane in which the 
+                  differential scattering cross section are computed.  
+- Nphi          - number of scattering planes at which the electromagnetic 
+                  fields are computed.
+- phi(1)        - azimuthal angle of the scattering planes at which the 
+                  electromagnetic fields are computed.
+- Ntheta(1)     - number of zenith angle values in each scattering plane at 
+                  which the electromagnetic fields are computed.   
+- thetamin(1)   - minimal value of the zenith angle in each scattering plane    
+                  at which the electromagnetic fields are computed.   
+- thetamax(1)   - maximal value of the zenith angle in each scattering plane    
+                  at which the electromagnetic fields are computed.  
+- ...
+- phi(Nphi)
+- Ntheta(Nphi)
+- thetamin(Nphi)
+- thetamax(Nphi)                  
+- normalized      - if normalized = t, the average differential scattering 
+                    cross sections are normalized by Pi * anorm**2.
+- FileDSCS        - name of the file to which the differential scattering cross 
+                    sections are written.  
+- FileEMF         - name of the file to which the electromagnetic fields are 
+                    written.  
+- WriteInputInfo  - if WriteInputInfo = t, the input parameters of      
+                    the scattering problem are written to the output files 
+                    FileDSCS and FileEMF.
+
+                                            
+PrintProgress 
+.true.       
+Variables:
+- PrnProgress - if PrnProgress = t, the progress of calculation is printed.
+
+
+Comment
+As provided, the input file is setup to calculate scattering by a prolate 
+spheroid with half-axes surf(1) = 0.05 micrometer and surf(2) = 0.025 
+micrometer, at a wavelength of 0.488 micrometer. The particle with a relative 
+refractive index of (4.37,0.08) is situated at the distance z0 = 0.05 
+micrometer below a substrate with a relative refractive index ind_refSUB = 
+(4.37,0.08). The  spheroid is illuminated by a vector plane wave traveling 
+in the ambient medium. The incident angle is beta = 45°  and the polarization  
+angle is alphap = 45°. The differential scattering cross sections are 
+computed in the azimuthal plane phiGS = 0° at NthetaGS = 181 zenith angles, 
+while the electromagnetic fields are computed in the azimuthal plane 
+phi(1) = 0° at 91 zenith angles. Convergence is achieved for Nint = 60,
+NXint = 60 and Nrank = 10.
+
+
+
+
+
+
+
+
