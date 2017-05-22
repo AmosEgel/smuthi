@@ -158,7 +158,7 @@ def transformation_coefficients_VWF(tau, l, m, pol, kp=None, kz=None, pilm_list=
     if dagger:
         if pol == 0:
             prefac = -1 / (-1j) ** (l + 1) / np.sqrt(2 * l * (l + 1)) * (-1j)
-        elif pol ==1:
+        elif pol == 1:
             prefac = -1 / (-1j) ** (l + 1) / np.sqrt(2 * l * (l + 1)) * 1
         else:
             raise ValueError('pol must be 0 (TE) or 1 (TM)')
@@ -176,7 +176,7 @@ def transformation_coefficients_VWF(tau, l, m, pol, kp=None, kz=None, pilm_list=
 
 
 def translation_coefficients_svwf(l1, m1, l2, m2, k, d, sph_hankel=None, legendre=None, exp_immphi=None):
-    """Return the coefficients of the translation operator for the expansion of an outgoing spherical wave in therms of
+    """Return the coefficients of the translation operator for the expansion of an outgoing spherical wave in terms of
     regular spherical waves with respect to a different origin.
     The output is a tuple (A,B), where the translation operator
         trans = \delta_pp' * A + (1-\delta_pp') * B
@@ -218,6 +218,52 @@ def translation_coefficients_svwf(l1, m1, l2, m2, k, d, sph_hankel=None, legendr
         B += b5 * sph_hankel[ld] * legendre[ld][abs(m1 - m2)]
     A, B = eimph * A, eimph * B
     return A, B
+
+
+def translation_coefficients_svwf_out_to_out(l1, m1, l2, m2, k, d, sph_bessel=None, legendre=None, exp_immphi=None):
+    """Return the coefficients of the translation operator for the expansion of an outgoing spherical wave in terms of
+    outgoing spherical waves with respect to a different origin.
+    The output is a tuple (A,B), where the translation operator
+        trans = \delta_pp' * A + (1-\delta_pp') * B
+
+    Input:
+    l1          integaer: l=1,...: Original wave's SVWF multipole degree
+    m1          integaer: m=-l,...,l: Original wave's SVWF multipole order
+    l2          integaer: l=1,...: Partial wave's SVWF multipole degree
+    m2          integaer: m=-l,...,l: Partial wave's SVWF multipole order
+    k           complex: wavenumber (inverse length unit)
+    d           translation vectors in format [dx, dy, dz] (length unit)
+                dx, dy, dz can be scalars or ndarrays
+    sph_bessel  list: sph_bessel[i] contains the spherical bessel funciton of degree i, evaluated at k*d where d is the
+                norm of the distance vector(s)
+    legendre    list of lists: legendre[l][m] contains the legendre function of order l and degree m, evaluated at
+                cos(theta) where theta is the polar angle(s) of the distance vector(s)
+    """
+    # spherical coordinates of d:
+    dd = np.sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2)
+
+    if exp_immphi is None:
+        phid = np.arctan2(d[1], d[0])
+        eimph = np.exp(1j * (m1 - m2) * phid)
+    else:
+        eimph = exp_immphi[m1][m2]
+
+    if sph_bessel is None:
+        sph_bessel = [sf.spherical_bessel(n, k * dd) for n in range(l1 + l2 + 1)]
+
+    if legendre is None:
+        costthetd = d[2] / dd
+        sinthetd = np.sqrt(d[0] ** 2 + d[1] ** 2) / dd
+        legendre, _, _ = sf.legendre_normalized(costthetd, sinthetd, l1 + l2)
+
+    A, B = complex(0), complex(0)
+    for ld in range(abs(l1 - l2), l1 + l2 + 1):
+        a5, b5 = ab5_coefficients(l1, m1, l2, m2, ld)
+        A += a5 * sph_bessel[ld] * legendre[ld][abs(m1 - m2)]
+        B += b5 * sph_bessel[ld] * legendre[ld][abs(m1 - m2)]
+    A, B = eimph * A, eimph * B
+    return A, B
+
 
 
 def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
