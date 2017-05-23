@@ -7,14 +7,14 @@ import smuthi.vector_wave_functions as vwf
 import smuthi.coordinates as coord
 import smuthi.spherical_functions as sf
 import scipy.optimize
-import json
+import scipy.io
 
 k0 = 1
 kp_array = np.linspace(0, 20, 2000)
 kz_array = coord.k_z(k_parallel=kp_array, k=k0)
 alpha = 0
 pol = 0
-dxmax = 6
+dxmax = 5
 dy = 0
 dz = 0
 llimit = 20
@@ -43,7 +43,12 @@ if compute:
     st = kp_array / k0
     plm_list, pilm_list, taulm_list = sf.legendre_normalized(ct, st, llimit)
     
-    for idx, dx in enumerate(np.linspace(0.5, dxmax, 2 * dxmax)):
+    dstart = 1
+    dstop = dxmax
+    dstep = 0.25
+    numd = (dxmax - dstart) / dstep + 1
+    
+    for idx, dx in enumerate(np.linspace(dstart, dstop, numd, endpoint=True)):
         pvwf_translation = np.exp(- 1j * kp_array * (np.cos(alpha) * dx + np.sin(alpha) * dy))
         dxlist.append(dx)
         kmaxlist.append([])
@@ -55,7 +60,7 @@ if compute:
         sinthetd = np.sqrt(dx ** 2 + dy ** 2) / dd
         legendre, _, _ = sf.legendre_normalized(costthetd, sinthetd, llimit + 1)
         
-        for lmax in range(12, llimit + 1, 5):
+        for lmax in range(1, llimit + 1):
             print(lmax)
             lmaxlist[-1].append(lmax)
             g2list.append(g - g)
@@ -81,16 +86,24 @@ if compute:
         
             kmaxlist[-1].append(kp_array[kmax_idx])
 else:
-    with open('kmax_data.json', 'r') as fp:
-        data = json.load(fp)
-    dxlist = data['dxlist']
+    # load data from .mat file
+    data = scipy.io.loadmat('kmax_data.mat')
+    dxlist = np.squeeze(data['dxlist'])
     kmaxlist = data['kmaxlist']
     lmaxlist = data['lmaxlist']
     g2list = data['g2list']
+
 # save 
 data = {'dxlist': dxlist, 'kmaxlist': kmaxlist, 'lmaxlist': lmaxlist, 'g2list': g2list}
-with open('kmax_data.json', 'w') as fp:
-    json.dump(data, fp)
+scipy.io.savemat('kmax_data.mat', data)
+
+
+plt.figure()
+#for ig2, g2 in enumerate(g2list):
+#    plt.semilogy(kp_array, abs(g - g2) / abs(g), label=ig2)
+#plt.legend()
+plt.semilogy(kp_array, abs(g - g2list[-1]) / abs(g))
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # linear fit
@@ -101,82 +114,55 @@ alist = []
 blist = []
 
 for i, dx in enumerate(dxlist):
-    blist.append((kmaxlist[i][-1] - kmaxlist[i][0]) / (lmaxlist[i][-1] - lmaxlist[i][0]))
+    print(i, dx)
+    blist.append((kmaxlist[i][-1] - kmaxlist[i][-2]) / (lmaxlist[i][-1] - lmaxlist[i][-2]))
     alist.append(kmaxlist[i][-1] - blist[-1] * lmaxlist[i][-1])
-
-plt.figure()
-plt.semilogy(dxlist, blist)
-
-plt.figure()
-plt.plot(dxlist, alist)
-
+    
 
 # Assume that a is constant with the translation distance, whereas b depends 
 # on the distance like this:
 
-def b_model(dist, b0, beta):
-    return b0 * np.exp(- beta * dist)
+#def b_model(dist, b0, beta):
+#    return b0 * np.exp(- beta * dist)
+
+def b_model(dist, b0):
+    return b0 / dist
 
 # Fit this model to the measured b data
-b_params, _ = scipy.optimize.curve_fit(b_model, np.array(dxlist), np.array(blist), p0=(1,1))
+b_params, _ = scipy.optimize.curve_fit(b_model, np.array(dxlist), np.array(blist), p0=(1))
 
-print(b_params)
 
 b0fit = b_params[0]
-betafit = b_params[1]
-
-
-
-"""
-def kmax_model(beta, a, dx, lmaxarray):
-    return np.exp(- beta * dx) * np.array(lmaxarray) + a - np.array(kmaxlist[i])    
-
-def residual(params)    :
-    beta = params[0]
-    a = params[1]
-    resid = 0
-    for i, dx in enumerate(dxlist):   
-        resid += abs(kmax_model(beta, a, dx, np.array(lmaxlist[i])) - np.array(kmaxlist[i])) ** 2
-    return resid
-
-
-fit_params = scipy.optimize.leastsq(residual, [0, 0])
-beta_fit = fit_params[0][0]
-a_fit = fit_params[0][1]
-print(beta_fit, a_fit)
-"""    
-    
-    
 afit = sum(alist) / len(alist)
-print(afit)
+
+plt.figure()
+plt.plot(dxlist, np.array(blist), '.')
+plt.plot(dxlist, b_model(dxlist, b0fit))
+
+plt.ylabel('b coefficient')
+plt.xlabel('translation distance')
 
 
+plt.figure()
+plt.plot(dxlist, alist, '.')
+plt.plot(dxlist, [afit] * len(dxlist))
+plt.ylabel('a coefficient')
+plt.xlabel('translation distance')
 
-# Plot results
-
-#plt.figure()
-#plt.plot(kp_array, abs(g))
-#plt.plot(kp_array, abs(g2), 'r--')
-#plt.ylim((0, 3))
-
-#plt.figure()
-#for ig2, g2 in enumerate(g2list):
-#    plt.semilogy(kp_array, abs(g - g2) / abs(g), label=ig2)
-#plt.legend()
 
 plt.figure()
 for i, dx in enumerate(dxlist):
-    plt.plot(lmaxlist[i], kmaxlist[i], label=dx)
+    plt.plot(lmaxlist[i], kmaxlist[i], 'o', label=dx)
 plt.legend()    
+plt.ylabel('kmax')
+plt.xlabel('lmax')
+
+plt.gca().set_color_cycle(None)
 
 for i, dx in enumerate(dxlist):
     #bfit = b_model(dx, *b_params)
-    bfit = b0fit * np.exp(- betafit * dx)
-    plt.plot(lmaxlist[i], afit + bfit * np.array(lmaxlist[i]), 'o')
+    bfit = b_model(dx, b_params[0])
+    plt.plot(lmaxlist[i], afit + bfit * np.array(lmaxlist[i]))
 
 plt.show()
-
-
-
-
 
