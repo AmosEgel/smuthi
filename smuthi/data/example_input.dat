@@ -42,11 +42,13 @@ scattering particles:
   refractive index: 2.4
   extinction coefficient: 0.05
   position: [0, 100, 150]
-- shape: sphere
-  radius: 120
+- shape: finite cylinder
+  cylinder radius: 120
+  cylinder height: 150
   refractive index: 2.7
   extinction coefficient: 0
   position: [250, -100, 250]
+  euler angles: [0, 0, 0]
 - shape: spheroid
   semi axis c: 80
   semi axis a: 140

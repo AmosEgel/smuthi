@@ -18,11 +18,14 @@ In addition to spherical particles, spheroids can now be selected as scattering 
 Spheroids are ellipsoidal particles with one axis of rotational symmetry (which is currently fixed
 to be the direction perpendicular to the layer interfaces).
 
+What's new in version 0.2.2
+--------------------------
+Finite cylinders were added.
+
 Planned updates for future versions
 ------------------------------------
 Things to be implemented next:
 
- - finite cylinders
  - near fields
  - faster evaluation of particle coupling
  - dipole excitation

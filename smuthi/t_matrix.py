@@ -81,6 +81,15 @@ def t_matrix(vacuum_wavelength, n_medium, particle, method={}):
                                     semi_axis_c=particle['semi axis c'], semi_axis_a=particle['semi axis a'],
                                     use_ds=method.get('use discrete sources', True), nint=method.get('nint', 200),
                                     nrank=method.get('nrank', smuthi.index_conversion.l_max + 2))
+    elif particle['shape'] == 'finite cylinder':
+        if not particle['euler angles'] == [0, 0, 0]:
+            raise ValueError('T-matrix for rotated particles currently not implemented.')
+        t = nftaxs.tmatrix_cylinder(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=n_medium,
+                                    particle_refractive_index=particle['refractive index'],
+                                    cylinder_height=particle['cylinder height'],
+                                    cylinder_radius=particle['cylinder radius'],
+                                    use_ds=method.get('use discrete sources', True), nint=method.get('nint', 200),
+                                    nrank=method.get('nrank', smuthi.index_conversion.l_max + 2))
     else:
         raise ValueError('T-matrix for ' + particle['shape'] + ' currently not implemented.')
 
@@ -120,8 +129,12 @@ def t_matrix_collection(vacuum_wavelength, particle_collection, layer_system, me
             params = ['sphere', particle['radius'], particle['refractive index']]
         elif particle['shape'] == 'spheroid':
             params = ['spheroid', particle['semi axis c'], particle['semi axis a'], particle['refractive index']]
+        elif particle['shape'] == 'finite cylinder':
+            params = ['finite cylinder', particle['cylinder height'], particle['cylinder radius'],
+                      particle['refractive index']]
         else:
-            raise ValueError('invalid particle type: so far only spheres and spheroids are implemented')
+            raise ValueError('invalid particle type: so far only spheres, spheroids and finite cylinders are '
+                             'implemented')
         zS = particle['position'][2]
         iS = layer_system.layer_number(zS)
         n_medium = layer_system.refractive_indices[iS]

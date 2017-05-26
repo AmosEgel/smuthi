@@ -56,7 +56,7 @@ class PostProcessing:
 
                 # distinguish the cases of top/bottom illumination
                 print()
-                print('-----------------------------------------------------------------')
+                print('-------------------------------------------------------------------------')
                 print('Cross sections:')
                 if i_P == 0:
                     print('Scattering into bottom layer (diffuse reflection):  ',
@@ -113,7 +113,7 @@ class PostProcessing:
                         print('Total extinction cross section:                       ',
                               self.extinction_cross_section['top'] + self.extinction_cross_section['bottom'],
                               ' ' + simulation.length_unit + '^2')
-                print('-----------------------------------------------------------------')
+                print('-------------------------------------------------------------------------')
 
                 if item.get('show plots', False):
 

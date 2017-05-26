@@ -28,6 +28,8 @@ def read_input_yaml(filename):
                         particle_type = 'sphere'
                     elif line.split()[-1] == 'spheroids':
                         particle_type = 'spheroid'
+                    elif line.split()[-1] == 'cylinders':
+                        particle_type = 'finite cylinder'
                     if not line.split()[0] == '#':
                         numeric_line_data = [float(x) for x in line.split()]
                         pos = numeric_line_data[:3]
@@ -41,6 +43,12 @@ def read_input_yaml(filename):
                             n = numeric_line_data[5] + 1j * numeric_line_data[6]
                             simulation.particle_collection.add_spheroid(semi_axis_c=c, semi_axis_a=a,
                                                                         refractive_index=n, position=pos)
+                        if particle_type == 'finite cylinder':
+                            r = numeric_line_data[3]
+                            h = numeric_line_data[4]
+                            n = numeric_line_data[5] + 1j * numeric_line_data[6]
+                            simulation.particle_collection.add_finite_cylinder(cylinder_radius=r, cylinder_height=h,
+                                                                               refractive_index=n, position=pos)
     else:
         for prtcl in input_data['scattering particles']:
             if prtcl['shape'] == 'sphere':
@@ -57,8 +65,18 @@ def read_input_yaml(filename):
                                 float(prtcl['euler angles'][2])]
                 simulation.particle_collection.add_spheroid(semi_axis_c=c, semi_axis_a=a, refractive_index=n,
                                                             position=pos, euler_angles=euler_angles)
+            elif prtcl['shape'] == 'finite cylinder':
+                h = float(prtcl['cylinder height'])
+                r = float(prtcl['cylinder radius'])
+                n = float(prtcl['refractive index']) + 1j * float(prtcl['extinction coefficient'])
+                pos = [float(prtcl['position'][0]), float(prtcl['position'][1]), float(prtcl['position'][2])]
+                euler_angles = [float(prtcl['euler angles'][0]), float(prtcl['euler angles'][1]),
+                                float(prtcl['euler angles'][2])]
+                simulation.particle_collection.add_finite_cylinder(cylinder_radius=r, cylinder_height=h,
+                                                                   refractive_index=n, position=pos,
+                                                                   euler_angles=euler_angles)
             else:
-                raise ValueError('Currently, only spheres and spheroids are implemented')
+                raise ValueError('Currently, only spheres, spheroids and finite cylinders are implemented')
 
     # layer system
     thick = [float(d) for d in input_data['layer system'][0]['thicknesses']]

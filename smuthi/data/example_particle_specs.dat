@@ -1,7 +1,10 @@
 # spheres
 # x, y, z, radius, refractive index, exctinction coefficient
 0		100		150		100		2.4		0.05
-250	    -100		250	    120		2.7		0
+
+# cylinders
+# x, y, z, cylinder radius, cylinder height, refractive index, exctinction coefficient
+250	    -100	250	    120     150		2.7		0
 
 # spheroids
 # x, y, z, semi-axis c, semi-axis a, refractive index, exctinction coefficient
