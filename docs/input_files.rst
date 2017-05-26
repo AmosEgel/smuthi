@@ -46,9 +46,25 @@ would specify a single film of thickness :math:`500`, consisting of a material w
 Scattering particles
 ---------------------
 
-The ensemble of scattering particles inside the layered medium. For spherical particles, specify 
+The ensemble of scattering particles inside the layered medium.
+
+For spherical particles, specify
 :code:`shape: sphere`, the radius, refractive index, extinction coefficient 
-and the :code:`[x, y, z]` coordinates of the particle position. 
+and the :code:`[x, y, z]` coordinates of the particle position.
+
+For spheroids, specify
+:code:`shape: spheroid`, the half axes along (`half axis c`) and transverse (`half axis a`) to the axis of revolution,
+refractive index, extinction coefficient and the :code:`[x, y, z]` coordinates of the particle position, as well as the
+Euler angles defining the rotation of the axis of revolution relative to the `z` axis (currently rotations other than
+`[0, 0, 0]` are not implemented).
+
+For finite cylinders, specify
+:code:`shape: finite cylinder`, the cylinder height, cylinder radius, refractive index, extinction coefficient and the
+:code:`[x, y, z]` coordinates of the particle position, as well as the
+Euler angles defining the rotation of the axis of revolution relative to the `z` axis (currently rotations other than
+`[0, 0, 0]` are not implemented).
+
+
 The coordinate system is such that the interface between the first two layers defines the plane :math:`z=0`.
 
 The parameters can be listed directly in the input file, in the following format::
@@ -57,13 +73,22 @@ The parameters can be listed directly in the input file, in the following format
    - shape: sphere
      radius: 100
      refractive index: 2.4
+     extinction coefficient: 0.05
+     position: [0, 100, 150]
+   - shape: finite cylinder
+     cylinder radius: 120
+     cylinder height: 150
+     refractive index: 2.7
      extinction coefficient: 0
-     position: [220, 110, 250]
-   - shape: sphere
-     radius: 200
-     refractive index: 2.1
-     extinction coefficient: 0.01
-     position: [-300, -200, 750]
+     position: [250, -100, 250]
+     euler angles: [0, 0, 0]
+   - shape: spheroid
+     semi axis c: 80
+     semi axis a: 140
+     refractive index: 2.5
+     extinction coefficient: 0.05
+     position: [-250, 0, 350]
+     euler angles: [0, 0, 0]
 
 Alternatively, the scattering particles can be specified in a separate file, which needs to be located in the SMUTHI project folder. 
 This is more convenient for large particle numbers. 
@@ -172,15 +197,19 @@ The particle specifications file
 The file containing the particle specifications needs to be written in the following format::
 
    # spheres
-   # x         y           z           radius      ref. idx.   exct. coeff.
-   220         110         250         100         2.4         0
-   -300        -200        750         200         2.1         0.01
-   ...         ...         ...         ...         ...         ...
-   
+   # x, y, z, radius, refractive index, exctinction coefficient
+   0	    100		150		100		2.4		0.05
+   ...      ...     ...     ...     ...     ...
+
+   # cylinders
+   # x, y, z, cylinder radius, cylinder height, refractive index, exctinction coefficient
+   250      -100    250	    120     150     2.7     0
+   ...      ...     ...     ...     ...     ...     ...
+
    # spheroids
    # x, y, z, semi-axis c, semi-axis a, refractive index, exctinction coefficient
-   -250	       0           350		   80          140         2.5       0.05
-   ...         ...         ...         ...         ...         ...       ...
+   -250	    0       350	    80      140     2.5     0.05
+   ...      ...     ...     ...     ...     ...     ...
 
 An examplary particle specifiacations can be downloaded from
 :download:`here <../smuthi/data/example_particle_specs.dat>`.

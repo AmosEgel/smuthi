@@ -22,9 +22,14 @@ and on the scattering-matrix method for the propagation through the layered medi
 SMUTHI ...
 
  - ... exactly solves Maxwell's equations (3D wave optics) in frequency domain (one wavelength per simulation).
- - ... allows for the simulation of an arbitrary number of spheres and spheroids. For spheres, the T-matrix is given by the Mie-coefficients. For
-   spheroids, SMUTHI calls the `NFM-DS <https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds>`_,
-   a Fortran software package written by A. Doicu, T. Wriedt and Y. Eremin, based on the "Null-field method with
+ - ... considers multiple scattering. This includes direct particle coupling as well as indirect particle coupling,
+   mediated through reflections at the planar layer interfaces.
+ - ... allows for the simulation of an arbitrary number of spheres, spheroids and finite cylinders. For spheres, the
+   T-matrix is given by the Mie-coefficients.
+   For spheroids and finite cylinders, SMUTHI calls the
+   `NFM-DS <https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds>`_,
+   to compute the single particle T-matrix.
+   This is a Fortran software package written by A. Doicu, T. Wriedt and Y. Eremin, based on the "Null-field method with
    discrete sources".
  - ... returns the total and differential scattering cross section as well as the extinction cross section.
    The difference between scattering and extinction cross section refers to absorption (and incoupling to waveguide
