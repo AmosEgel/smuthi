@@ -12,19 +12,20 @@ import scipy.io
 k0 = 1
 kp_array = np.linspace(0, 20, 2000)
 kz_array = coord.k_z(k_parallel=kp_array, k=k0)
-alpha = 0
-pol = 0
+alpha = 0.3
+pol = 1
 dxmax = 5
 dy = 0
 dz = 0
-llimit = 20
+#llimit = 20
+llimit = 10
 compute = True
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Angular spectrum of dipole source
 l = 1
 m = 0
-tau = 0
+tau = 1
 
 B = vwf.transformation_coefficients_VWF(tau, l, m, pol, kp=kp_array, kz=-kz_array)
 g = 1 / (2 * np.pi * kz_array * k0) * np.exp(1j * m * alpha) * B
@@ -39,13 +40,14 @@ dxlist = []
 
 if compute:
 
-    ct = kz_array / k0
+    ct = - kz_array / k0
     st = kp_array / k0
     plm_list, pilm_list, taulm_list = sf.legendre_normalized(ct, st, llimit)
     
     dstart = 1
     dstop = dxmax
-    dstep = 0.25
+    #dstep = 0.25
+    dstep = 1
     numd = (dxmax - dstart) / dstep + 1
     
     for idx, dx in enumerate(np.linspace(dstart, dstop, numd, endpoint=True)):
@@ -87,7 +89,7 @@ if compute:
             kmaxlist[-1].append(kp_array[kmax_idx])
 else:
     # load data from .mat file
-    data = scipy.io.loadmat('kmax_data.mat')
+    data = scipy.io.loadmat('kmax_data_tau1.mat')
     dxlist = np.squeeze(data['dxlist'])
     kmaxlist = data['kmaxlist']
     lmaxlist = data['lmaxlist']
@@ -95,7 +97,7 @@ else:
 
 # save 
 data = {'dxlist': dxlist, 'kmaxlist': kmaxlist, 'lmaxlist': lmaxlist, 'g2list': g2list}
-scipy.io.savemat('kmax_data.mat', data)
+scipy.io.savemat('kmax_data_tau1.mat', data)
 
 
 plt.figure()
