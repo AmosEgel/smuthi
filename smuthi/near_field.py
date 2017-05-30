@@ -1,233 +1,174 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import scipy.interpolate as interp
 import smuthi.coordinates as coord
 import smuthi.post_processing as pp
 import smuthi.vector_wave_functions as vwf
 import smuthi.index_conversion as idx
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, Wedge, Polygon
+from matplotlib.patches import Circle, Ellipse, Rectangle
 from matplotlib.collections import PatchCollection
 
 
-def show_scattered_field(xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution=25, interpolate=5, n_effective=None,
-                         azimuthal_angles=None, vacuum_wavelength=None, particle_collection=None, linear_system=None,
-                         layer_system=None, layerresponse_precision=None, max_field=None):
+def show_scattered_field(quantities_to_plot, xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution=25,
+                         interpolate=None, n_effective=None, azimuthal_angles=None, vacuum_wavelength=None,
+                         particle_collection=None, linear_system=None, layer_system=None, layerresponse_precision=None,
+                         max_field=None, length_unit='length unit', max_particle_distance=float('inf')):
+    """Plot the electric near field along a plane. To plot along the xy-plane, specify zmin=zmax and so on.
+
+    input:
+    quantities_to_plot:         List of strings that specify what to plot. Select from 'E_x', 'E_y', 'E_z', 'norm(E)'
+                                Example: ('E_x', 'norm(E)') generates two plots, showing the real part of the electric
+                                field's x component as well as the norm of the E-vector.
+    xmin:                       Plot from that x (length unit)
+    xmax:                       Plot up to that x (length unit)
+    ymin:                       Plot from that y (length unit)
+    ymax:                       Plot up to that y (length unit)
+    zmin:                       Plot from that z (length unit)
+    zmax:                       Plot up to that z (length unit)
+    resolution:                 Compute the field with that spatial resolution (length unit)
+    interpolate:                Use spline interpolation with that resolution to plot a smooth field (length unit)
+    n_effective:                1-D Numpy array of effective refractive index for the plane wave expansion
+    azimuthal_angles:           1-D Numpy array of azimuthal angles for the plane wave expansion
+    vacuum_wavelength:          Vacuum wavelength
+    particle_collection:        smuthi.particle.ParticleCollection object
+    linear_system:              smuthi.linear_system.LinearSystem object
+    layer_system:               smuthi.layers.LayerSystem object
+    layerresponse_precision:    If None, standard numpy is used for the layer response. If int>0, that many decimal
+                                digits are considered in multiple precision. (default=None)
+    max_field:                  If specified, truncate the color scale of the field plots at that value.
+    max_particle_distance       Show particles that are closer than that distance to the image plane
+                                (length unit, default = inf).
+    """
     if xmin == xmax:
-        yvec = np.linspace(ymin, ymax, (ymax - ymin) / resolution + 1, endpoint=True)
-        zvec = np.linspace(zmin, zmax, (zmax - zmin) / resolution + 1, endpoint=True)
-        yarr, zarr = np.meshgrid(yvec, zvec)
-        xarr = yarr - yarr
+        dim1vec = np.linspace(ymin, ymax, (ymax - ymin) / resolution + 1, endpoint=True)
+        dim2vec = np.linspace(zmin, zmax, (zmax - zmin) / resolution + 1, endpoint=True)
+        yarr, zarr = np.meshgrid(dim1vec, dim2vec)
+        xarr = yarr - yarr + xmin
+        dim1name = 'y (' + length_unit + ')'
+        dim2name = 'z (' + length_unit + ')'
     elif ymin == ymax:
-        xvec = np.linspace(xmin, xmax, (xmax - xmin) / resolution + 1, endpoint=True)
-        zvec = np.linspace(zmin, zmax, (zmax - zmin) / resolution + 1, endpoint=True)
-        xarr, zarr = np.meshgrid(xvec, zvec)
-        yarr = xarr - xarr
+        dim1vec = np.linspace(xmin, xmax, (xmax - xmin) / resolution + 1, endpoint=True)
+        dim2vec = np.linspace(zmin, zmax, (zmax - zmin) / resolution + 1, endpoint=True)
+        xarr, zarr = np.meshgrid(dim1vec, dim2vec)
+        yarr = xarr - xarr + ymin
+        dim1name = 'x (' + length_unit + ')'
+        dim2name = 'z (' + length_unit + ')'
     else:
-        xvec = np.linspace(xmin, xmax, (xmax - xmin) / resolution + 1, endpoint=True)
-        yvec = np.linspace(ymin, ymax, (ymax - ymin) / resolution + 1, endpoint=True)
-        xarr, yarr = np.meshgrid(xvec, yvec)
-        zarr = xarr - xarr
+        dim1vec = np.linspace(xmin, xmax, (xmax - xmin) / resolution + 1, endpoint=True)
+        dim2vec = np.linspace(ymin, ymax, (ymax - ymin) / resolution + 1, endpoint=True)
+        xarr, yarr = np.meshgrid(dim1vec, dim2vec)
+        zarr = xarr - xarr + zmin
+        dim1name = 'x (' + length_unit + ')'
+        dim2name = 'y (' + length_unit + ')'
 
-    e_x, e_y, e_z = scattered_electric_field(xarr, yarr, zarr, n_effective, azimuthal_angles, vacuum_wavelength,
-                                             particle_collection, linear_system, layer_system, layerresponse_precision)
+    e_x_raw, e_y_raw, e_z_raw = scattered_electric_field(xarr, yarr, zarr, n_effective, azimuthal_angles,
+                                                         vacuum_wavelength, particle_collection, linear_system,
+                                                         layer_system, layerresponse_precision)
 
-    if xmin == xmax:
-        #plt.subplots(1, 3, sharey=True)
-        plt.subplot(1, 3, 1)
-        if max_field is None:
-            plt.pcolormesh(yarr, zarr, e_x.real)
-        else:
-            plt.pcolormesh(yarr, zarr, e_x.real, vmin=-max_field, vmax=max_field)
-        for il in range(1, layer_system.number_of_layers()):
-            plt.plot([ymin, ymax], [layer_system.reference_z(il), layer_system.reference_z(il)], 'w')
-        patches = []
-        for particle in particle_collection.particles:
-            if particle['shape'] == 'sphere':
-                pos = particle['position']
-                patches.append(Circle((pos[1], pos[2]), particle['radius']))
-        p = PatchCollection(patches)
-        p.set_facecolor('w')
-        p.set_edgecolor('k')
-        plt.gca().add_collection(p)
-        plt.gca().set_aspect("equal")
-        plt.xlabel('y')
-        plt.ylabel('z')
-        plt.title('x-component of electric field')
-        plt.colorbar()
-
-        plt.subplot(1, 3, 2)
-        if max_field is None:
-            plt.pcolormesh(yarr, zarr, e_y.real)
-        else:
-            plt.pcolormesh(yarr, zarr, e_y.real, vmin=-max_field, vmax=max_field)
-        for il in range(1, layer_system.number_of_layers()):
-            plt.plot([ymin, ymax], [layer_system.reference_z(il), layer_system.reference_z(il)], 'w')
-        patches = []
-        for particle in particle_collection.particles:
-            if particle['shape'] == 'sphere':
-                pos = particle['position']
-                patches.append(Circle((pos[1], pos[2]), particle['radius']))
-        p = PatchCollection(patches)
-        p.set_facecolor('w')
-        p.set_edgecolor('k')
-        plt.gca().add_collection(p)
-        plt.gca().set_aspect("equal")
-        plt.xlabel('y')
-        plt.ylabel('z')
-        plt.title('y-component of electric field')
-        plt.colorbar()
-
-        plt.subplot(1, 3, 3)
-        if max_field is None:
-            plt.pcolormesh(yarr, zarr, e_z.real)
-        else:
-            plt.pcolormesh(yarr, zarr, e_z.real, vmin=-max_field, vmax=max_field)
-        for il in range(1, layer_system.number_of_layers()):
-            plt.plot([ymin, ymax], [layer_system.reference_z(il), layer_system.reference_z(il)], 'w')
-        patches = []
-        for particle in particle_collection.particles:
-            if particle['shape'] == 'sphere':
-                pos = particle['position']
-                patches.append(Circle((pos[1], pos[2]), particle['radius']))
-        p = PatchCollection(patches)
-        p.set_facecolor('w')
-        p.set_edgecolor('k')
-        plt.gca().add_collection(p)
-        plt.gca().set_aspect("equal")
-        plt.xlabel('y')
-        plt.ylabel('z')
-        plt.title('z-component of electric field')
-        plt.colorbar()
-
-    elif ymin == ymax:
-        plt.figure()
-        ax1 = plt.subplot(131)
-        if max_field is None:
-            plt.pcolormesh(xarr, zarr, e_x.real)
-        else:
-            plt.pcolormesh(xarr, zarr, e_x.real, vmin=-max_field, vmax=max_field)
-        for il in range(1, layer_system.number_of_layers()):
-            plt.plot([xmin, xmax], [layer_system.reference_z(il), layer_system.reference_z(il)], 'w')
-        patches = []
-        for particle in particle_collection.particles:
-            if particle['shape'] == 'sphere':
-                pos = particle['position']
-                patches.append(Circle((pos[0], pos[2]), particle['radius']))
-        p = PatchCollection(patches)
-        p.set_facecolor('w')
-        p.set_edgecolor('k')
-        plt.gca().add_collection(p)
-        plt.gca().set_aspect("equal")
-        plt.xlabel('x')
-        plt.ylabel('z')
-        plt.title('x-component of electric field')
-        plt.colorbar()
-
-        ax2 = plt.subplot(132, sharey=ax1)
-        if max_field is None:
-            plt.pcolormesh(xarr, zarr, e_y.real)
-        else:
-            plt.pcolormesh(xarr, zarr, e_y.real, vmin=-max_field, vmax=max_field)
-        for il in range(1, layer_system.number_of_layers()):
-            plt.plot([xmin, xmax], [layer_system.reference_z(il), layer_system.reference_z(il)], 'w')
-        patches = []
-        for particle in particle_collection.particles:
-            if particle['shape'] == 'sphere':
-                pos = particle['position']
-                patches.append(Circle((pos[0], pos[2]), particle['radius']))
-        p = PatchCollection(patches)
-        p.set_facecolor('w')
-        p.set_edgecolor('k')
-        plt.gca().add_collection(p)
-        plt.gca().set_aspect("equal")
-        plt.xlabel('x')
-        plt.ylabel('z')
-        plt.title('y-component of electric field')
-        plt.colorbar()
-
-        ax3 = plt.subplot(133, sharey=ax1)
-        if max_field is None:
-            plt.pcolormesh(xarr, zarr, e_z.real)
-        else:
-            plt.pcolormesh(xarr, zarr, e_z.real, vmin=-max_field, vmax=max_field)
-        for il in range(1, layer_system.number_of_layers()):
-            plt.plot([xmin, xmax], [layer_system.reference_z(il), layer_system.reference_z(il)], 'w')
-        patches = []
-        for particle in particle_collection.particles:
-            if particle['shape'] == 'sphere':
-                pos = particle['position']
-                patches.append(Circle((pos[0], pos[2]), particle['radius']))
-        p = PatchCollection(patches)
-        p.set_facecolor('w')
-        p.set_edgecolor('k')
-        plt.gca().add_collection(p)
-        plt.gca().set_aspect("equal")
-        plt.xlabel('x')
-        plt.ylabel('z')
-        plt.title('z-component of electric field')
-        plt.colorbar()
-
+    if interpolate is None:
+        e_x, e_y, e_z = e_x_raw, e_y_raw, e_z_raw
+        dim1vecfine = dim1vec
+        dim2vecfine = dim2vec
     else:
+        dim1vecfine = np.linspace(dim1vec[0], dim1vec[-1], (dim1vec[-1] - dim1vec[0]) / interpolate + 1, endpoint=True)
+        dim2vecfine = np.linspace(dim2vec[0], dim2vec[-1], (dim2vec[-1] - dim2vec[0]) / interpolate + 1, endpoint=True)
+
+        real_ex_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_x_raw.real)
+        imag_ex_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_x_raw.imag)
+        e_x = real_ex_interpolant(dim1vecfine, dim2vecfine) + 1j * imag_ex_interpolant(dim1vecfine, dim2vecfine)
+
+        real_ey_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_y_raw.real)
+        imag_ey_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_y_raw.imag)
+        e_y = real_ey_interpolant(dim1vecfine, dim2vecfine) + 1j * imag_ey_interpolant(dim1vecfine, dim2vecfine)
+
+        real_ez_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_z_raw.real)
+        imag_ez_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_z_raw.imag)
+        e_z = real_ez_interpolant(dim1vecfine, dim2vecfine) + 1j * imag_ez_interpolant(dim1vecfine, dim2vecfine)
+
+    if max_field is None:
+        vmin = None
+        vmax = None
+    else:
+        vmin = -max_field
+        vmax = max_field
+
+    for quantity in quantities_to_plot:
         plt.figure()
-        plt.subplot(1, 3, 1)
-        if max_field is None:
-            plt.pcolormesh(xarr, yarr, e_x.real)
-        else:
-            plt.pcolormesh(xarr, yarr, e_x.real, vmin=-max_field, vmax=max_field)
-        patches = []
-        for particle in particle_collection.particles:
-            if particle['shape'] == 'sphere':
-                pos = particle['position']
-                patches.append(Circle((pos[0], pos[1]), particle['radius']))
-        p = PatchCollection(patches)
-        p.set_facecolor('w')
-        p.set_edgecolor('k')
-        plt.gca().add_collection(p)
-        plt.gca().set_aspect("equal")
-        plt.xlabel('x')
-        plt.ylabel('y')
-        plt.title('x-component of electric field')
-        plt.colorbar()
+        if quantity == 'E_x':
+            plt.pcolormesh(dim1vecfine, dim2vecfine, e_x.real, vmin=vmin, vmax=vmax)
+            plt.title('x-component of electric field')
+        elif quantity == 'E_y':
+            plt.pcolormesh(dim1vecfine, dim2vecfine, e_y.real, vmin=vmin, vmax=vmax)
+            plt.title('y-component of electric field')
+        elif quantity == 'E_z':
+            plt.pcolormesh(dim1vecfine, dim2vecfine, e_z.real, vmin=vmin, vmax=vmax)
+            plt.title('z-component of electric field')
+        elif quantity == 'norm(E)':
+            plt.pcolormesh(dim1vecfine, dim2vecfine, np.sqrt(e_x.real ** 2 + e_y.real ** 2 + e_z.real ** 2),
+                           vmin=0, vmax=vmax)
+            plt.title('norm of electric field')
 
-        plt.subplot(1, 3, 2)
-        if max_field is None:
-            plt.pcolormesh(xarr, yarr, e_y.real)
-        else:
-            plt.pcolormesh(xarr, yarr, e_y.real, vmin=-max_field, vmax=max_field)
-        patches = []
-        for particle in particle_collection.particles:
-            if particle['shape'] == 'sphere':
-                pos = particle['position']
-                patches.append(Circle((pos[0], pos[1]), particle['radius']))
-        p = PatchCollection(patches)
-        p.set_facecolor('w')
-        p.set_edgecolor('k')
-        plt.gca().add_collection(p)
-        plt.gca().set_aspect("equal")
-        plt.xlabel('x')
-        plt.ylabel('y')
-        plt.title('y-component of electric field')
         plt.colorbar()
+        plt.xlabel(dim1name)
+        plt.ylabel(dim2name)
 
-        plt.subplot(1, 3, 3)
-        if max_field is None:
-            plt.pcolormesh(xarr, yarr, e_z.real)
-        else:
-            plt.pcolormesh(xarr, yarr, e_z.real, vmin=-max_field, vmax=max_field)
+        # plot layer interfaces
+        if not zmin == zmax:
+            for il in range(1, layer_system.number_of_layers()):
+                plt.plot([dim1vec[0], dim1vec[-1]], [layer_system.reference_z(il), layer_system.reference_z(il)], 'w')
+
+        # plot particles
         patches = []
         for particle in particle_collection.particles:
-            if particle['shape'] == 'sphere':
-                pos = particle['position']
-                patches.append(Circle((pos[0], pos[1]), particle['radius']))
+            pos = particle['position']
+            if xmin == xmax:
+                if abs(xmin - pos[0]) < max_particle_distance:
+                    if particle['shape'] == 'sphere':
+                        patches.append(Circle((pos[1], pos[2]), particle['radius']))
+                    elif particle['shape'] == 'spheroid':
+                        if not particle['euler angles'] == [0, 0, 0]:
+                            raise ValueError('rotated particles currently not supported')
+                        patches.append(Ellipse(xy=(pos[1], pos[2]), width=particle['semi axis a'],
+                                               height=particle['semi axis c']))
+                    elif particle['shape'] == 'finite cylinder':
+                        cylinder_radius = particle['cylinder radius']
+                        cylinder_height = particle['cylinder height']
+                        patches.append(Rectangle((pos[1] - cylinder_radius, pos[2] - cylinder_height / 2),
+                                                 2 * cylinder_radius, cylinder_height))
+
+            elif ymin == ymax:
+                if abs(ymin - pos[1]) < max_particle_distance:
+                    if particle['shape'] == 'sphere':
+                        patches.append(Circle((pos[0], pos[2]), particle['radius']))
+                    elif particle['shape'] == 'spheroid':
+                        if not particle['euler angles'] == [0, 0, 0]:
+                            raise ValueError('rotated particles currently not supported')
+                        patches.append(Ellipse(xy=(pos[0], pos[2]), width=particle['semi axis a'],
+                                               height=particle['semi axis c']))
+                    elif particle['shape'] == 'finite cylinder':
+                        cylinder_radius = particle['cylinder radius']
+                        cylinder_height = particle['cylinder height']
+                        patches.append(Rectangle((pos[0] - cylinder_radius, pos[2] - cylinder_height / 2),
+                                                 2 * cylinder_radius, cylinder_height))
+
+            elif zmin == zmax:
+                if abs(zmin - pos[2]) < max_particle_distance:
+                    if particle['shape'] == 'sphere':
+                        patches.append(Circle((pos[0], pos[1]), particle['radius']))
+                    elif particle['shape'] == 'spheroid':
+                        if not particle['euler angles'] == [0, 0, 0]:
+                            raise ValueError('rotated particles currently not supported')
+                        patches.append(Circle((pos[0], pos[1]), particle['semi axis a']))
+                    elif particle['shape'] == 'finite cylinder':
+                        cylinder_radius = particle['cylinder radius']
+                        patches.append(Circle((pos[0], pos[1]), cylinder_radius))
+
         p = PatchCollection(patches)
         p.set_facecolor('w')
         p.set_edgecolor('k')
         plt.gca().add_collection(p)
         plt.gca().set_aspect("equal")
-        plt.xlabel('x')
-        plt.ylabel('y')
-        plt.title('z-component of electric field')
-        plt.colorbar()
 
     plt.draw()
 
@@ -296,7 +237,6 @@ def scattered_electric_field(x, y, z, n_effective=None, azimuthal_angles=None, v
                 integrand_alpha_z = np.zeros((len(azimuthal_angles), len(layer_indices)), dtype=complex)
 
                 for ja, a in enumerate(azimuthal_angles):
-                    print(ja)
                     e_x_pl, e_y_pl, e_z_pl = vwf.plane_vector_wave_function(xil[:, None], yil[:, None], zil[:, None],
                                                                             kp[None, :], a, kz[None, :], pol)
                     e_x_mn, e_y_mn, e_z_mn = vwf.plane_vector_wave_function(xil[:, None], yil[:, None], zil[:, None],
