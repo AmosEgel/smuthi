@@ -126,5 +126,7 @@ def read_input_yaml(filename):
     for item in input_data['post processing']:
         if item['task'] == 'evaluate cross sections':
             simulation.post_processing.tasks.append(item)
+        elif item['task'] == 'show near field':
+            simulation.post_processing.tasks.append(item)
 
     return simulation

@@ -47,14 +47,14 @@ scattering particles:
   cylinder height: 150
   refractive index: 2.7
   extinction coefficient: 0
-  position: [250, -100, 250]
+  position: [350, -100, 250]
   euler angles: [0, 0, 0]
 - shape: spheroid
   semi axis c: 80
   semi axis a: 140
   refractive index: 2.5
   extinction coefficient: 0.05
-  position: [-250, 0, 350]
+  position: [-350, 50, 350]
   euler angles: [0, 0, 0]
 
 
@@ -139,3 +139,13 @@ tmatrix method:
 post processing:
 - task: evaluate cross sections
   show plots: true
+- task: show near field
+  field types: [scattered]
+  quantities to plot: [E_x, E_y, E_z, norm(E)]
+  xmin: -500
+  xmax: 500
+  zmin: -100
+  zmax: 600
+  maximal field strength: 0.6
+  spatial resolution: 25
+  interpolation spatial resolution: 5

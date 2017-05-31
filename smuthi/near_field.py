@@ -2,7 +2,7 @@
 import numpy as np
 import scipy.interpolate as interp
 import smuthi.coordinates as coord
-import smuthi.post_processing as pp
+import smuthi.plane_wave_pattern as pwp
 import smuthi.vector_wave_functions as vwf
 import smuthi.index_conversion as idx
 import matplotlib.pyplot as plt
@@ -74,17 +74,17 @@ def show_scattered_field(quantities_to_plot, xmin=0, xmax=0, ymin=0, ymax=0, zmi
         dim1vecfine = np.linspace(dim1vec[0], dim1vec[-1], (dim1vec[-1] - dim1vec[0]) / interpolate + 1, endpoint=True)
         dim2vecfine = np.linspace(dim2vec[0], dim2vec[-1], (dim2vec[-1] - dim2vec[0]) / interpolate + 1, endpoint=True)
 
-        real_ex_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_x_raw.real)
-        imag_ex_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_x_raw.imag)
-        e_x = real_ex_interpolant(dim1vecfine, dim2vecfine) + 1j * imag_ex_interpolant(dim1vecfine, dim2vecfine)
+        real_ex_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_raw.real)
+        imag_ex_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_raw.imag)
+        e_x = real_ex_interpolant(dim2vecfine, dim1vecfine) + 1j * imag_ex_interpolant(dim2vecfine, dim1vecfine)
 
-        real_ey_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_y_raw.real)
-        imag_ey_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_y_raw.imag)
-        e_y = real_ey_interpolant(dim1vecfine, dim2vecfine) + 1j * imag_ey_interpolant(dim1vecfine, dim2vecfine)
+        real_ey_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_raw.real)
+        imag_ey_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_raw.imag)
+        e_y = real_ey_interpolant(dim2vecfine, dim1vecfine) + 1j * imag_ey_interpolant(dim2vecfine, dim1vecfine)
 
-        real_ez_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_z_raw.real)
-        imag_ez_interpolant = interp.RectBivariateSpline(dim1vec, dim2vec, e_z_raw.imag)
-        e_z = real_ez_interpolant(dim1vecfine, dim2vecfine) + 1j * imag_ez_interpolant(dim1vecfine, dim2vecfine)
+        real_ez_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_raw.real)
+        imag_ez_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_raw.imag)
+        e_z = real_ez_interpolant(dim2vecfine, dim1vecfine) + 1j * imag_ez_interpolant(dim2vecfine, dim1vecfine)
 
     if max_field is None:
         vmin = None
@@ -96,17 +96,17 @@ def show_scattered_field(quantities_to_plot, xmin=0, xmax=0, ymin=0, ymax=0, zmi
     for quantity in quantities_to_plot:
         plt.figure()
         if quantity == 'E_x':
-            plt.pcolormesh(dim1vecfine, dim2vecfine, e_x.real, vmin=vmin, vmax=vmax)
+            plt.pcolormesh(dim1vecfine, dim2vecfine, e_x.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
             plt.title('x-component of electric field')
         elif quantity == 'E_y':
-            plt.pcolormesh(dim1vecfine, dim2vecfine, e_y.real, vmin=vmin, vmax=vmax)
+            plt.pcolormesh(dim1vecfine, dim2vecfine, e_y.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
             plt.title('y-component of electric field')
         elif quantity == 'E_z':
-            plt.pcolormesh(dim1vecfine, dim2vecfine, e_z.real, vmin=vmin, vmax=vmax)
+            plt.pcolormesh(dim1vecfine, dim2vecfine, e_z.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
             plt.title('z-component of electric field')
         elif quantity == 'norm(E)':
-            plt.pcolormesh(dim1vecfine, dim2vecfine, np.sqrt(e_x.real ** 2 + e_y.real ** 2 + e_z.real ** 2),
-                           vmin=0, vmax=vmax)
+            plt.pcolormesh(dim1vecfine, dim2vecfine,
+                           np.sqrt(abs(e_x) ** 2 + abs(e_y) ** 2 + abs(e_z) ** 2), vmin=0, vmax=vmax, cmap='inferno')
             plt.title('norm of electric field')
 
         plt.colorbar()
@@ -129,8 +129,8 @@ def show_scattered_field(quantities_to_plot, xmin=0, xmax=0, ymin=0, ymax=0, zmi
                     elif particle['shape'] == 'spheroid':
                         if not particle['euler angles'] == [0, 0, 0]:
                             raise ValueError('rotated particles currently not supported')
-                        patches.append(Ellipse(xy=(pos[1], pos[2]), width=particle['semi axis a'],
-                                               height=particle['semi axis c']))
+                        patches.append(Ellipse(xy=(pos[1], pos[2]), width=2*particle['semi axis a'],
+                                               height=2*particle['semi axis c']))
                     elif particle['shape'] == 'finite cylinder':
                         cylinder_radius = particle['cylinder radius']
                         cylinder_height = particle['cylinder height']
@@ -144,8 +144,8 @@ def show_scattered_field(quantities_to_plot, xmin=0, xmax=0, ymin=0, ymax=0, zmi
                     elif particle['shape'] == 'spheroid':
                         if not particle['euler angles'] == [0, 0, 0]:
                             raise ValueError('rotated particles currently not supported')
-                        patches.append(Ellipse(xy=(pos[0], pos[2]), width=particle['semi axis a'],
-                                               height=particle['semi axis c']))
+                        patches.append(Ellipse(xy=(pos[0], pos[2]), width=2*particle['semi axis a'],
+                                               height=2*particle['semi axis c']))
                     elif particle['shape'] == 'finite cylinder':
                         cylinder_radius = particle['cylinder radius']
                         cylinder_height = particle['cylinder height']
@@ -225,7 +225,7 @@ def scattered_electric_field(x, y, z, n_effective=None, azimuthal_angles=None, v
             xil = x[layer_indices]
             yil = y[layer_indices]
             zil = z[layer_indices] - layer_system.reference_z(il)
-            pwp_rs = pp.plane_wave_pattern_rs(n_effective=n_effective, azimuthal_angles=azimuthal_angles,
+            pwp_rs = pwp.plane_wave_pattern_rs(n_effective=n_effective, azimuthal_angles=azimuthal_angles,
                                               vacuum_wavelength=vacuum_wavelength,
                                               particle_collection=particle_collection, linear_system=linear_system,
                                               layer_system=layer_system, layer_numbers=[il],
