@@ -8,6 +8,9 @@ import smuthi.index_conversion as idx
 import smuthi.layers as lay
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Ellipse, Rectangle
+import tempfile
+import shutil
+import imageio
 
 
 def plot_layer_interfaces(dim1min, dim1max, layer_system):
@@ -96,7 +99,7 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_collection, max_
                     plt.gca().add_patch(Circle((pos[0], pos[1]), cylinder_radius, facecolor='w', edgecolor='k'))
 
 
-def show_near_field(quantities_to_plot, xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution=25, interpolate=None,
+def show_near_field(quantities_to_plot, filenames=None, xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution=25, interpolate=None,
                     n_effective=None, azimuthal_angles=None, simulation=None, layerresponse_precision=None,
                     max_field=None, max_particle_distance=float('inf')):
     """Plot the electric near field along a plane. To plot along the xy-plane, specify zmin=zmax and so on.
@@ -121,6 +124,8 @@ def show_near_field(quantities_to_plot, xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, 
                                 'E_init_z'       real part of z-component of complex initial electric field
                                 'norm(E_init)'   norm of complex initial electric field
 
+    filenames:                  List of strings to specify the path where to store the near field images. Filenames can
+                                end on .png or on .gif (to create animated plots)
     xmin:                       Plot from that x (length unit)
     xmax:                       Plot up to that x (length unit)
     ymin:                       Plot from that y (length unit)
@@ -214,9 +219,9 @@ def show_near_field(quantities_to_plot, xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, 
         vmin = -max_field
         vmax = max_field
 
-    for quantity in quantities_to_plot:
-        plt.figure()
+    for jq, quantity in enumerate(quantities_to_plot):
 
+        plt.figure()
         if 'scat' in quantity:
             e_x, e_y, e_z = e_x_scat, e_y_scat, e_z_scat
             field_type_string = 'scattered electric field'
@@ -227,19 +232,24 @@ def show_near_field(quantities_to_plot, xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, 
             e_x, e_y, e_z = e_x_scat + e_x_init, e_y_scat + e_y_init, e_z_scat + e_z_init
             field_type_string = 'total electric field'
 
-        if '_x' in quantity:
-            plt.pcolormesh(dim1vecfine, dim2vecfine, e_x.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
-            plt.title('x-component of ' + field_type_string)
-        elif '_y' in quantity:
-            plt.pcolormesh(dim1vecfine, dim2vecfine, e_y.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
-            plt.title('y-component of ' + field_type_string)
-        elif '_z' in quantity:
-            plt.pcolormesh(dim1vecfine, dim2vecfine, e_z.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
-            plt.title('z-component of ' + field_type_string)
-        elif 'norm' in quantity:
+        if 'norm' in quantity:
+            e = np.sqrt(abs(e_x)**2 + abs(e_y)**2 + abs(e_z)**2)
             plt.pcolormesh(dim1vecfine, dim2vecfine, np.sqrt(abs(e_x)**2 + abs(e_y)**2 + abs(e_z)**2), vmin=0,
                            vmax=vmax, cmap='inferno')
-            plt.title('norm of ' + field_type_string)
+            plt_title = 'norm of ' + field_type_string
+            plt.title(plt_title)
+        else:
+            if '_x' in quantity:
+                e = e_x
+                plt_title = 'x-component of ' + field_type_string
+            elif '_y' in quantity:
+                e = e_y
+                plt_title = 'y-component of ' + field_type_string
+            elif '_z' in quantity:
+                e = e_z
+                plt_title = 'z-component of ' + field_type_string
+            plt.pcolormesh(dim1vecfine, dim2vecfine, e.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
+            plt.title(plt_title)
 
         plt.colorbar()
         plt.xlabel(dim1name)
@@ -251,6 +261,36 @@ def show_near_field(quantities_to_plot, xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, 
         plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, simulation.particle_collection, max_particle_distance)
 
         plt.gca().set_aspect("equal")
+
+        try:
+            export_filename = filenames[jq]
+            if export_filename[-3:] == 'png':
+                plt.savefig(export_filename)
+            elif export_filename[-3:] == 'gif':
+                tempdir = tempfile.mkdtemp()
+                images = []
+                for i_t, t in enumerate(np.linspace(0, 1, 20, endpoint=False)):
+                    tempfig = plt.figure()
+                    e_t = e * np.exp(-1j * t * 2 * np.pi)
+                    plt.pcolormesh(dim1vecfine, dim2vecfine, e_t.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
+                    plt.title(plt_title)
+                    plt.colorbar()
+                    plt.xlabel(dim1name)
+                    plt.ylabel(dim2name)
+                    if not zmin == zmax:
+                        plot_layer_interfaces(dim1vec[0], dim1vec[-1], simulation.layer_system)
+                    plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, simulation.particle_collection,
+                                   max_particle_distance)
+                    plt.gca().set_aspect("equal")
+                    tempfig_filename = tempdir + '/temp_' + str(i_t) + '.png'
+                    plt.savefig(tempfig_filename)
+                    plt.close(tempfig)
+                    images.append(imageio.imread(tempfig_filename))
+                imageio.mimsave(export_filename, images, duration=0.1)
+                shutil.rmtree(tempdir)
+        except:
+            pass
+
     plt.draw()
 
 

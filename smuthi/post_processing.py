@@ -164,6 +164,7 @@ class PostProcessing:
                 sys.stdout.flush()
 
                 quantities_to_plot = item['quantities to plot']
+                filenames = item.get('filenames')
                 xmin = item.get('xmin', 0)
                 xmax = item.get('xmax', 0)
                 ymin = item.get('ymin', 0)
@@ -182,10 +183,10 @@ class PostProcessing:
                 interpolate = item.get('interpolation spatial resolution', 5)
                 for field_type in item.get('field types', ['scattered']):
                     if field_type == 'scattered':
-                        nf.show_near_field(quantities_to_plot=quantities_to_plot, xmin=xmin, xmax=xmax, ymin=ymin,
-                                           ymax=ymax, zmin=zmin, zmax=zmax, n_effective=n_effective,
-                                           azimuthal_angles=azimuthal_angles, simulation=simulation,
-                                           max_field=max_field, resolution=resolution,
+                        nf.show_near_field(quantities_to_plot=quantities_to_plot, filenames=filenames, xmin=xmin,
+                                           xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax,
+                                           n_effective=n_effective, azimuthal_angles=azimuthal_angles,
+                                           simulation=simulation, max_field=max_field, resolution=resolution,
                                            max_particle_distance=max_particle_distance, interpolate=interpolate)
 
                 sys.stdout.write("done. \n")

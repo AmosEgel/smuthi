@@ -18,7 +18,7 @@ setup(
     package_data={'smuthi.nfmds': ['NFM-DS/*.txt', 'NFM-DS/TMATSOURCES/*', 'NFM-DS/TMATFILES/*',
                                    'NFM-DS/INPUTFILES/*.dat', 'NFM-DS/OUTPUTFILES/*'],
                   'smuthi': ['data/*']},
-    install_requires=['numpy', 'scipy', 'sympy', 'matplotlib', 'pyyaml', 'argparse'],
+    install_requires=['numpy', 'scipy', 'sympy', 'matplotlib', 'pyyaml', 'argparse', 'imageio'],
     entry_points={'console_scripts': ['smuthi = smuthi.__main__:main']},
     license='MIT',
 )

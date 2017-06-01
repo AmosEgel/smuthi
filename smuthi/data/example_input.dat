@@ -140,12 +140,12 @@ post processing:
 - task: evaluate cross sections
   show plots: true
 - task: show near field
-  field types: [scattered]
-  quantities to plot: [E_x, E_y, E_z, norm(E), E_scat_x, E_scat_y, E_scat_z, norm(E_scat), E_init_x, E_init_y, E_init_z, norm(E_init)]
-  xmin: -500
-  xmax: 500
-  zmin: -100
-  zmax: 600
+  quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
+  filenames: [ey.gif, norme.png, ey_s.gif, norme_s.png, ey_i.gif, norme_i.png]
+  xmin: -800
+  xmax: 800
+  zmin: -400
+  zmax: 900
   maximal field strength: 1.2
-  spatial resolution: 25
+  spatial resolution: 50
   interpolation spatial resolution: 5
