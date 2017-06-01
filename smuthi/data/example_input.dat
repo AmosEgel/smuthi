@@ -141,11 +141,11 @@ post processing:
   show plots: true
 - task: show near field
   field types: [scattered]
-  quantities to plot: [E_x, E_y, E_z, norm(E)]
+  quantities to plot: [E_x, E_y, E_z, norm(E), E_scat_x, E_scat_y, E_scat_z, norm(E_scat), E_init_x, E_init_y, E_init_z, norm(E_init)]
   xmin: -500
   xmax: 500
   zmin: -100
   zmax: 600
-  maximal field strength: 0.6
+  maximal field strength: 1.2
   spatial resolution: 25
   interpolation spatial resolution: 5

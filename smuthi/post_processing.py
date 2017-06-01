@@ -182,14 +182,11 @@ class PostProcessing:
                 interpolate = item.get('interpolation spatial resolution', 5)
                 for field_type in item.get('field types', ['scattered']):
                     if field_type == 'scattered':
-                        nf.show_scattered_field(quantities_to_plot=quantities_to_plot, xmin=xmin, xmax=xmax, ymin=ymin,
-                                                ymax=ymax, zmin=zmin, zmax=zmax, n_effective=n_effective,
-                                                azimuthal_angles=azimuthal_angles, length_unit=simulation.length_unit,
-                                                vacuum_wavelength=simulation.initial_field_collection.vacuum_wavelength,
-                                                particle_collection=simulation.particle_collection,
-                                                linear_system=simulation.linear_system, max_field=max_field,
-                                                layer_system=simulation.layer_system, resolution=resolution,
-                                                max_particle_distance=max_particle_distance, interpolate=interpolate)
+                        nf.show_near_field(quantities_to_plot=quantities_to_plot, xmin=xmin, xmax=xmax, ymin=ymin,
+                                           ymax=ymax, zmin=zmin, zmax=zmax, n_effective=n_effective,
+                                           azimuthal_angles=azimuthal_angles, simulation=simulation,
+                                           max_field=max_field, resolution=resolution,
+                                           max_particle_distance=max_particle_distance, interpolate=interpolate)
 
                 sys.stdout.write("done. \n")
                 sys.stdout.flush()
