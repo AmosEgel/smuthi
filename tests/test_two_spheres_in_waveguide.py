@@ -9,7 +9,7 @@ import smuthi.initial_field as init
 import smuthi.index_conversion as idx
 import smuthi.coordinates as coord
 import smuthi.simulation as simul
-import smuthi.post_processing as pp
+import smuthi.far_field as ff
 
 
 # Parameter input ----------------------------
@@ -56,7 +56,7 @@ simulation2 = simul.Simulation(lay_sys2, part_col, init_fld,
                                wr_neff_contour=coord.ComplexContour(neff_waypoints, neff_discr))
 simulation2.run()
 
-farfield = pp.scattered_far_field(vacuum_wavelength=vacuum_wavelength,
+farfield = ff.scattered_far_field(vacuum_wavelength=vacuum_wavelength,
                                   particle_collection=simulation1.particle_collection,
                                   linear_system=simulation1.linear_system,
                                   layer_system=simulation1.layer_system)

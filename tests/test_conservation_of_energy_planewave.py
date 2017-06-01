@@ -7,12 +7,9 @@ import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
 import smuthi.index_conversion as idx
-import smuthi.t_matrix as tmt
-import smuthi.particle_coupling as coup
 import smuthi.coordinates as coord
 import smuthi.simulation as simul
-import smuthi.post_processing as pp
-import matplotlib.pyplot as plt
+import smuthi.far_field as ff
 
 
 # Parameter input ----------------------------
@@ -52,12 +49,12 @@ simulation = simul.Simulation(lay_sys, part_col, init_fld,
                               wr_neff_contour=coord.ComplexContour(neff_waypoints, neff_discr))
 simulation.run()
 
-scs = pp.scattering_cross_section(initial_field_collection=simulation.initial_field_collection,
+scs = ff.scattering_cross_section(initial_field_collection=simulation.initial_field_collection,
                                   particle_collection=simulation.particle_collection,
                                   linear_system=simulation.linear_system,
                                   layer_system=simulation.layer_system)
 
-ecs = pp.extinction_cross_section(initial_field_collection=simulation.initial_field_collection,
+ecs = ff.extinction_cross_section(initial_field_collection=simulation.initial_field_collection,
                                   particle_collection=simulation.particle_collection,
                                   linear_system=simulation.linear_system,
                                   layer_system=simulation.layer_system)

@@ -10,7 +10,6 @@ import smuthi.index_conversion as idx
 import smuthi.t_matrix as tmt
 import smuthi.particle_coupling as coup
 import smuthi.coordinates as coord
-import smuthi.post_processing as pp
 
 
 # Parameter input ----------------------------
@@ -62,26 +61,6 @@ lin_sys.coupling_matrix = coup.layer_mediated_coupling_matrix(vacuum_wavelength,
 # solve linear system
 lin_sys.solve()
 
-"""
-nef = np.array([0])
-al = np.array([0])
-grs = pp.plane_wave_pattern_rs(n_effective=nef, azimuthal_angles=al, vacuum_wavelength=vacuum_wavelength,
-                           particle_collection=part_col, linear_system=lin_sys, layer_system=lay_sys,
-                           layer_numbers=[1], layerresponse_precision=None)
-
-gs = pp.plane_wave_pattern_s(n_effective=nef, azimuthal_angles=al, vacuum_wavelength=vacuum_wavelength,
-                           particle_collection=part_col, linear_system=lin_sys, layer_system=lay_sys,
-                           layer_numbers=[1])
-
-
-# plane wave patterns in both layers
-
-alpha = np.arange(0, 361, 1) * np.pi/180
-beta = np.arange(0, 181, 1) * np.pi/180
-
-pp.show_scattered_far_field(azimuthal_angles=alpha, polar_angles=beta, vacuum_wavelength=vacuum_wavelength,
-                            particle_collection=part_col, linear_system=lin_sys, layer_system=lay_sys)
-"""
 
 def test_versus_prototype():
     b0 = -0.2586209 + 0.8111274j
