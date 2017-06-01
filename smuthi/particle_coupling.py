@@ -206,9 +206,7 @@ def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system)
             # indices: receiv. part., receiv. idx, emit. part., emit. idx
 
             # spherical functions
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", message="Casting complex values to real discards the imaginary part")
-                bessel_h = [sf.spherical_hankel(n, k * d) for n in range(2 * lmax + 1)]
+            bessel_h = [sf.spherical_hankel(n, k * d) for n in range(2 * lmax + 1)]
             legendre, _, _ = sf.legendre_normalized(cos_theta, sin_theta, 2 * lmax)
 
             for m1 in range(-mmax, mmax + 1):

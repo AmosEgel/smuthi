@@ -2,6 +2,7 @@
 
 import numpy as np
 import scipy.special
+import warnings
 
 
 def legendre_normalized(ct, st, lmax):
@@ -72,7 +73,9 @@ def spherical_bessel(n, x):
     if hasattr(x, "__iter__"):
         j_n = np.array([spherical_bessel(n, v) for v in x])
     else:
-        j_n = sphj(n, x)[0][n]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Casting complex values to real discards the imaginary part")
+            j_n = sphj(n, x)[0][n]
     return j_n
 
 
@@ -88,7 +91,9 @@ def spherical_hankel(n, x):
     if hasattr(x, "__iter__"):
         h_n = np.array([spherical_hankel(n, v) for v in x])
     else:
-        h_n = sphj(n, x)[0][n] + 1j * sphy(n, x)[0][n]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Casting complex values to real discards the imaginary part")
+            h_n = sphj(n, x)[0][n] + 1j * sphy(n, x)[0][n]
     return h_n
 
 
