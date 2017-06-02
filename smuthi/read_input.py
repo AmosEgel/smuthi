@@ -12,7 +12,8 @@ def read_input_yaml(filename):
     with open(filename, 'r') as input_file:
         input_data = yaml.load(input_file.read())
 
-    simulation = smuthi.simulation.Simulation()
+    simulation = smuthi.simulation.Simulation(input_file=filename, output_dir=input_data.get('output folder'),
+                                              save_after_run=input_data.get('save simulation'))
 
     simulation.initial_field_collection.vacuum_wavelength = float(input_data['vacuum wavelength'])
     simulation.length_unit = input_data.get('length unit')
@@ -126,7 +127,7 @@ def read_input_yaml(filename):
     for item in input_data['post processing']:
         if item['task'] == 'evaluate cross sections':
             simulation.post_processing.tasks.append(item)
-        elif item['task'] == 'show near field':
+        elif item['task'] == 'evaluate near field':
             simulation.post_processing.tasks.append(item)
 
     return simulation

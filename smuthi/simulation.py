@@ -10,17 +10,19 @@ import smuthi.particle_coupling as coup
 import smuthi.coordinates as coord
 import smuthi.post_processing as pp
 import sys
+import os
 import matplotlib.pyplot as plt
 import pkg_resources
+import datetime
+import shutil
+import pickle
 
 
 class Simulation:
     def __init__(self, layer_system=None, particle_collection=None, initial_field_collection=None, linear_system=None,
-                 wr_neff_contour=None, post_processing=None, tmatrix_method=None, length_unit='length unit'):
-        """Initialize
+                 wr_neff_contour=None, post_processing=None, tmatrix_method=None, length_unit='length unit',
+                 input_file=None, output_dir='smuthi_output', save_after_run=False):
 
-        input:
-        """
         if layer_system is None:
             layer_system = lay.LayerSystem()
         if particle_collection is None:
@@ -44,11 +46,30 @@ class Simulation:
         self.post_processing = post_processing
         self.tmatrix_method = tmatrix_method
         self.length_unit = length_unit
+        self.save_after_run = save_after_run
+
+        timestamp = '{:%Y%m%d%H%M%S}'.format(datetime.datetime.now())
+        self.output_dir = output_dir + '/' + timestamp
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+        sys.stdout = Logger(self.output_dir + '/smuthi.log')
+        if input_file is not None:
+            shutil.copyfile(input_file, self.output_dir + '/input.dat')
+
+        else:
+            self.output_dir = False
+
+    def save(self, filename=None):
+        if filename is None:
+            if self.output_dir:
+                filename = self.output_dir + '/simulation.p'
+            else:
+                filename = 'simulation.p'
+        with open(filename, 'wb') as fn:
+            pickle.dump(self, fn, -1)
 
     def run(self):
-        clear_console()
         print(welcome_message())
-        self.status_message = welcome_message()
 
         # compute initial field coefficients
         sys.stdout.write("Compute initial field coefficients ... ")
@@ -91,7 +112,24 @@ class Simulation:
         sys.stdout.flush()
         self.post_processing.run(self)
         sys.stdout.write("done. \n")
+
+        if self.save_after_run:
+            self.save(self.output_dir + '/simulation.p')
+
         plt.show()
+
+
+class Logger(object):
+    def __init__(self, log_filename):
+        self.terminal = sys.stdout
+        self.log = open(log_filename, "a")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+
+    def flush(self):
+        pass
 
 
 def welcome_message():
@@ -101,8 +139,3 @@ def welcome_message():
            "    SMUTHI version " + version + "\n"
            "********************************\n")
     return msg
-
-
-def clear_console():
-    #print("\n"*100)
-    pass

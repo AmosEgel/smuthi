@@ -99,7 +99,8 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_collection, max_
                     plt.gca().add_patch(Circle((pos[0], pos[1]), cylinder_radius, facecolor='w', edgecolor='k'))
 
 
-def show_near_field(quantities_to_plot, filenames=None, xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution=25, interpolate=None,
+def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, save_animations=False, save_data=False,
+                    outputdir='.', xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution=25, interpolate=None,
                     n_effective=None, azimuthal_angles=None, simulation=None, layerresponse_precision=None,
                     max_field=None, max_particle_distance=float('inf')):
     """Plot the electric near field along a plane. To plot along the xy-plane, specify zmin=zmax and so on.
@@ -126,6 +127,7 @@ def show_near_field(quantities_to_plot, filenames=None, xmin=0, xmax=0, ymin=0, 
 
     filenames:                  List of strings to specify the path where to store the near field images. Filenames can
                                 end on .png or on .gif (to create animated plots)
+    outputdir:                  folder where to plot the figure files
     xmin:                       Plot from that x (length unit)
     xmax:                       Plot up to that x (length unit)
     ymin:                       Plot from that y (length unit)
@@ -143,6 +145,9 @@ def show_near_field(quantities_to_plot, filenames=None, xmin=0, xmax=0, ymin=0, 
     max_particle_distance       Show particles that are closer than that distance to the image plane
                                 (length unit, default = inf).
     """
+    if quantities_to_plot is None:
+        quantities_to_plot = ['norm(E)']
+
     vacuum_wavelength = simulation.initial_field_collection.vacuum_wavelength
     if xmin == xmax:
         dim1vec = np.linspace(ymin, ymax, (ymax - ymin) / resolution + 1, endpoint=True)
@@ -221,19 +226,24 @@ def show_near_field(quantities_to_plot, filenames=None, xmin=0, xmax=0, ymin=0, 
 
     for jq, quantity in enumerate(quantities_to_plot):
 
-        plt.figure()
+        filename = 'E'
+
+        fig = plt.figure()
         if 'scat' in quantity:
             e_x, e_y, e_z = e_x_scat, e_y_scat, e_z_scat
             field_type_string = 'scattered electric field'
+            filename = filename + '_scat'
         elif 'init' in quantity:
             e_x, e_y, e_z = e_x_init, e_y_init, e_z_init
             field_type_string = 'initial electric field'
+            filename = filename + '_init'
         else:
             e_x, e_y, e_z = e_x_scat + e_x_init, e_y_scat + e_y_init, e_z_scat + e_z_init
             field_type_string = 'total electric field'
 
         if 'norm' in quantity:
             e = np.sqrt(abs(e_x)**2 + abs(e_y)**2 + abs(e_z)**2)
+            filename = 'norm_' + filename
             plt.pcolormesh(dim1vecfine, dim2vecfine, np.sqrt(abs(e_x)**2 + abs(e_y)**2 + abs(e_z)**2), vmin=0,
                            vmax=vmax, cmap='inferno')
             plt_title = 'norm of ' + field_type_string
@@ -241,12 +251,15 @@ def show_near_field(quantities_to_plot, filenames=None, xmin=0, xmax=0, ymin=0, 
         else:
             if '_x' in quantity:
                 e = e_x
+                filename = filename + '_x'
                 plt_title = 'x-component of ' + field_type_string
             elif '_y' in quantity:
                 e = e_y
+                filename = filename + '_y'
                 plt_title = 'y-component of ' + field_type_string
             elif '_z' in quantity:
                 e = e_z
+                filename = filename + '_z'
                 plt_title = 'z-component of ' + field_type_string
             plt.pcolormesh(dim1vecfine, dim2vecfine, e.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
             plt.title(plt_title)
@@ -262,11 +275,11 @@ def show_near_field(quantities_to_plot, filenames=None, xmin=0, xmax=0, ymin=0, 
 
         plt.gca().set_aspect("equal")
 
-        try:
-            export_filename = filenames[jq]
-            if export_filename[-3:] == 'png':
-                plt.savefig(export_filename)
-            elif export_filename[-3:] == 'gif':
+        export_filename = outputdir + '/' + filename
+        if save_plots:
+            plt.savefig(export_filename + '.png')
+        if save_animations:
+            if not 'norm' in quantity:
                 tempdir = tempfile.mkdtemp()
                 images = []
                 for i_t, t in enumerate(np.linspace(0, 1, 20, endpoint=False)):
@@ -286,13 +299,69 @@ def show_near_field(quantities_to_plot, filenames=None, xmin=0, xmax=0, ymin=0, 
                     plt.savefig(tempfig_filename)
                     plt.close(tempfig)
                     images.append(imageio.imread(tempfig_filename))
-                imageio.mimsave(export_filename, images, duration=0.1)
+                imageio.mimsave(export_filename + '.gif', images, duration=0.1)
                 shutil.rmtree(tempdir)
-        except:
-            pass
+        if show_plots:
+            plt.draw()
+        else:
+            plt.close(fig)
 
-    plt.draw()
+    if save_data:
+        filename = outputdir + '/spatial_coordinates_along_first_dimension.dat'
+        header = dim1name
+        np.savetxt(filename, dim1vec, header=header)
 
+        filename = outputdir + '/spatial_coordinates_along_second_dimension.dat'
+        header = dim2name
+        np.savetxt(filename, dim2vec, header=header)
+
+        filename = outputdir + '/real_e_init_x.dat'
+        header = 'Real part of x-component of initial electric field.'
+        np.savetxt(filename, e_x_init_raw.real, header=header)
+
+        filename = outputdir + '/imag_e_init_x.dat'
+        header = 'Imaginary part of x-component of initial electric field.'
+        np.savetxt(filename, e_x_init_raw.imag, header=header)
+
+        filename = outputdir + '/real_e_init_y.dat'
+        header = 'Real part of y-component of initial electric field.'
+        np.savetxt(filename, e_y_init_raw.real, header=header)
+
+        filename = outputdir + '/imag_e_init_y.dat'
+        header = 'Imaginary part of y-component of initial electric field.'
+        np.savetxt(filename, e_y_init_raw.imag, header=header)
+
+        filename = outputdir + '/real_e_init_z.dat'
+        header = 'Real part of z-component of initial electric field.'
+        np.savetxt(filename, e_z_init_raw.real, header=header)
+
+        filename = outputdir + '/imag_e_init_z.dat'
+        header = 'Imaginary part of z-component of initial electric field.'
+        np.savetxt(filename, e_z_init_raw.imag, header=header)
+
+        filename = outputdir + '/real_e_scat_x.dat'
+        header = 'Real part of x-component of scattered electric field.'
+        np.savetxt(filename, e_x_scat_raw.real, header=header)
+
+        filename = outputdir + '/imag_e_scat_x.dat'
+        header = 'Imaginary part of x-component of scattered electric field.'
+        np.savetxt(filename, e_x_scat_raw.imag, header=header)
+
+        filename = outputdir + '/real_e_scat_y.dat'
+        header = 'Real part of y-component of scattered electric field.'
+        np.savetxt(filename, e_y_scat_raw.real, header=header)
+
+        filename = outputdir + '/imag_e_scat_y.dat'
+        header = 'Imaginary part of y-component of scattered electric field.'
+        np.savetxt(filename, e_y_scat_raw.imag, header=header)
+
+        filename = outputdir + '/real_e_scat_z.dat'
+        header = 'Real part of z-component of scattered electric field.'
+        np.savetxt(filename, e_z_scat_raw.real, header=header)
+
+        filename = outputdir + '/imag_e_scat_z.dat'
+        header = 'Imaginary part of z-component of scattered electric field.'
+        np.savetxt(filename, e_z_scat_raw.imag, header=header)
 
 def scattered_electric_field(x, y, z, n_effective=None, azimuthal_angles=None, vacuum_wavelength=None,
                              particle_collection=None, linear_system=None, layer_system=None,

@@ -4,11 +4,14 @@ import smuthi.far_field as ff
 import smuthi.near_field as nf
 import matplotlib.pyplot as plt
 import sys
+import os
 
 
 class PostProcessing:
     def __init__(self):
         self.tasks = []
+        self.scattering_cross_section = None
+        self.extinction_cross_section = None
 
     def run(self, simulation):
         particle_collection = simulation.particle_collection
@@ -20,8 +23,6 @@ class PostProcessing:
                 polar_angles = item.get('polar angles')
                 azimuthal_angles = item.get('azimuthal angles')
                 layerresponse_precision = item.get('layerresponse precision')
-                # filename_forward = item.get('filename forward')
-                # filename_backward = item.get('filename backward')
 
                 if (len(initial_field_collection.specs_list) > 1
                     or not initial_field_collection.specs_list[0]['type'] == 'plane wave'):
@@ -45,6 +46,37 @@ class PostProcessing:
                     azimuthal_angles=azimuthal_angles, particle_collection=particle_collection,
                     linear_system=linear_system, layer_system=layer_system,
                     layerresponse_precision=layerresponse_precision)
+
+                outputdir = simulation.output_dir + '/far_field'
+                if (not os.path.exists(outputdir)) and (item.get('save data', False) or item.get('save plots', False)):
+                    os.makedirs(outputdir)
+
+                if item.get('save data', False):
+                    dsc = self.scattering_cross_section['differential']
+                    header = ('Differential TE polarized cross section. Each line corresponds to a polar angle, each'
+                              ' column corresponds to an azimuthal angle.')
+                    np.savetxt(outputdir + '/differential_cross_section_TE.dat', dsc[0, :, :],
+                               header=header)
+                    header = ('Differential TM polarized cross section. Each line corresponds to a polar angle, each'
+                              ' column corresponds to an azimuthal angle.')
+                    np.savetxt(outputdir + '/differential_cross_section_TM.dat', dsc[1, :, :],
+                               header=header)
+
+                    pdsc = self.scattering_cross_section['polar']
+                    header = 'Polar differential TE polarized cross section. Each line corresponds to a polar angle.'
+                    np.savetxt(outputdir + '/polar_differential_cross_section_TE.dat', pdsc[0, :],
+                               header=header)
+                    header = 'Polar differential TM polarized cross section. Each line corresponds to a polar angle.'
+                    np.savetxt(outputdir + '/polar_differential_cross_section_TM.dat', pdsc[1, :],
+                               header=header)
+
+                    pa = self.scattering_cross_section['polar angles']
+                    header = 'Polar angles of the far field in radians.'
+                    np.savetxt(outputdir + '/polar_angles.dat', pa, header=header)
+
+                    aa = self.scattering_cross_section['azimuthal angles']
+                    header = 'Azimuthal angles of the far field in radians.'
+                    np.savetxt(outputdir + '/azimuthal_angles.dat', aa, header=header)
 
                 self.extinction_cross_section = ff.extinction_cross_section(
                     initial_field_collection=initial_field_collection, particle_collection=particle_collection,
@@ -112,59 +144,102 @@ class PostProcessing:
                               ' ' + simulation.length_unit + '^2')
                 print('-------------------------------------------------------------------------')
 
-                if item.get('show plots', False):
+                # plot the far field
 
-                    # dsc as polar plot
-                    if layer_system.refractive_indices[i_top].imag == 0:
-                        # top layer
-                        top_idcs = (self.scattering_cross_section['polar angles'] <= np.pi / 2)
-                        alpha_grid, beta_grid = np.meshgrid(self.scattering_cross_section['azimuthal angles'],
-                                                            self.scattering_cross_section['polar angles'][top_idcs].real
-                                                            * 180 / np.pi)
+                # dsc as polar plot
+                if layer_system.refractive_indices[i_top].imag == 0:
+                    # top layer
+                    top_idcs = (self.scattering_cross_section['polar angles'] <= np.pi / 2)
+                    alpha_grid, beta_grid = np.meshgrid(self.scattering_cross_section['azimuthal angles'],
+                                                        self.scattering_cross_section['polar angles'][top_idcs].real
+                                                        * 180 / np.pi)
 
-                        fig = plt.figure()
-                        ax = fig.add_subplot(111, polar=True)
-                        ax.pcolormesh(alpha_grid, beta_grid, (self.scattering_cross_section['differential'][0, top_idcs, :] +
-                                                              self.scattering_cross_section['differential'][1, top_idcs, :]))
-                        plt.title('DCS in top layer (' + simulation.length_unit + '^2)')
+                    fig = plt.figure()
+                    ax = fig.add_subplot(111, polar=True)
+                    ax.pcolormesh(alpha_grid, beta_grid,
+                                  (self.scattering_cross_section['differential'][0, top_idcs, :]
+                                   + self.scattering_cross_section['differential'][1, top_idcs, :]))
+                    plt.title('DCS in top layer (' + simulation.length_unit + '^2)')
 
-                        plt.figure()
-                        plt.plot(self.scattering_cross_section['polar angles'][top_idcs] * 180 / np.pi,
-                                 (self.scattering_cross_section['polar'][0, top_idcs]
-                                  + self.scattering_cross_section['polar'][1, top_idcs]) * np.pi / 180)
-                        plt.xlabel('polar angle (degree)')
-                        plt.ylabel('d_CS/d_beta (' + simulation.length_unit + '^2)')
-                        plt.title('Polar differential scattering cross section in top layer')
-                        plt.grid(True)
+                    if item.get('save plots', False):
+                        plt.savefig(outputdir + '/top_dcs.png')
+                    if item.get('show plots', False):
+                        plt.draw()
+                    else:
+                        plt.close(fig)
 
-                    if layer_system.refractive_indices[0].imag == 0:
-                        # bottom layer
-                        bottom_idcs = (self.scattering_cross_section['polar angles'] > np.pi / 2)
-                        alpha_grid, beta_grid = np.meshgrid(self.scattering_cross_section['azimuthal angles'],
-                                                            self.scattering_cross_section['polar angles'][bottom_idcs].real
-                                                            * 180 / np.pi)
+                    fig = plt.figure()
+                    plt.plot(self.scattering_cross_section['polar angles'][top_idcs] * 180 / np.pi,
+                             (self.scattering_cross_section['polar'][0, top_idcs]
+                              + self.scattering_cross_section['polar'][1, top_idcs]) * np.pi / 180)
+                    plt.xlabel('polar angle (degree)')
+                    plt.ylabel('d_CS/d_beta (' + simulation.length_unit + '^2)')
+                    plt.title('Polar differential scattering cross section in top layer')
+                    plt.grid(True)
 
-                        fig = plt.figure()
-                        ax = fig.add_subplot(111, polar=True)
-                        ax.pcolormesh(alpha_grid, 180 - beta_grid, (self.scattering_cross_section['differential'][0, bottom_idcs, :] +
-                                                                      self.scattering_cross_section['differential'][1, bottom_idcs, :]))
-                        plt.title('DCS in bottom layer (' + simulation.length_unit + '^2)')
+                    if item.get('save plots', False):
+                        plt.savefig(outputdir + '/top_polar_dcs.png')
+                    if item.get('show plots', False):
+                        plt.draw()
+                    else:
+                        plt.close(fig)
 
-                        plt.figure()
-                        plt.plot(180 - self.scattering_cross_section['polar angles'][bottom_idcs] * 180 / np.pi,
-                                 (self.scattering_cross_section['polar'][0, bottom_idcs]
-                                  + self.scattering_cross_section['polar'][1, bottom_idcs]) * np.pi / 180)
-                        plt.xlabel('polar angle (degree)')
-                        plt.ylabel('d_CS/d_beta (' + simulation.length_unit + '^2)')
-                        plt.title('Polar differential scattering cross section in bottom layer')
-                        plt.grid(True)
+                if layer_system.refractive_indices[0].imag == 0:
+                    # bottom layer
+                    bottom_idcs = (self.scattering_cross_section['polar angles'] > np.pi / 2)
+                    alpha_grid, beta_grid = np.meshgrid(self.scattering_cross_section['azimuthal angles'],
+                                                        self.scattering_cross_section['polar angles'][bottom_idcs].real
+                                                        * 180 / np.pi)
 
-            elif item['task'] == 'show near field':
+                    fig = plt.figure()
+                    ax = fig.add_subplot(111, polar=True)
+                    ax.pcolormesh(alpha_grid, 180 - beta_grid, (self.scattering_cross_section['differential'][0, bottom_idcs, :] +
+                                                                  self.scattering_cross_section['differential'][1, bottom_idcs, :]))
+                    plt.title('DCS in bottom layer (' + simulation.length_unit + '^2)')
+
+                    if item.get('save plots', False):
+                        plt.savefig(outputdir + '/top_dcs.png')
+                    if item.get('show plots', False):
+                        plt.draw()
+                    else:
+                        plt.close(fig)
+
+                    fig = plt.figure()
+                    plt.plot(180 - self.scattering_cross_section['polar angles'][bottom_idcs] * 180 / np.pi,
+                             (self.scattering_cross_section['polar'][0, bottom_idcs]
+                              + self.scattering_cross_section['polar'][1, bottom_idcs]) * np.pi / 180)
+                    plt.xlabel('polar angle (degree)')
+                    plt.ylabel('d_CS/d_beta (' + simulation.length_unit + '^2)')
+                    plt.title('Polar differential scattering cross section in bottom layer')
+                    plt.grid(True)
+
+                    if item.get('save plots', False):
+                        plt.savefig(outputdir + '/bottom_polar_dcs.png')
+                    if item.get('show plots', False):
+                        plt.draw()
+                    else:
+                        plt.close(fig)
+
+            elif item['task'] == 'evaluate near field':
                 sys.stdout.write("\nEvaluate near fields ... ")
                 sys.stdout.flush()
 
                 quantities_to_plot = item['quantities to plot']
-                filenames = item.get('filenames')
+
+                show_plots = item.get('show plots', False)
+                save_plots = item.get('save plots', False)
+                save_animations = item.get('save animations', False)
+                save_data = item.get('save data', False)
+
+                if simulation.output_dir:
+                    outputdir = simulation.output_dir + '/near_field'
+                else:
+                    outputdir = '.'
+
+                if (not os.path.exists(outputdir)) and (save_plots or save_animations or save_data):
+                    os.makedirs(outputdir)
+
+
                 xmin = item.get('xmin', 0)
                 xmax = item.get('xmax', 0)
                 ymin = item.get('ymin', 0)
@@ -181,13 +256,12 @@ class PostProcessing:
                 max_particle_distance = item.get('maximal particle distance', float('inf'))
                 resolution = item.get('spatial resolution', 25)
                 interpolate = item.get('interpolation spatial resolution', 5)
-                for field_type in item.get('field types', ['scattered']):
-                    if field_type == 'scattered':
-                        nf.show_near_field(quantities_to_plot=quantities_to_plot, filenames=filenames, xmin=xmin,
-                                           xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax,
-                                           n_effective=n_effective, azimuthal_angles=azimuthal_angles,
-                                           simulation=simulation, max_field=max_field, resolution=resolution,
-                                           max_particle_distance=max_particle_distance, interpolate=interpolate)
+                nf.show_near_field(quantities_to_plot=quantities_to_plot, show_plots=show_plots, save_plots=save_plots,
+                                   save_animations=save_animations, save_data=save_data, outputdir=outputdir,
+                                   xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax,
+                                   n_effective=n_effective, azimuthal_angles=azimuthal_angles, simulation=simulation,
+                                   max_field=max_field, resolution=resolution,
+                                   max_particle_distance=max_particle_distance, interpolate=interpolate)
 
                 sys.stdout.write("done. \n")
                 sys.stdout.flush()
