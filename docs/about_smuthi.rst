@@ -9,7 +9,7 @@ and on the scattering-matrix method for the propagation through the layered medi
 
 .. image:: images/drawing.png
    :scale: 40%
-.. image:: images/norme.png
+.. image:: images/norm_E.png
    :scale: 60 %
 The software solves Maxwell's equations (3D wave optics) in frequency domain (one wavelength per simulation).
 An arbitrary number of spheres, spheroids and finite cylinders inside an arbitrary system of plane parallel layers can
