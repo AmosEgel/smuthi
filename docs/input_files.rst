@@ -183,13 +183,76 @@ details information.
 Post procesing
 -----------------
 
-Define here, what output you want to generate. Currently only the evaluation of scattering and extinction cross sections is implemented. Write::
+Define here, what output you want to generate. Currently, the following tasks can be defined for the post processing
+phase:
+
+  - evaluation of scattering and extinction cross sections
+  - evaluation of the electrical near field
+
+Write for example::
 
    post processing:
    - task: evaluate cross sections
-     show plots: true
+     show plots: false
+     save plots: true
+     save data: false
+   - task: evaluate near field
+     show plots: false
+     save plots: true
+     save animations: true
+     save data: false
+     quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
+     xmin: -800
+     xmax: 800
+     zmin: -400
+     zmax: 900
+     spatial resolution: 50
+     interpolation spatial resolution: 5
+     maximal field strength: 1.2
 
-If :code:`show plots` is not set to :code:`false` (default), the differential scattering cross section is plotted.
+The :code:`show plots`, :code:`save plots` and :code:`save data` flags deterimine, if the respective output
+is plotted, if the plots are saved and if the raw data is exported to ascii files.
+
+In the :code:`evaluate near field` task, the :code:`save animations` flags deterimines, if the near field figures are
+exported as gif animations.
+
+The :code:`quantities to plot` are a list of strings that can be:
+:code:`E_x`, :code:`E_y`, :code:`E_z` or :code:`norm(E)` for the x-, y- and z-component or the norm of the total
+electric field,
+:code:`E_scat_x`, :code:`E_scat_y`, :code:`E_scat_z` or :code:`norm(E_scat)` for the x-, y- and z-component or the norm
+of the scattered electric field,
+or :code:`E_init_x`, :code:`E_init_y`, :code:`E_init_z` or :code:`norm(E_init)` for the x-, y- and z-component or the norm
+of the initial electric field.
+
+To specify the plane where the near field is computed, provide :code:`xmin`, :code:`xmax`, :code:`ymin`, :code:`ymax`,
+:code:`zmin` and :code:`zmax`. If any of these is not given, it is assumed to be 0.
+For exactly one of the coordinates x, y or z the min and max value should be identical, e.g. :code:`ymin` =
+:code:`ymax` as in the above example. In that case, the field is plotted in the xz-plane.
+
+:code:`spatial resolution` determines, how fine the grid of points is, where the near field is computed.
+As :code:`xmin` etc., this parameter is specified in length units. If :code:`interpolation spatial resolution` is
+specified, the near field will be interpolated to that finer value to allow for smoother looking field plots without the
+long computing time of a fine grained actual field evaluation.
+
+With :code:`maximal field strength`, you can set the color scale of the field plots to a fixed maximum.
+
+
+Further settings for the generation of output data
+---------------------------------------------------
+
+The path to the output folder can be specified as::
+
+   output folder: smuthi_output
+
+This folder will be created and in it a subfolder with a timestamp that contains all file output of the simulation.
+
+Finally, if::
+
+   save simulation: true
+
+is specified, the simulation object will be saved as a binary data file from which it can be reimported at a later time.
+
+
 
 The particle specifications file
 ==================================

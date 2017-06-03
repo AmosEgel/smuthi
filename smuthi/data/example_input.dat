@@ -138,23 +138,22 @@ tmatrix method:
 
 post processing:
 - task: evaluate cross sections
-  show plots: true
+  show plots: false
   save plots: true
-  save data: true
+  save data: false
 - task: evaluate near field
-  show plots: true
+  show plots: false
   save plots: true
   save animations: true
-  save data: true
+  save data: false
   quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
-  filenames: [ey.gif, norme.png, ey_s.gif, norme_s.png, ey_i.gif, norme_i.png]
   xmin: -800
   xmax: 800
   zmin: -400
   zmax: 900
-  maximal field strength: 1.2
   spatial resolution: 50
   interpolation spatial resolution: 5
+  maximal field strength: 1.2
 
 
 # ----------------------------------------------------------------------------------------------------------------------
