@@ -12,21 +12,27 @@ Author: Amos Egel. Mail to amos.egel@kit.edu for support or to report a problem.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
 
+What's new in version 0.3
+--------------------------
+The software now allows to compute the electric near field. The fields can be plotted as png figure files and as gif
+animations. All generated output can be stored as figure files or as text files. The simulation object can be exported
+as binary file.
+
+What's new in version 0.2.2
+--------------------------
+Finite cylinders were added.
+
 What's new in version 0.2
 --------------------------
 In addition to spherical particles, spheroids can now be selected as scattering particles, too.
 Spheroids are ellipsoidal particles with one axis of rotational symmetry (which is currently fixed
 to be the direction perpendicular to the layer interfaces).
 
-What's new in version 0.2.2
---------------------------
-Finite cylinders were added.
 
 Planned updates for future versions
 ------------------------------------
 Things to be implemented next:
 
- - near fields
  - faster evaluation of particle coupling
  - dipole excitation
  - Gaussian beam excitation
