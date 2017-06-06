@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to SMUTHI's documentation!
+Welcome to Smuthi's documentation!
 ==================================
 
 .. toctree::
@@ -13,4 +13,3 @@ Welcome to SMUTHI's documentation!
    installation
    run_smuthi
    input_files
-
