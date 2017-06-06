@@ -1,4 +1,4 @@
-About SMUTHI
+What is it?
 ===============
 
 SMUTHI stands for 'scattering by multiple particles in thin-film systems'.
@@ -58,3 +58,21 @@ cross section for reflection (transmission) refers to the destructive interferen
 specular reflection (transmission) of the initial wave. It thereby includes absorption in the particles, scattering,
 and a modified absorption by the layer system, e.g. through incoupling into waveguide modes. If the particles lead to,
 say, a higher reflection than the bare layer system without particles, the extinction can also be negative.
+
+**Acknowledgments and contact information**
+
+Smuthi is maintained by `Amos Egel <https://www.lti.kit.edu/mitarbeiter_5812.php>`_. Please contact me for questions,
+feature requests or if you would like to contribute.
+
+The software is licensed under the `MIT license <https://en.wikipedia.org/wiki/MIT_License>`_ and includes contributions
+from the following persons:
+
+   - Adrian Doicu, Thomas Wriedt and Yuri Eremin through the
+     `NFM-DS <https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds>`_ package, a copy of which
+     is distributed with Smuthi
+
+The creation of Smuthi was funded by the `DFG <http://www.dfg.de/>`_ through the research project
+`LAMBDA <http://gepris.dfg.de/gepris/projekt/278746617>`_ within the priority programme
+`tailored disorder <http://gepris.dfg.de/gepris/projekt/255652081>`_.
+
+
