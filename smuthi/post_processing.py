@@ -156,9 +156,10 @@ class PostProcessing:
 
                     fig = plt.figure()
                     ax = fig.add_subplot(111, polar=True)
-                    ax.pcolormesh(alpha_grid, beta_grid,
+                    pcmsh = ax.pcolormesh(alpha_grid, beta_grid,
                                   (self.scattering_cross_section['differential'][0, top_idcs, :]
-                                   + self.scattering_cross_section['differential'][1, top_idcs, :]))
+                                   + self.scattering_cross_section['differential'][1, top_idcs, :]), cmap='inferno')
+                    plt.colorbar(pcmsh, ax=ax)
                     plt.title('DCS in top layer (' + simulation.length_unit + '^2)')
 
                     if item.get('save plots', False):
@@ -193,12 +194,14 @@ class PostProcessing:
 
                     fig = plt.figure()
                     ax = fig.add_subplot(111, polar=True)
-                    ax.pcolormesh(alpha_grid, 180 - beta_grid, (self.scattering_cross_section['differential'][0, bottom_idcs, :] +
-                                                                  self.scattering_cross_section['differential'][1, bottom_idcs, :]))
+                    pcmsh = ax.pcolormesh(alpha_grid, 180 - beta_grid,
+                                  (self.scattering_cross_section['differential'][0, bottom_idcs, :] +
+                                   self.scattering_cross_section['differential'][1, bottom_idcs, :]), cmap='inferno')
+                    plt.colorbar(pcmsh, ax=ax)
                     plt.title('DCS in bottom layer (' + simulation.length_unit + '^2)')
 
                     if item.get('save plots', False):
-                        plt.savefig(outputdir + '/top_dcs.png')
+                        plt.savefig(outputdir + '/bottom_dcs.png')
                     if item.get('show plots', False):
                         plt.draw()
                     else:
