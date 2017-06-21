@@ -19,7 +19,7 @@ def plane_wave_pattern_rs(n_effective=None, azimuthal_angles=None, vacuum_wavele
     A plane wave pattern is the integrand of a 2-dimensional expansion of the layer system
     response to the scattered field in PVWFs.
 
-    TODO: TEST
+    .. todo:: TEST
 
     n_effective:            (float) array of n_eff values, i.e. k_parallel / omega
     azimuthal_angles:       (float) array of azimuthal angle values (radian)
@@ -122,7 +122,7 @@ def plane_wave_pattern_s(n_effective=None, azimuthal_angles=None, vacuum_wavelen
     scattered field in PVWFs. In each layer, the plane wave pattern is only valid below all particles (minus-component)
     or above all particles (plus-component)
 
-    TODO: CHECK IF VALID!!
+    .. todo:: TEST
 
 
     n_effective:            (float) array of n_eff values, i.e. k_parallel / omega

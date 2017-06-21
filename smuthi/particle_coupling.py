@@ -17,16 +17,23 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
     """Return the layer-system mediated particle coupling matrix W^R for two particles. This routine is explicit, but
     slow.
 
-    Input:
-    vacuum_wavelength:              (length unit)
-    receiving_particle_position:    In the format [x,y,z] (length unit)
-    emitting_particle_position:     In the format [x,y,z] (length unit)
-    layer_system:                   An instance of smuthi.layers.LayerSystem describing the stratified medium
-    neff_contour:                   An instance of smuthi.coordinates.ComplexContour to define the contour of the
-                                    Sommerfeld integral
-    layerresponse_precision:        Number of decimal digits (int). If specified, the layer-response is evaluated using
-                                    mpmath multiple precision. Otherwise, standard numpy.
-    show_integrand:                 If True, the norm of the integrand is plotted.
+    Args:
+        vacuum_wavelength (float):                      Vacuum wavelength :math:`\lambda` (length unit)
+        receiving_particle_position (list or array):    In the format [x,y,z] (length unit)
+        emitting_particle_position (list or array):     In the format [x,y,z] (length unit)
+        layer_system:                                   An instance of smuthi.layers.LayerSystem describing the
+                                                        stratified medium
+        neff_contour:                                   An instance of smuthi.coordinates.ComplexContour to define the
+                                                        contour of the Sommerfeld integral
+        layerresponse_precision:                        Number of decimal digits (int). If specified, the layer-response
+                                                        is evaluated using mpmath multiple precision. Otherwise,
+                                                        standard numpy.
+        show_integrand:                                 If True, the norm of the integrand is plotted.
+
+    Returns:
+        sdf
+
+
     """
     omega = coord.angular_frequency(vacuum_wavelength)
 
