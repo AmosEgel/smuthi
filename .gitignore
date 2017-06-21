@@ -12,3 +12,5 @@ build/
 NFM*.exe
 data/
 nfmds_*
+scripts/
+*smuthi_output*
