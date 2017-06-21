@@ -7,6 +7,16 @@ import smuthi.vector_wave_functions as vwf
 import smuthi.index_conversion as idx
 
 
+class InitialField:
+    """Base class for initial field classes"""
+    def __init__(self, vacuum_wavelength):
+        self.vacuum_wavelength = vacuum_wavelength
+
+    def swe_coefficients(self, particle, layer_system):
+        """Virtual method to be overwritten."""
+        pass
+
+
 class InitialFieldCollection:
     """Collection of initial field parameter sets."""
     def __init__(self, vacuum_wavelength=None):

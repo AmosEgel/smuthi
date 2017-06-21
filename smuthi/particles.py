@@ -2,56 +2,46 @@
 """Provide class for the representation of scattering particles."""
 
 
+class Particle:
+    """Base class for scattering particles."""
+    def __init__(self, position=[0,0,0], euler_angles=[0,0,0], refractive_index=1+0j):
+        self.position = position
+        self.refractive_index = refractive_index
+
+
+class Sphere(Particle):
+    def __init__(self, position=[0,0,0], refractive_index=1+0j, radius=1):
+        Particle.__init__(self, position=position, refractive_index=refractive_index)
+        self.radius = radius
+
+
+class Spheroid(Particle):
+    def __init__(self, position=[0,0,0], euler_angles=[0,0,0], refractive_index=1+0j, semi_axis_c=1, semi_axis_a=1):
+        Particle.__init__(self, position=position, euler_angles=euler_angles, refractive_index=refractive_index)
+        self.semi_axis_c = semi_axis_c
+        self.semi_axis_a = semi_axis_a
+
+
+class FiniteCylinder(Particle):
+    def __init__(self, position=[0,0,0], euler_angles=[0,0,0], refractive_index=1+0j, cylinder_radius=1,
+                 cylinder_height=1):
+        Particle.__init__(self, position=position, euler_angles=euler_angles, refractive_index=refractive_index)
+        self.cylinder_radius = cylinder_radius
+        self.cylinder_height = cylinder_height
+
+
 class ParticleCollection:
     """Collection of scattering particles."""
-    def __init__(self):
-        """ A list of dictionaries that contain the following entries:
-        - 'shape':              'sphere', 'spheroid', 'finite cylinder'
-        - 'refractive index'    Complex refractive index in the form n+kj
-        - 'position':           In the form [x, y, z] (length unit)
-        - 'euler angles':       Euler angles of rotated particle in the format [alpha, beta, gamma] (radian)
-        - further shape-specific parameters which characterize the geometry (like radius etc., see adding methods)
-        """
-        self.particles = []
+    def __init__(self, particle_list=None):
+        """A list of dictionaries Particle objects"""
+        if particle_list is None:
+            self.particles = []
+        else:
+            self.particles = particle_list
 
-    def add_sphere(self, radius, refractive_index, position):
-        """Add a sphere to the collection.
-
-        input parameters:
-        radius:             sphere radius (length unit)
-        refractive_index:   complex refractive index in the form n+jk
-        position:           center position in format [x,y,z] (length unit)
-        """
-        self.particles.append({'shape': 'sphere', 'radius': radius, 'refractive index': refractive_index,
-                               'position': position, 'euler angles': [0, 0, 0]})
-
-    def add_spheroid(self, semi_axis_c, semi_axis_a, refractive_index, position, euler_angles=[0, 0, 0]):
-        """Add a spheroid to the collection.
-
-        input parameters:
-        semi_axis_c:        spheroid semi axis along symmetry axis (length unit)
-        semi_axis_a:        spheroid semi axis a=b in transverse direction (length unit)
-        refractive_index:   complex refractive index in the form n+jk
-        position:           center position in format [x,y,z] (length unit)
-        euler_angles:       todo, default=[0,0,0]
-        """
-        self.particles.append({'shape': 'spheroid', 'semi axis c': semi_axis_c, 'semi axis a': semi_axis_a,
-                               'refractive index': refractive_index, 'position': position,
-                               'euler angles': euler_angles})
-
-    def add_finite_cylinder(self, cylinder_radius, cylinder_height, refractive_index, position, euler_angles=[0, 0, 0]):
-        """Add finite cylinder to the collection.
-
-        input parameters:
-        cylinder_radius:    cylinder radius (length unit)
-        cylinder_height:    height of cylinder (length unit)
-        refractive_index:   complex refractive index in the form n+jk
-        position:           center position in format [x,y,z] (length unit)
-        euler_angles:       todo, default=[0,0,0]
-        """
-        self.particles.append({'shape': 'finite cylinder', 'cylinder radius': cylinder_radius,
-                               'cylinder height': cylinder_height, 'refractive index': refractive_index,
-                               'position': position, 'euler angles': euler_angles})
+    def add(self, particle):
+        """Add particle to collection"""
+        self.particles.append(particle)
 
     def remove_particle(self, i):
         """Remove i-th particle from collection"""
@@ -63,4 +53,4 @@ class ParticleCollection:
 
     def particle_positions(self):
         """Return a list of particle positions"""
-        return [self.particles[i]['position'] for i in range(self.particle_number())]
+        return [self.particles[i].position for i in range(self.particle_number())]
