@@ -1,27 +1,41 @@
 # -*- coding: utf-8 -*-
-"""Functions to map the multiple coefficient indices tau,l,m to a single index n and vice versa."""
+r"""Functions to map the multiple coefficient indices :math:`\tau,l,m` to a single index :math:`n` and vice versa."""
 
-# the global variable index_order specifies the order of the multipole indices (tau, l, m) of the spherical wave
-# expansion
-# index_order = 'tlm' implies the following map between multi-index and single-index:
-# n | tau, l, m
-# -------------
-# 1 | 1, 1, -1
-# 2 | 1, 1, 0
-# 3 | 1, 1, 1
-# 2 | 1, 2, -2
-# 2 | 1, 2, -1
-# 2 | 1, 2, 0
-# ..| ... ...
-# ..| 1, lmax, lmax
-# ..| 2, 1, -1
-# ..| ... ...
+#: Module constant specifying the order of the multipole indices :math:`(\tau,l,m)` of the spherical wave expansion
+#:
+#: index_order = 'tlm' implies the following map between multi-index and single-index:
+#:
+#: +-------------+-------------+-------------+------------+
+#: | multi index |    spherical wave expansion indices    |
+#: +=============+=============+=============+============+
+#: | :math:`n`   | :math:`\tau`| :math:`l`   | :math:`m`  |
+#: +-------------+-------------+-------------+------------+
+#: |     1       |     1       |      1      |   -1       |
+#: +-------------+-------------+-------------+------------+
+#: |     2       |     1       |      1      |    0       |
+#: +-------------+-------------+-------------+------------+
+#: |     3       |     1       |      1      |    1       |
+#: +-------------+-------------+-------------+------------+
+#: |     4       |     1       |      2      |   -2       |
+#: +-------------+-------------+-------------+------------+
+#: |     5       |     1       |      2      |   -1       |
+#: +-------------+-------------+-------------+------------+
+#: |     6       |     1       |      2      |    0       |
+#: +-------------+-------------+-------------+------------+
+#: |    ...      |    ...      |     ...     |   ...      |
+#: +-------------+-------------+-------------+------------+
+#: |    ...      |     1       |    l_max    |    l_max   |
+#: +-------------+-------------+-------------+------------+
+#: |    ...      |     2       |      1      |   -1       |
+#: +-------------+-------------+-------------+------------+
+#: |    ...      |    ...      |     ...     |   ...      |
+#: +-------------+-------------+-------------+------------+
 index_order = 'tlm'
 
-# global variable for maximal multipole degree
+#: Module constant for maximal multipole degree
 l_max = None
 
-# global variable for maximal multipole order
+#: Module constant for maximal multipole order
 m_max = None
 
 

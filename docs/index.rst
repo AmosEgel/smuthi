@@ -7,9 +7,10 @@ Welcome to Smuthi's documentation!
 ==================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    about_smuthi
    installation
    run_smuthi
    input_files
+   smuthi_api

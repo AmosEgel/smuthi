@@ -8,6 +8,26 @@ def scattering_cross_section(polar_angles=None, initial_field_collection=None, a
                              particle_collection=None, linear_system=None, layer_system=None,
                              layerresponse_precision=None):
     """Evaluate and display the differential scattering cross section as a function of solid angle.
+
+    :param polar_angles: (float) array of polar angles (radian), default: from 1 to 180 degree in steps of 1
+    :param initial_field_collection: :class:`smuthi.initial_field.InitialFieldCollection` object
+    :param azimuthal_angles:
+    :param particle_collection:
+    :param linear_system:
+    :param layer_system:
+    :param layerresponse_precision:
+    :return: a dictionary with the following entries:
+
+        - 'differential':     Differential cross section as an np.array of dimension 2 x nb x na where nb is the number of polar angles and na is the number of azimuthal angles. The first index refers to polarization.
+        - 'total':            Total cross section as list with two entries (for two polarizations)
+        - 'polar':            Polar differential cross section (that is scattered power per polar angle, divided by incoming
+                              intensity)
+        - 'polar angles':     Polar angles for which the differential cross section was evaluated
+        - 'azimuthal angles': Azimuthal angles for which the differential cross section was evaluated
+        - 'forward indices':  The indices of polar angles that correspond to directions in the top hemisphere
+        - 'backward indices': The indices of polar angles that correspond to directions in the bottom hemisphere
+    """
+    """Evaluate and display the differential scattering cross section as a function of solid angle.
     Return a dictionary scattering_cross_section with the following entries:
     'differential':     Differential cross section as an np.array of dimension 2 x nb x na where nb is the number of
                         polar angles and na is the number of azimuthal angles. The first index refers to polarization.

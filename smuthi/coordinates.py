@@ -3,17 +3,26 @@ import numpy as np
 
 
 class ComplexContour:
-    """Trajectory of n_effective in the complex plane for the evaluation of Sommerfeld integrals."""
-    def __init__(self, neff_waypoints=[0, 1], neff_discretization=1e-2):
-        # n_effective waypoints, that is, points through which the contour goes (linear between them)
-        # k_parallel = n_effective * omega
-        self.neff_waypoints = neff_waypoints
+    """Trajectory of :math:`n_\mathrm{eff} = \kappa / \omega` in the complex plane for the evaluation of Sommerfeld
+    integrals.
 
-        # Discretization between the waypoints. Either as an array or as a scalar (uniform for all segments)
+    :param neff_waypoints: Complex :math:`n_\mathrm{eff}` waypoints, that is, points through which the contour
+        goes (linear between them).
+    :type neff_waypoints: list
+    :param neff_discretization: Distance between adjacent :math:`n_\mathrm{eff}` values in the contour. Either as a list
+        (for different discretization in different linear segments) or as a scalar (uniform discretization for all
+        segments)
+    :type neff_discretization: list or float
+    """
+    def __init__(self, neff_waypoints=[0, 1], neff_discretization=1e-2):
+        self.neff_waypoints = neff_waypoints
         self.neff_discretization = neff_discretization
 
     def neff(self):
-        """Return numpy-array of n_effective values that define the contour."""
+        """
+        :return:  numpy-array of :math:`n_\mathrm{eff}` values that define the contour
+        """
+
         neff_segments = []
         for i in range(len(self.neff_waypoints)-1):
             if hasattr(self.neff_discretization, "__len__"):
@@ -26,6 +35,17 @@ class ComplexContour:
 
 
 def k_z(k_parallel=None, n_effective=None, k=None, omega=None, vacuum_wavelength=None, refractive_index=None):
+    """z-component :math:`k_z=\sqrt{k^2-\kappa^2}` of the wavevector. The branch cut is defined such that the imaginary part is not
+    negative. Not all of the arguments need to be specified.
+
+    :param k_parallel: In-plane wavenumber :math:`\kappa`
+    :param n_effective: Effective refractive index :math:`n_\mathrm{eff}`
+    :param k: Wavenumber
+    :param omega: Angular frequency :math:`\omega` or vacuum wavenumber
+    :param vacuum_wavelength: Vacuum wavelength :math:`\lambda`
+    :param refractive_index: Refractive index :math:`n_i` of material
+    :return: z-component :math:`k_z` of wavenumber
+    """
     """Return z-component of wavevector with k_z.imag >= 0
 
     Input:
@@ -52,5 +72,11 @@ def k_z(k_parallel=None, n_effective=None, k=None, omega=None, vacuum_wavelength
 
 
 def angular_frequency(vacuum_wavelength):
+    """Angular frequency :math:`\omega = 2\pi c / \lambda`
+
+    :param vacuum_wavelength: Vacuum wavelength in length unit
+    :return: Angular frequency in the units of c=1 (time units=length units). This is at the same time the vacuum
+        wavenumber.
+    """
     """Angular frequency in the units of c=1 (time=length)"""
     return 2 * np.pi / vacuum_wavelength
