@@ -17,8 +17,17 @@ class Particle:
         m_max (int):                Maximal multipole order used for the spherical wave expansion of incoming and
                                     scattered field
     """
-    def __init__(self, position=[0,0,0], euler_angles=[0,0,0], refractive_index=1+0j, l_max=None, m_max=None):
-        self.position = position
+    def __init__(self, position=None, euler_angles=None, refractive_index=1+0j, l_max=None, m_max=None):
+        if position is None:
+            self.position = [0, 0, 0]
+        else:
+            self.position = position
+
+        if euler_angles is None:
+            self.euler_angles = [0, 0, 0]
+        else:
+            self.euler_angles = euler_angles
+
         self.euler_angles=euler_angles
         self.refractive_index = refractive_index
         self.scattered_field.spherical_wave_expansion = fldex.SphericalWaveExpansion(l_max, m_max)
@@ -40,7 +49,13 @@ class Sphere(Particle):
                                     scattered field
         t_matrix_method (dict):     Dictionary containing the parameters for the algorithm to compute the T-matrix
     """
-    def __init__(self, position=[0,0,0], refractive_index=1+0j, radius=1, l_max=None, m_max=None):
+    def __init__(self, position=None, refractive_index=1+0j, radius=1, l_max=None, m_max=None):
+
+        if position is None:
+            self.position = [0, 0, 0]
+        else:
+            self.position = position
+
         Particle.__init__(self, position=position, refractive_index=refractive_index, l_max=l_max, m_max=m_max)
         self.radius = radius
 
@@ -65,13 +80,30 @@ class Spheroid(Particle):
                                     scattered field
         t_matrix_method (dict):     Dictionary containing the parameters for the algorithm to compute the T-matrix
     """
-    def __init__(self, position=[0,0,0], euler_angles=[0,0,0], refractive_index=1+0j, semi_axis_c=1, semi_axis_a=1,
-                 l_max=None, m_max=None, t_matrix_method={}):
+    def __init__(self, position=None, euler_angles=None, refractive_index=1+0j, semi_axis_c=1, semi_axis_a=1,
+                 l_max=None, m_max=None, t_matrix_method=None):
+
+        if position is None:
+            self.position = [0, 0, 0]
+        else:
+            self.position = position
+
+        if euler_angles is None:
+            self.euler_angles = [0, 0, 0]
+        else:
+            self.euler_angles = euler_angles
+
+        if t_matrix_method is None:
+            self.t_matrix_method = {}
+        else:
+            self.t_matrix_method = t_matrix_method
+
+
         Particle.__init__(self, position=position, euler_angles=euler_angles, refractive_index=refractive_index,
                           l_max=l_max, m_max=m_max)
         self.semi_axis_c = semi_axis_c
         self.semi_axis_a = semi_axis_a
-        self.t_matrix_method = t_matrix_method
+
 
     def compute_T_matrix(self, vacuum_wavelength, layer_system):
         iS = layer_system.layer_number(self.position[2])
@@ -98,8 +130,24 @@ class FiniteCylinder(Particle):
         m_max (int):                Maximal multipole order used for the spherical wave expansion of incoming and
                                     scattered field
     """
-    def __init__(self, position=[0,0,0], euler_angles=[0,0,0], refractive_index=1+0j, cylinder_radius=1,
-                 cylinder_height=1, l_max=None, m_max=None, t_matrix_method={}):
+    def __init__(self, position=None, euler_angles=None, refractive_index=1+0j, cylinder_radius=1,
+                 cylinder_height=1, l_max=None, m_max=None, t_matrix_method=None):
+
+        if position is None:
+            self.position = [0, 0, 0]
+        else:
+            self.position = position
+
+        if euler_angles is None:
+            self.euler_angles = [0, 0, 0]
+        else:
+            self.euler_angles = euler_angles
+
+        if t_matrix_method is None:
+            self.t_matrix_method = {}
+        else:
+            self.t_matrix_method = t_matrix_method
+
         Particle.__init__(self, position=position, euler_angles=euler_angles, refractive_index=refractive_index,
                           l_max=l_max, m_max=m_max)
         self.cylinder_radius = cylinder_radius
