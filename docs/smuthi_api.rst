@@ -1,5 +1,5 @@
-Smuthi API
-==========
+API
+=====
 Smuthi is a Python package with the following modules and sub-packages.
 
 smuthi.coordinates module
@@ -13,6 +13,13 @@ smuthi.far_field module
 -----------------------
 
 .. automodule:: smuthi.far_field
+    :members:
+    :undoc-members:
+
+smuthi.field_expansion module
+-----------------------
+
+.. automodule:: smuthi.field_expansion
     :members:
     :undoc-members:
 

@@ -2,7 +2,6 @@
 
 import numpy as np
 import smuthi.spherical_functions
-import smuthi.index_conversion
 import smuthi.nfmds.t_matrix_axsym as nftaxs
 
 
@@ -36,22 +35,27 @@ def mie_coefficient(tau, l, k_medium, k_particle, radius):
     return q
 
 
-def t_matrix_sphere(k_medium, k_particle, radius):
-    """Return the T-matrix of a spherical scattering object.
+def t_matrix_sphere(k_medium, k_particle, radius, spherical_wave_expansion):
+    """T-matrix of a spherical scattering object.
 
-    Input:
-    k_medium            float or complex: wavenumber in surrounding medium (inverse length unit)
-    k_particle          float or complex: wavenumber inside sphere (inverse length unit)
-    radius              float: radius of sphere (length unit)
+    Args:
+        k_medium (float or complex):                        Wavenumber in surrounding medium (inverse length unit)
+        k_particle (float or complex):                      Wavenumber inside sphere (inverse length unit)
+        radius (float):                                     Radius of sphere (length unit)
+        spherical_wave_expansion (SphericalWaveExpansion):  SphericalWaveExpansion object with which the T-matrix shall
+                                                            be compatible
+
+    Returns:
+         T-matrix as ndarray
     """
-    lmax = smuthi.index_conversion.l_max
-    mmax = smuthi.index_conversion.m_max
-    blocksize = smuthi.index_conversion.number_of_indices()
+    lmax = spherical_wave_expansion.l_max
+    mmax = spherical_wave_expansion.m_max
+    blocksize = smuthi.spherical_wave_expansion.number_of_indices()
     t = np.zeros((blocksize, blocksize), dtype=complex)
     for tau in range(2):
         for m in range(-mmax, mmax + 1):
             for l in range(max(1, abs(m)), lmax+1):
-                n = smuthi.index_conversion.multi_to_single_index(tau, l, m)
+                n = smuthi.spherical_wave_expansion.multi_to_single_index(tau, l, m)
                 t[n, n] = mie_coefficient(tau, l, k_medium, k_particle, radius)
 
     return t
