@@ -46,7 +46,7 @@ class SphericalWaveExpansion:
         lmax = self.particle_collection.particles[iS].l_max
         mmax = self.particle_collection.particles[iS].m_max
         return np.arange(self.multi_to_collection_index(iS, 0, 1, -mmax),
-                            self.multi_to_collection_index(iS, 1, lmax, mmax) + 1, dtype=int)
+                         self.multi_to_collection_index(iS, 1, lmax, mmax) + 1, dtype=int)
 
     def expansion_coefficient(self, iS, tau, l, m):
         r"""Single expansion coefficient for fixed particle and SWE index combination

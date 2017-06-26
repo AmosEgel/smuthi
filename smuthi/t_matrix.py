@@ -3,6 +3,7 @@
 import numpy as np
 import smuthi.spherical_functions
 import smuthi.nfmds.t_matrix_axsym as nftaxs
+import smuthi.field_expansion as fldex
 
 
 def mie_coefficient(tau, l, k_medium, k_particle, radius):
@@ -35,67 +36,69 @@ def mie_coefficient(tau, l, k_medium, k_particle, radius):
     return q
 
 
-def t_matrix_sphere(k_medium, k_particle, radius, spherical_wave_expansion):
+def t_matrix_sphere(k_medium, k_particle, radius, l_max, m_max):
     """T-matrix of a spherical scattering object.
 
     Args:
-        k_medium (float or complex):                        Wavenumber in surrounding medium (inverse length unit)
-        k_particle (float or complex):                      Wavenumber inside sphere (inverse length unit)
-        radius (float):                                     Radius of sphere (length unit)
-        spherical_wave_expansion (SphericalWaveExpansion):  SphericalWaveExpansion object with which the T-matrix shall
-                                                            be compatible
+        k_medium (float or complex):            Wavenumber in surrounding medium (inverse length unit)
+        k_particle (float or complex):          Wavenumber inside sphere (inverse length unit)
+        radius (float):                         Radius of sphere (length unit)
+        l_max (int):                            Maximal multipole degree
+        m_max (int):                            Maximal multipole order
+        blocksize (int):                        Total number of index combinations
+        multi_to_single_index_map (function):   A function that maps the SVWF indices (tau, l, m) to a single index
 
     Returns:
          T-matrix as ndarray
     """
-    lmax = spherical_wave_expansion.l_max
-    mmax = spherical_wave_expansion.m_max
-    blocksize = smuthi.spherical_wave_expansion.number_of_indices()
-    t = np.zeros((blocksize, blocksize), dtype=complex)
+    t = np.zeros((fldex.blocksize(l_max, m_max), fldex.blocksize(l_max, m_max)), dtype=complex)
     for tau in range(2):
-        for m in range(-mmax, mmax + 1):
-            for l in range(max(1, abs(m)), lmax+1):
-                n = smuthi.spherical_wave_expansion.multi_to_single_index(tau, l, m)
+        for m in range(-m_max, m_max + 1):
+            for l in range(max(1, abs(m)), l_max+1):
+                n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
                 t[n, n] = mie_coefficient(tau, l, k_medium, k_particle, radius)
-
     return t
 
 
-def t_matrix(vacuum_wavelength, n_medium, particle, method={}):
+def t_matrix(vacuum_wavelength, n_medium, particle):
     """Return the T-matrix of a particle.
 
-    NOT TESTED
+    ..todo:: testing
 
-    Input:
-    vacuum_wavelength:  float (length units)
-    n_medium:           float or complex: refractive index of surrounding medium
-    particle:           Dictionary containing the particle parameters. See smuthi.particles for details.
-    method:             Dictionary containing the parameters for the algorithm in case of non-spherical particles.
+    Args:
+        vacuum_wavelength(float)
+        n_medium(float or complex):             Refractive index of surrounding medium
+        particle(smuthi.particles.Particle):    Particle object
+
+    Returns:
+        T-matrix as ndarray
     """
-    if particle['shape'] == 'sphere':
+    if type(particle).__name__ == 'Sphere':
         k_medium = 2 * np.pi / vacuum_wavelength * n_medium
-        k_particle = 2 * np.pi / vacuum_wavelength * particle['refractive index']
-        radius = particle['radius']
-        t = t_matrix_sphere(k_medium, k_particle, radius)
-    elif particle['shape'] == 'spheroid':
-        if not particle['euler angles'] == [0, 0, 0]:
+        k_particle = 2 * np.pi / vacuum_wavelength * particle.refractive_index
+        radius = particle.radius
+        t = t_matrix_sphere(k_medium, k_particle, radius, particle.l_max, particle.m_max)
+    elif type(particle).__name__ == 'Spheroid':
+        if not particle.euler_angles == [0, 0, 0]:
             raise ValueError('T-matrix for rotated particles currently not implemented.')
         t = nftaxs.tmatrix_spheroid(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=n_medium,
-                                    particle_refractive_index=particle['refractive index'],
-                                    semi_axis_c=particle['semi axis c'], semi_axis_a=particle['semi axis a'],
-                                    use_ds=method.get('use discrete sources', True), nint=method.get('nint', 200),
-                                    nrank=method.get('nrank', smuthi.index_conversion.l_max + 2))
-    elif particle['shape'] == 'finite cylinder':
-        if not particle['euler angles'] == [0, 0, 0]:
+                                    particle_refractive_index=particle.refractive_index,
+                                    semi_axis_c=particle.semi_axis_c, semi_axis_a=particle.semi_axis_a,
+                                    use_ds=particle.t_matrix_method.get('use discrete sources', True),
+                                    nint=particle.t_matrix_method.get('nint', 200),
+                                    nrank=particle.t_matrix_method.get('nrank', particle.l_max + 2))
+    elif type(particle).__name__ == 'FiniteCylinder':
+        if not particle.euler_angles == [0, 0, 0]:
             raise ValueError('T-matrix for rotated particles currently not implemented.')
         t = nftaxs.tmatrix_cylinder(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=n_medium,
-                                    particle_refractive_index=particle['refractive index'],
-                                    cylinder_height=particle['cylinder height'],
-                                    cylinder_radius=particle['cylinder radius'],
-                                    use_ds=method.get('use discrete sources', True), nint=method.get('nint', 200),
-                                    nrank=method.get('nrank', smuthi.index_conversion.l_max + 2))
+                                    particle_refractive_index=particle.refractive_index,
+                                    cylinder_height=particle.cylinder_height,
+                                    cylinder_radius=particle.cylinder_radius,
+                                    use_ds=particle.t_matrix_method.get('use discrete sources', True),
+                                    nint=particle.t_matrix_method.get('nint', 200),
+                                    nrank=particle.t_matrix_method.get('nrank', particle.l_max + 2))
     else:
-        raise ValueError('T-matrix for ' + particle['shape'] + ' currently not implemented.')
+        raise ValueError('T-matrix for ' + type(particle).__name__ + ' currently not implemented.')
 
     return t
 
@@ -108,53 +111,38 @@ def rotate_t_matrix(t, euler_angles):
         raise ValueError('Non-trivial rotation not yet implemented')
 
 
-def t_matrix_collection(vacuum_wavelength, particle_collection, layer_system, method=None):
-    """Return the T-matrices for all particles as a numpy.ndarray, in the format (NS, blocksize, blocksize) where NS is
-    the number of particles and blocksize is the number of SWE terms per particle.
+class TMatrixCollection:
+    """Manages the T-matrices of all particles in a collection.
 
-    Input:
-    vacuum_wavelength:      (length unit)
-    particle_collection:    An instance of  smuthi.particles.ParticleCollection describing the scattering particles
-    layer_system:           An instance of smuthi.layers.LayerSystem describing the stratified medium
-    method:                 A dictionary specifying the numerical method to compute T-matrix (in case of non-spherical
-                            particles)
+    .. todo:: use caching to speed up and save memory
+
+    Args:
+        vacuum_wavelength(float)
+        particle_collection(smuthi.particles.ParticleCollection)
+        layer_system(smuthi.layers.LayerSystem)
     """
-    blocksize = smuthi.index_conversion.number_of_indices()
-    particle_number = particle_collection.particle_number()
-    t_matrices = np.zeros((particle_number, blocksize, blocksize), dtype=complex)
+    def __init__(self,vacuum_wavelength, particle_collection, layer_system):
+        self.t_matrix_list = []
 
-    particle_params_table = []
-    tmatrix_table = []
+        for particle in particle_collection.particles:
+            zS = particle.position[2]
+            iS = layer_system.layer_number(zS)
+            n_medium = layer_system.refractive_indices[iS]
+            t_matrix_unrotated = t_matrix(vacuum_wavelength, n_medium, particle)
+            t_matrix_rotated = rotate_t_matrix(t=t_matrix_unrotated, euler_angles=particle.euler_angles)
+            self.t_matrix_list.append(t_matrix_rotated)
 
-    for ip, particle in enumerate(particle_collection.particles):
-        # gather relevant parameters and omit those that don't alter the T-matrix (before rotation)
-        # in the first place, just omit position and euler angle, but add refractive index of surrounding medium
-        if particle['shape'] == 'sphere':
-            params = ['sphere', particle['radius'], particle['refractive index']]
-        elif particle['shape'] == 'spheroid':
-            params = ['spheroid', particle['semi axis c'], particle['semi axis a'], particle['refractive index']]
-        elif particle['shape'] == 'finite cylinder':
-            params = ['finite cylinder', particle['cylinder height'], particle['cylinder radius'],
-                      particle['refractive index']]
-        else:
-            raise ValueError('invalid particle type: so far only spheres, spheroids and finite cylinders are '
-                             'implemented')
-        zS = particle['position'][2]
-        iS = layer_system.layer_number(zS)
-        n_medium = layer_system.refractive_indices[iS]
-        params.append(n_medium)
+    def multiply(self, a):
+        r"""Compute the product
 
-        # compare parameters to table
-        for i_old, old_params in enumerate(particle_params_table):
-            if params == old_params:
-                tmatrix = tmatrix_table[i_old]
-                break
-        else:  # compute T-matrix and update tables
-            tmatrix = t_matrix(vacuum_wavelength, n_medium, particle, method)
-            particle_params_table.append(params)
-            tmatrix_table.append(tmatrix)
+        .. math::
+            b_{S \tau l m} = \sum_{\tau' l' m'} T_{S, \tau' l' m', \tau l m} a_{S \tau l m}
 
-        tmatrix_rotated = rotate_t_matrix(t=tmatrix, euler_angles=particle['euler angles'])
-        t_matrices[ip, :, :] = tmatrix_rotated
-
-    return t_matrices
+        Args:
+            a (smuthi.field_expansion.SphericalWaveExpansion): :math:`a_{S \tau l m}` coefficients of the SWE of
+                                                               incoming field
+        """
+        b = smuthi.field_expansion.SphericalWaveExpansion(a.particle_collection)
+        for iS, particle in a.particle_collection.particles:
+            b.coefficients[b.collection_index_block(iS)] = np.dot(self.t_matrix_list[iS], a.coefficient_block(iS))
+        pass

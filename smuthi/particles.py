@@ -161,10 +161,11 @@ class ParticleCollection:
         """Return a list of particle positions"""
         return [particle.position for particle in self.particles]
 
-    def particle_lmax_list(self):
-        """Return a list of particle lmax"""
-        [particle.l_max for particle in self.particles]
+    def __getitem__(self, i):
+        return self.particles[i]
 
-    def particle_mmax_list(self):
-        """Return a list of particle lmax"""
-        [particle.m_max for particle in self.particles]
+    def __len__(self):
+        return self.particle_number()
+
+    def __iter__(self):
+        return self.particles
