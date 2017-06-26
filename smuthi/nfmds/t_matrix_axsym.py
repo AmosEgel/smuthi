@@ -7,7 +7,7 @@ and can also be downloaded from
 https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds
 """
 
-import smuthi.index_conversion as idx
+import smuthi.field_expansion as fldex
 import smuthi.nfmds
 import os
 import subprocess
@@ -22,58 +22,62 @@ if smuthi.nfmds.nfmds_installation_path == '':
 
 
 def tmatrix_spheroid(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
-                     semi_axis_c=None, semi_axis_a=None, use_ds=True, nint=None, nrank=None):
-    """Return T-matrix for spheroid, using the TAXSYM.f90 routine from the NFM-DS.
+                     semi_axis_c=None, semi_axis_a=None, l_max=None, m_max=None, use_ds=True, nint=None, nrank=None):
+    """T-matrix for spheroid, using the TAXSYM.f90 routine from the NFM-DS.
 
-    Input:
-    vacuum_wavelength
-    layer_refractive_index      Real refractive index of layer (complex values are not allowed).
-    particle_refractive_index   Complex refractive index of spheroid
-    semi_axis_c                 Semi axis of spheroid along rotation axis
-    semi_axis_a                 Semi axis of spheroid along lateral direction
-    use_ds                      Flag to switch the use of discrete sources on (True) and off (False)
-    nint                        Nint parameter for internal use of NFM-DS (number of points along integral).
-                                Higher value is more accurate and takes longer
-    nrank                       l_max used internally in NFM-DS
+    Args:
+        vacuum_wavelength(float)
+        layer_refractive_index(float):                  Real refractive index of layer (complex values are not allowed).
+        particle_refractive_index(float or complex):    Complex refractive index of spheroid
+        semi_axis_c (float):                            Semi axis of spheroid along rotation axis
+        semi_axis_a (float):                            Semi axis of spheroid along lateral direction
+        l_max (int):                                    Maximal multipole degree
+        m_max (int):                                    Maximal multipole order
+        use_ds (bool):                                  Flag to switch the use of discrete sources on (True) and
+                                                        off (False)
+        nint (int):                                     Nint parameter for internal use of NFM-DS (number of points
+                                                        along integral). Higher value is more accurate and takes longer
+        nrank (int):                                    l_max used internally in NFM-DS
+
+    Returns:
+        T-matrix as numpy.ndarray
     """
-
     filename = 'T_matrix_spheroid.dat'
-
     taxsym_write_input_spheroid(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=layer_refractive_index,
                                 particle_refractive_index=particle_refractive_index, semi_axis_c=semi_axis_c,
                                 semi_axis_a=semi_axis_a, use_ds=use_ds, nint=nint, nrank=nrank, filename=filename)
     taxsym_run()
-    t_matrix = taxsym_read_tmatrix(filename=filename)
-
-    return t_matrix
+    return taxsym_read_tmatrix(filename=filename, l_max=l_max, m_max=m_max)
 
 
 def tmatrix_cylinder(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
-                     cylinder_height=None, cylinder_radius=None, use_ds=True, nint=None, nrank=None):
+                     cylinder_height=None, cylinder_radius=None, l_max=None, m_max=None, use_ds=True, nint=None, nrank=None):
     """Return T-matrix for finite cylinder, using the TAXSYM.f90 routine from the NFM-DS.
 
-    Input:
-    vacuum_wavelength
-    layer_refractive_index      Real refractive index of layer (complex values are not allowed).
-    particle_refractive_index   Complex refractive index of spheroid
-    cylinder_height             Semi axis of spheroid along rotation axis
-    cylinder_radius             Semi axis of spheroid along lateral direction
-    use_ds                      Flag to switch the use of discrete sources on (True) and off (False)
-    nint                        Nint parameter for internal use of NFM-DS (number of points along integral).
-                                Higher value is more accurate and takes longer
-    nrank                       l_max used internally in NFM-DS
+    Args:
+        vacuum_wavelength (float)
+        layer_refractive_index (float):                 Real refractive index of layer (complex values are not allowed).
+        particle_refractive_index (float or complex):   Complex refractive index of spheroid
+        cylinder_height (float):                        Semi axis of spheroid along rotation axis
+        cylinder_radius (float):                        Semi axis of spheroid along lateral direction
+        l_max (int):                                    Maximal multipole degree
+        m_max (int):                                    Maximal multipole order
+        use_ds (bool):                                  Flag to switch the use of discrete sources on (True) and
+                                                        off (False)
+        nint (int):                                     Nint parameter for internal use of NFM-DS (number of points
+                                                        along integral). Higher value is more accurate and takes longer
+        nrank (int):                                    l_max used internally in NFM-DS
+
+    Returns:
+        T-matrix as numpy.ndarray
     """
-
     filename = 'T_matrix_cylinder.dat'
-
     taxsym_write_input_cylinder(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=layer_refractive_index,
                                 particle_refractive_index=particle_refractive_index, cylinder_height=cylinder_height,
                                 cylinder_radius=cylinder_radius, use_ds=use_ds, nint=nint, nrank=nrank,
                                 filename=filename)
     taxsym_run()
-    t_matrix = taxsym_read_tmatrix(filename=filename)
-
-    return t_matrix
+    return taxsym_read_tmatrix(filename=filename, l_max=l_max, m_max=m_max)
 
 
 def taxsym_run():
@@ -95,22 +99,22 @@ def taxsym_write_input_spheroid(vacuum_wavelength=None, layer_refractive_index=N
                                 filename='T_matrix_spheroid.dat'):
     """Generate input file for the TAXSYM.f90 routine for the simulation of a spheroid.
 
-    Input:
-    vacuum_wavelength
-    layer_refractive_index      Real refractive index of layer (complex values are not allowed)
-    particle_refractive_index   Complex refractive index of spheroid
-    semi_axis_c                 Semi axis of spheroid along rotation axis
-    semi_axis_a                 Semi axis of spheroid along lateral direction
-    use_ds                      Flag to switch the use of discrete sources on (True) and off (False)
-    nint                        Nint parameter for internal use of NFM-DS (number of points along integral)
-                                Higher value is more accurate and takes longer
-    nrank                       l_max used internally in NFM-DS
-    filename                    Name of the file in which the T-matrix is stored
+    Args:
+        vacuum_wavelength (float)
+        layer_refractive_index (float):                 Real refractive index of layer (complex values are not allowed)
+        particle_refractive_index (float or complex):   Complex refractive index of spheroid
+        semi_axis_c (float):                            Semi axis of spheroid along rotation axis
+        semi_axis_a (float):                            Semi axis of spheroid along lateral direction
+        use_ds (bool):                                  Flag to switch the use of discrete sources on (True) and
+                                                        off (False)
+        nint (int):                                     Nint parameter for internal use of NFM-DS (number of points
+                                                        along integral). Higher value is more accurate and takes longer
+        nrank (int):                                    l_max used internally in NFM-DS
+        filename (str):                                 Name of the file in which the T-matrix is stored
     """
     if layer_refractive_index.imag:
         raise ValueError('Refractive index of surrounding medium  must be real(?)')
 
-    smuthi.nfmds.nfmds_installation_path
     f = open(smuthi.nfmds.nfmds_installation_path + '/INPUTFILES/InputAXSYM.dat', 'w')
 
     f.write('OptProp\n')
@@ -262,22 +266,22 @@ def taxsym_write_input_cylinder(vacuum_wavelength=None, layer_refractive_index=N
                                 filename='T_matrix_cylinder.dat'):
     """Generate input file for the TAXSYM.f90 routine for the simulation of a finite cylinder.
 
-    Input:
-    vacuum_wavelength
-    layer_refractive_index      Real refractive index of layer (complex values are not allowed)
-    particle_refractive_index   Complex refractive index of spheroid
-    cylinder_height             Height of cylinder
-    cylinder_radius             Radius of cylinder
-    use_ds                      Flag to switch the use of discrete sources on (True) and off (False)
-    nint                        Nint parameter for internal use of NFM-DS (number of points along integral)
-                                Higher value is more accurate and takes longer
-    nrank                       l_max used internally in NFM-DS
-    filename                    Name of the file in which the T-matrix is stored
+    Args:
+        vacuum_wavelength (float)
+        layer_refractive_index (float):                 Real refractive index of layer (complex values are not allowed)
+        particle_refractive_index (float or complex):   Complex refractive index of cylinder
+        cylinder_height (float):                        Height of cylinder (length unit)
+        cylinder_radius (float):                        Radius of cylinder (length unit)
+        use_ds (bool):                                  Flag to switch the use of discrete sources on (True) and
+                                                        off (False)
+        nint (int):                                     Nint parameter for internal use of NFM-DS (number of points
+                                                        along integral). Higher value is more accurate and takes longer
+        nrank (int):                                    l_max used internally in NFM-DS
+        filename (str):                                 Name of the file in which the T-matrix is stored
     """
     if layer_refractive_index.imag:
         raise ValueError('Refractive index of surrounding medium  must be real(?)')
 
-    smuthi.nfmds.nfmds_installation_path
     f = open(smuthi.nfmds.nfmds_installation_path + '/INPUTFILES/InputAXSYM.dat', 'w')
 
     f.write('OptProp\n')
@@ -424,11 +428,18 @@ def taxsym_write_input_cylinder(vacuum_wavelength=None, layer_refractive_index=N
     f.close()
 
 
-def taxsym_read_tmatrix(filename):
+def taxsym_read_tmatrix(filename, l_max, m_max):
     """Export TAXSYM.f90 output to SMUTHI T-matrix.
 
-    input:
-    filename       Name of the file containing the T-matrix output of TAXSYM.f90
+    .. todo:: feedback to adapt particle m_max to nfmds m_max
+
+    Args:
+        filename (str): Name of the file containing the T-matrix output of TAXSYM.f90
+        l_max (int):    Maximal multipole degree
+        m_max (int):    Maximal multipole order
+
+    Returns:
+        T-matrix as numpy.ndarray
     """
 
     with open(smuthi.nfmds.nfmds_installation_path + '/TMATFILES/Info' + filename, 'r') as info_file:
@@ -457,18 +468,18 @@ def taxsym_read_tmatrix(filename):
             t_nfmds[-1].append(complex(split_line[2 * i_entry]) + 1j * complex(split_line[2 * i_entry + 1]))
             column_index += 1
 
-    t_matrix = np.zeros((idx.number_of_indices(), idx.number_of_indices()), dtype=complex)
+    t_matrix = np.zeros((fldex.blocksize(l_max, m_max), fldex.blocksize(l_max, m_max)), dtype=complex)
 
-    for m in range(-idx.l_max, idx.l_max + 1):
+    for m in range(-l_max, l_max + 1):
         n_max_nfmds = n_rank - max(1, abs(m)) + 1
         for tau1 in range(2):
-            for l1 in range(max(1, abs(m)), idx.l_max + 1):
-                n1 = idx.multi_to_single_index(tau=tau1, l=l1, m=m)
+            for l1 in range(max(1, abs(m)), l_max + 1):
+                n1 = fldex.multi_to_single_index(tau=tau1, l=l1, m=m, l_max=l_max, m_max=m_max)
                 l1_nfmds = l1 - max(1, abs(m))
                 n1_nfmds = 2 * n_rank * abs(m) + tau1 * n_max_nfmds + l1_nfmds
                 for tau2 in range(2):
-                    for l2 in range(max(1, abs(m)), idx.l_max + 1):
-                        n2 = idx.multi_to_single_index(tau=tau2, l=l2, m=m)
+                    for l2 in range(max(1, abs(m)), l_max + 1):
+                        n2 = fldex.multi_to_single_index(tau=tau2, l=l2, m=m, l_max=l_max, m_max=m_max)
                         l2_nfmds = l2 - max(1, abs(m))
                         n2_nfmds = tau2 * n_max_nfmds + l2_nfmds
                         if abs(m) <= m_rank:
