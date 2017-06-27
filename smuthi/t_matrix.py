@@ -121,7 +121,7 @@ class TMatrixCollection:
         particle_collection(smuthi.particles.ParticleCollection)
         layer_system(smuthi.layers.LayerSystem)
     """
-    def __init__(self,vacuum_wavelength, particle_collection, layer_system):
+    def __init__(self, vacuum_wavelength=None, particle_collection=None, layer_system=None):
         self.t_matrix_list = []
 
         for particle in particle_collection.particles:

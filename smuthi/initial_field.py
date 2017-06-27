@@ -4,7 +4,7 @@ import numpy as np
 import smuthi.coordinates as coord
 import smuthi.layers as lay
 import smuthi.vector_wave_functions as vwf
-import smuthi.index_conversion as idx
+import smuthi.field_expansion as fldex
 
 
 class InitialField:
@@ -12,9 +12,122 @@ class InitialField:
     def __init__(self, vacuum_wavelength):
         self.vacuum_wavelength = vacuum_wavelength
 
-    def swe_coefficients(self, particle, layer_system):
+    def spherical_wave_expansion(self, particle_collection, layer_system):
         """Virtual method to be overwritten."""
         pass
+
+    def plane_wave_expansion(self, layer_system, layer_number=None):
+        """Virtual method to be overwritten."""
+        pass
+
+
+class PlaneWave(InitialField):
+    """Class for the representation of a plane wave as initial field."""
+    def __init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, amplitude=1,
+                 reference_point=None):
+        InitialField.__init__(self, vacuum_wavelength)
+        self.polar_angle = polar_angle
+        self.azimuthal_angle = azimuthal_angle
+        self.polarization = polarization
+        self.amplitude = amplitude
+        self.reference_point = reference_point
+
+    def spherical_wave_expansion(self, particle_collection, layer_system):
+
+
+
+
+        def planewave_swe_coefficients(vacuum_wavelength=None, amplitude=1, polar_angle=0, azimuthal_angle=0,
+                                       polarization=0,
+                                       planewave_reference_point=[0, 0, 0], particle_position=[0, 0, 0],
+                                       layer_system=None,
+                                       layerresponse_precision=None):
+            """Return the initial field coefficients (spherical wave expansion) as a numpy-array for a single particle in a
+            planarly layered medium and a single initial plane wave. The coefficients array has dimension NS x nmax, where NS is
+            the number of particles and nmax is the number of swe coefficients per particle.
+
+            Input:
+            vacuum_wavelength           (length unit)
+            amplitude                   (default=1)
+            polar_angle                 The polar angle also decides if the plane wave comes from the bottom side of the layer
+                                        system (polar angle<=pi/2) or from the top side (radian, default=0)
+            azimuthal_angle             (radian, default=0)
+            polarization                (0=TE, 1=TM)
+            planewave_reference_point   In the format [x,y,z]. At this point in space the amplitude of the incoming wave is as
+                                        defined. (length unit, default=[0,0,0])
+            particle_position           In the format [x,y,z]. (length unit, default=[0,0,0])
+            layer_system                smuthi.layers.LayerSystem object that defines the planarly layered medium in which the
+                                        particle is located
+            layerresponse_precision     If None, standard numpy is used for the layer response. If int>0, that many decimal
+                                        digits are considered in multiple precision. (default=None)
+            """
+
+            l_max = idx.l_max
+            m_max = idx.m_max
+
+            angular_frequency = coord.angular_frequency(vacuum_wavelength)
+            blocksize = idx.number_of_indices()
+
+            # initialize output
+            aPR = np.zeros(blocksize, dtype=complex)  # layer system mediated
+            aPD = np.zeros(blocksize, dtype=complex)  # direct
+
+            if polar_angle < (np.pi / 2):  # then the plane wave comes from the bottom layer
+                iP = 0
+            else:  # top layer
+                iP = layer_system.number_of_layers() - 1
+
+            # wavevectors in initial layer iP and in particle layer iS
+            k_iP = layer_system.refractive_indices[iP] * angular_frequency
+            kp = k_iP * np.sin(polar_angle)
+            kx = np.cos(azimuthal_angle) * kp
+            ky = np.sin(azimuthal_angle) * kp
+            pm_kz_iP = k_iP * np.cos(polar_angle)
+            kvec_iP = np.array([kx, ky, pm_kz_iP])
+
+            iS = layer_system.layer_number(particle_position[2])
+            k_iS = layer_system.refractive_indices[iS] * angular_frequency
+            kz_iS = coord.k_z(k_parallel=kp, k=k_iS)
+
+            kvec_pl_iS = np.array([kx, ky, kz_iS])
+            kvec_mn_iS = np.array([kx, ky, -kz_iS])
+
+            rvec_iP = np.array([0, 0, layer_system.reference_z(iP)])
+            rvec_iS = np.array([0, 0, layer_system.reference_z(iS)])
+            rvec_S = np.array(particle_position)
+            rvec_0 = np.array(planewave_reference_point)
+
+            # phase factors
+            ejkriP = np.exp(1j * np.dot(kvec_iP, rvec_iP - rvec_0))
+            ejkplriSS = np.exp(1j * np.dot(kvec_pl_iS, rvec_S - rvec_iS))
+            ejkmnriSS = np.exp(1j * np.dot(kvec_mn_iS, rvec_S - rvec_iS))
+            ejkriPS = np.exp(1j * np.dot(kvec_iP, rvec_S))
+
+            L = lay.layersystem_response_matrix(pol=polarization, layer_d=layer_system.thicknesses,
+                                                layer_n=layer_system.refractive_indices, kpar=kp,
+                                                omega=angular_frequency,
+                                                fromlayer=iP, tolayer=layer_system.layer_number(particle_position[2]),
+                                                precision=layerresponse_precision)
+            gR = np.dot(L, np.array([1, 1]))
+            for tau in range(2):
+                for m in range(-m_max, m_max + 1):
+                    emjma = np.exp(-1j * m * azimuthal_angle)
+                    for l in range(max(1, abs(m)), l_max + 1):
+                        n = idx.multi_to_single_index(tau, l, m)
+                        Bdagpl = vwf.transformation_coefficients_VWF(tau, l, m, pol=polarization, kp=kp, kz=kz_iS,
+                                                                     dagger=True)
+                        Bdagmn = vwf.transformation_coefficients_VWF(tau, l, m, pol=polarization, kp=kp, kz=-kz_iS,
+                                                                     dagger=True)
+                        Bvec = np.array([Bdagpl * ejkplriSS, Bdagmn * ejkmnriSS])
+                        aPR[n] = 4 * amplitude * emjma * ejkriP * np.dot(Bvec, gR)
+                        if iS == iP:  # add direct contribution
+                            Bin = vwf.transformation_coefficients_VWF(tau, l, m, pol=polarization, kp=kp, kz=pm_kz_iP,
+                                                                      dagger=True)
+                            aPD[n] = 4 * amplitude * emjma * ejkriPS * Bin
+
+            return aPR + aPD
+
+
 
 
 class InitialFieldCollection:
