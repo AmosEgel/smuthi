@@ -175,6 +175,14 @@ class PlaneWaveExpansion:
         # - index of the alpha dimension
         self.coefficients = [None for i in range(layer_system.number_of_layers())]
 
+    def n_effective_grid(self):
+        neff_grid, azimuthal_angle_grid = np.meshgrid(self.n_effective, self.azimuthal_angles, indexing='ij')
+        return neff_grid
+
+    def azimuthal_angle_grid(self):
+        neff_grid, azimuthal_angle_grid = np.meshgrid(self.n_effective, self.azimuthal_angles, indexing='ij')
+        return neff_grid
+
     def response(self, vacuum_wavelength, excitation_layer_number, layer_numbers='all', precision=None):
         """Construct the plane wave expansion of the layer system response to this plane wave expansion.
 
@@ -217,6 +225,27 @@ class PlaneWaveExpansion:
 
     def spherical_wave_expansion(self, vacuum_wavelength, particle_collection):
         a = SphericalWaveExpansion(particle_collection)
+        angular_frequency = coord.angular_frequency(vacuum_wavelength)
+        # components of wavevector are meshgrids with the indices (jk, ja)
+        kx = self.n_effective_grid() * np.cos(self.azimuthal_angle_grid()) * angular_frequency
+        ky = self.n_effective_grid() * np.sin(self.azimuthal_angle_grid()) * angular_frequency
+        for i, particle in enumerate(particle_collection.particles):
+            iS = self.layer_system.layer_number(particle.position[2])
+            k_iS = self.layer_system.refractive_indices[iS] * angular_frequency
+            kz_iS = coord.k_z(k_parallel=self.n_effective_grid() * angular_frequency, k=k_iS)
+
+            kvec_pl_iS = np.array([kx, ky, kz_iS])
+            kvec_mn_iS = np.array([kx, ky, -kz_iS])
+
+            rvec_iS = np.array([0, 0, self.layer_system.reference_z(iS)])
+            rvec_S = np.array(particle.position)
+
+            # phase factors for the translation of the reference point from rvec_iS to rvec_S
+            ejkplriSS = np.exp(1j * np.dot(kvec_pl_iS, rvec_S - rvec_iS))
+            ejkmnriSS = np.exp(1j * np.dot(kvec_mn_iS, rvec_S - rvec_iS))
+
+
+
 
 
         return a
