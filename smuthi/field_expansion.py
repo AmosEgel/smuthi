@@ -154,6 +154,16 @@ class PlaneWaveExpansion:
     runs over :math:`\alpha\in[0, 2\pi]` and :math:`\kappa\in[0,\kappa_\mathrm{max}]`. Further,
     :math:`\mathbf{\Phi}^\pm_j` are the PVWFs, see :meth:`plane_vector_wave_function`.
 
+    Internally, the expansion coefficients :math:`g_{ij}^\pm(\kappa, \alpha)` are stored as a list of 4-dimensional
+    arrays. The attribute ``coefficients[i][j, pm, k, l]`` contains :math:`g^\pm_{ij}(\kappa_{k}, \alpha_{l})`
+    where :math:`\pm=+` for ``pm`` = 0 and :math:`\pm=-` for ``pm`` = 1, and the coordinates :math:`\kappa_{k}` and
+    :math:`\alpha_{l}` correspond to ``n_effective[k]`` times the angular frequency and ``azimuthal_angles[l]``,
+    respectively.
+    If ``n_effective`` and ``azimuthal_angles`` have only a single entry, a discrete distribution is assumed:
+
+    .. math::
+        g_{ij}^-(\kappa, \alpha) \sim \delta^2(\mathbf{k}_\parallel - \mathbf{k}_{\parallel, 0})
+
     Args:
         n_effective (ndarray):                      :math:`n_\mathrm{eff} = \kappa / \omega`, can be float or complex
                                                     numpy.array
@@ -195,7 +205,8 @@ class PlaneWaveExpansion:
                                             If None, normal double precision numpy algorithms are used.
 
         Returns:
-            PlaneWaveExpansion object containing the layer system response in the layers specified in layer_numbers.
+            :class:`PlaneWaveExpansion` object containing the layer system response in the layers
+            specified in the layer_numbers argument.
         """
         if layer_numbers == 'all':
             layer_numbers = np.arange(0, self.layer_system.number_of_layers() + 1)
@@ -217,6 +228,15 @@ class PlaneWaveExpansion:
 
         return response_pwe
 
+    def __add__(self, other):
+        if not (self.n_effective == other.n_effective and self.azimuthal_angles == other.azimuthal_angles
+                and self.layer_system == other.layer_system):
+            raise ValueError('Plane wave expansion are inconsistent.')
+        pwe_sum = PlaneWaveExpansion(n_effective=self.n_effective, azimuthal_angles=self.azimuthal_angles,
+                                     layer_system=self.layer_system)
+        pwe_sum.coefficients = [self.coefficients[i] + other.coefficients[i] for i in range(len(self.coefficients))]
+        return pwe_sum
+
     def electric_field(self, field_points, reference_point):
         """
         .. todo:: implement
@@ -224,12 +244,31 @@ class PlaneWaveExpansion:
         pass
 
     def spherical_wave_expansion(self, vacuum_wavelength, particle_collection):
+        """Regular spherical wave expansion of the field represented by this plane wave expansion.
+
+        .. todo:: Speed up by recycling the Bdag values
+
+        .. todo:: Testing!!
+
+        Args:
+            vacuum_wavelength (float)
+            particle_collection (smuthi.particles.ParticleCollection):  The particle collection for which the SWE is
+                                                                        computed (incoming field)
+
+        Returns:
+            SWE coefficients as a :class:`SphericalWaveExpansion` object.
+        """
         a = SphericalWaveExpansion(particle_collection)
         angular_frequency = coord.angular_frequency(vacuum_wavelength)
-        # components of wavevector are meshgrids with the indices (jk, ja)
-        kx = self.n_effective_grid() * np.cos(self.azimuthal_angle_grid()) * angular_frequency
-        ky = self.n_effective_grid() * np.sin(self.azimuthal_angle_grid()) * angular_frequency
+        kpvec = self.n_effective * angular_frequency
+        ngrid = self.n_effective_grid()
+        agrid = self.azimuthal_angle_grid()
+        kx = ngrid * np.cos(agrid) * angular_frequency
+        ky = ngrid * np.sin(agrid) * angular_frequency
+
         for i, particle in enumerate(particle_collection.particles):
+            lmax = particle.l_max
+            mmax = particle.m_max
             iS = self.layer_system.layer_number(particle.position[2])
             k_iS = self.layer_system.refractive_indices[iS] * angular_frequency
             kz_iS = coord.k_z(k_parallel=self.n_effective_grid() * angular_frequency, k=k_iS)
@@ -241,13 +280,35 @@ class PlaneWaveExpansion:
             rvec_S = np.array(particle.position)
 
             # phase factors for the translation of the reference point from rvec_iS to rvec_S
-            ejkplriSS = np.exp(1j * np.dot(kvec_pl_iS, rvec_S - rvec_iS))
-            ejkmnriSS = np.exp(1j * np.dot(kvec_mn_iS, rvec_S - rvec_iS))
+            ejkplriSS = np.exp(1j * np.tensordot(kvec_pl_iS, rvec_S - rvec_iS, axes=0))
+            ejkmnriSS = np.exp(1j * np.tensordot(kvec_mn_iS, rvec_S - rvec_iS, axes=0))
 
+            # indices: n, pol, pl/mn, jk
+            Bdag = np.zeros((blocksize(lmax, mmax), 2, 2, len(self.n_effective)), dtype=complex)
+            # indices: n, ja
+            emjma = np.zeros((blocksize(lmax, mmax),len(self.azimuthal_angle_grid())), dtype=complex)
+            for tau in range(2):
+                for m in range(-mmax, mmax + 1):
+                    emjma_temp =  np.exp(-1j * m * self.azimuthal_angles)
+                    for l in range(max(1, abs(m)), lmax + 1):
+                        n = multi_to_single_index(tau, l, m, l_max=lmax, m_max=mmax)
+                        an_integrand = np.zeros(ngrid.shape, dtype=complex)
+                        emjma[n, :] = emjma_temp
+                        for pol in range(2):
+                            Bdag[n, pol, 0, :] = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=kpvec, kz=kz_iS,
+                                                                                 dagger=True)
+                            Bdag[n, pol, 1, :] = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=kpvec,
+                                                                                 kz=-kz_iS, dagger=True)
 
+                            an_integrand += (np.outer(Bdag[n, pol, 0, :], emjma[n, :]) * ejkplriSS
+                                             + np.outer(Bdag[n, pol, 1, :], emjma[n, :]) * ejkmnriSS)
 
-
-
+                        if len(self.n_effective) > 1:
+                            an = np.trapz(np.trapz(an_integrand, self.azimuthal_angle_grid()) * self.n_effective,
+                                          self.n_effective) * 4 * angular_frequency**2
+                        else:
+                            an = an_integrand * 4
+                        a.coefficients[a.multi_to_collection_index(i, tau, l, m)] = an
         return a
 
 
@@ -398,20 +459,25 @@ def spherical_vector_wave_function(x, y, z, k, nu, tau, l, m):
 
 
 def transformation_coefficients_VWF(tau, l, m, pol, kp=None, kz=None, pilm_list=None, taulm_list=None, dagger=False):
-    """Return the transformation coefficients B to expand SVWF in PVWF and vice versa. See theory part of documentation.
+    """Transformation coefficients B to expand SVWF in PVWF and vice versa.
 
-    Input:
-    tau         integer: SVWF polarization, 0 for spherical TE, 1 for spherical TM
-    l           integaer: l=1,... SVWF multipole degree
-    m           integaer: m=-l,...,l SVWF multipole order
-    pol         integer: PVWF polarization, 0 for TE, 1 for TM
-    kp          complex numpy-array: PVWF in-plane wavenumbers
-    kz          complex numpy-array: PVWF out-of-plane wavenumbers
-    pilm_list   2D list numpy-arrays: alternatively to kp and kz, pilm and taulm as generated with legendre_normalized
-                can directly be handed
-    taulm_list  2D list numpy-arrays: alternatively to kp and kz, pilm and taulm as generated with legendre_normalized
-                can directly be handed
-    dagger      logical, switch on when expanding PVWF in SVWF and off when expanding SVWF in PVWF
+    .. todo:: Add formula to documentation
+
+    Args:
+        tau (int):          SVWF polarization, 0 for spherical TE, 1 for spherical TM
+        l (int):            l=1,... SVWF multipole degree
+        m (int):            m=-l,...,l SVWF multipole order
+        pol (int):          PVWF polarization, 0 for TE, 1 for TM
+        kp (array):         PVWF in-plane wavenumbers
+        kz (array):         complex numpy-array: PVWF out-of-plane wavenumbers
+        pilm_list (list):   2D list numpy-arrays: alternatively to kp and kz, pilm and taulm as generated with
+                            legendre_normalized can directly be handed
+        taulm_list (list):  2D list numpy-arrays: alternatively to kp and kz, pilm and taulm as generated with
+                            legendre_normalized can directly be handed
+        dagger (bool):      switch on when expanding PVWF in SVWF and off when expanding SVWF in PVWF
+
+    Returns:
+        Transformation coefficient as array (size like kp).
     """
     if pilm_list is None:
         k = np.sqrt(kp**2 + kz**2)
@@ -445,23 +511,28 @@ def transformation_coefficients_VWF(tau, l, m, pol, kp=None, kz=None, pilm_list=
 
 
 def translation_coefficients_svwf(l1, m1, l2, m2, k, d, sph_hankel=None, legendre=None, exp_immphi=None):
-    """Return the coefficients of the translation operator for the expansion of an outgoing spherical wave in terms of
+    """Coefficients of the translation operator for the expansion of an outgoing spherical wave in terms of
     regular spherical waves with respect to a different origin.
     The output is a tuple (A,B), where the translation operator
         trans = \delta_pp' * A + (1-\delta_pp') * B
 
-    Input:
-    l1          integaer: l=1,...: Original wave's SVWF multipole degree
-    m1          integaer: m=-l,...,l: Original wave's SVWF multipole order
-    l2          integaer: l=1,...: Partial wave's SVWF multipole degree
-    m2          integaer: m=-l,...,l: Partial wave's SVWF multipole order
-    k           complex: wavenumber (inverse length unit)
-    d           translation vectors in format [dx, dy, dz] (length unit)
-                dx, dy, dz can be scalars or ndarrays
-    sph_hankel  list: sph_hankel[i] contains the spherical hankel funciton of degree i, evaluated at k*d where d is the
-                norm of the distance vector(s)
-    legendre    list of lists: legendre[l][m] contains the legendre function of order l and degree m, evaluated at
-                cos(theta) where theta is the polar angle(s) of the distance vector(s)
+    Args:
+        l1 (int): l=1,...:      Original wave's SVWF multipole degree
+        m1 (int): m=-l,...,l:   Original wave's SVWF multipole order
+        l2 (int): l=1,...:      Partial wave's SVWF multipole degree
+        m2 (int): m=-l,...,l:   Partial wave's SVWF multipole order
+        k (float or complex):   wavenumber (inverse length unit)
+        d (list):               translation vectors in format [dx, dy, dz] (length unit)
+                                dx, dy, dz can be scalars or ndarrays
+        sph_hankel (list):      sph_hankel[i] contains the spherical hankel funciton of degree i, evaluated at k*d where
+                                d is the norm of the distance vector(s)
+        legendre (list):        legendre[l][m] contains the legendre function of order l and degree m, evaluated at
+                                cos(theta) where theta is the polar angle(s) of the distance vector(s)
+
+    Returns:
+        - translation coefficient A
+        - translation coefficient B
+
     """
     # spherical coordinates of d:
     dd = np.sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2)
@@ -534,7 +605,6 @@ def translation_coefficients_svwf_out_to_out(l1, m1, l2, m2, k, d, sph_bessel=No
     return A, B
 
 
-
 def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
     """Return a tuple (a5, b5) where a5 and b5 are the coefficients used in the evaluation of the SVWF translation
     operator. The computation is based on the sympy.physics.wigner package and is performed with symbolic numbers.
@@ -555,5 +625,3 @@ def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
         a = complex(jfac * fac1 * fac2a * wig1 * wig2a)
         b = complex(jfac * fac1 * fac2b * wig1 * wig2b)
     return a, b
-
-
