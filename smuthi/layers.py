@@ -11,14 +11,17 @@ layerresponse_lookup = {'args': {}, 'data': None}
 
 
 class LayerSystem:
-    """Stack of planar layers."""
-    def __init__(self, thicknesses=[0, 0], refractive_indices=[1, 1]):
-        """Initialize
+    """Stack of planar layers.
 
-        input:
-        thicknesses         list of layer thicknesses, first and last are semi inf and set to 0 (length unit)
-        refractive_indices  list of complex refractive indices in the form n+jk
-        """
+    Args:
+        thicknesses (list):         layer thicknesses, first and last are semi inf and set to 0 (length unit)
+        refractive_indices (list):  complex refractive indices in the form n+jk
+    """
+    def __init__(self, thicknesses=None, refractive_indices=None):
+        if thicknesses is None:
+            thicknesses = [0, 0]
+        if refractive_indices is None:
+            refractive_indices = [1, 1]
         self.thicknesses = thicknesses
         self.thicknesses[0] = 0
         self.thicknesses[-1] = 0
@@ -314,3 +317,24 @@ def evaluate_layerresponse_lookup(layer_d, layer_n, kpar, omega, fromlayer, tola
         layerresponse_lookup['data'][fromlayer][tolayer] = L
 
     return L
+
+
+def set_precision(precision=None):
+    """Set the numerical precision of the layer system response. You can use this to evaluate the layer response of
+    unstable systems, for example in the case of evanescent waves in very thick layers. Calculations take longer time if
+    the precision is set to a value other than None (default).
+
+    Args:
+        precision (None or int):    If None, calculations are done using standard double precision. If int, that many
+                                    decimal digits are considered in the calculations, using the mpmath package.
+    """
+    global matrix_format
+    global math_module
+
+    if precision is None:
+        matrix_format = np.array
+        math_module = np
+    else:
+        sympy.mpmath.mp.dps = precision
+        matrix_format = sympy.mpmath.matrix
+        math_module = sympy.mpmath
