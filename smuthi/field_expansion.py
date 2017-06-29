@@ -94,7 +94,7 @@ class SphericalWaveExpansion:
 
     def __init__(self, particle_collection):
         self.particle_collection = particle_collection
-        self.blocksizes = [blocksize(particle.l_max, particle.m_max) for particle in self.particle_collection]
+        self.blocksizes = [blocksize(particle.l_max, particle.m_max) for particle in self.particle_collection.particles]
         self.number_of_coefficients = sum(self.blocksizes)
         self.coefficients = np.zeros(self.number_of_coefficients, dtype=complex)
 
@@ -183,15 +183,16 @@ class PlaneWaveExpansion:
         # -  pl/mn: (0=forward propagation, 1=backward propagation)
         # - index of the kappa dimension
         # - index of the alpha dimension
-        self.coefficients = [None for i in range(layer_system.number_of_layers())]
+        self.coefficients = [np.zeros((2, 2, len(n_effective), len(azimuthal_angles)), dtype=complex)
+                             for i in range(layer_system.number_of_layers())]
 
     def n_effective_grid(self):
-        neff_grid, azimuthal_angle_grid = np.meshgrid(self.n_effective, self.azimuthal_angles, indexing='ij')
+        neff_grid, _ = np.meshgrid(self.n_effective, self.azimuthal_angles, indexing='ij')
         return neff_grid
 
     def azimuthal_angle_grid(self):
-        neff_grid, azimuthal_angle_grid = np.meshgrid(self.n_effective, self.azimuthal_angles, indexing='ij')
-        return neff_grid
+        _, a_grid = np.meshgrid(self.n_effective, self.azimuthal_angles, indexing='ij')
+        return a_grid
 
     def response(self, vacuum_wavelength, excitation_layer_number, layer_numbers='all', precision=None):
         """Construct the plane wave expansion of the layer system response to this plane wave expansion.
@@ -209,7 +210,7 @@ class PlaneWaveExpansion:
             specified in the layer_numbers argument.
         """
         if layer_numbers == 'all':
-            layer_numbers = np.arange(0, self.layer_system.number_of_layers() + 1)
+            layer_numbers = range(self.layer_system.number_of_layers())
         omega = coord.angular_frequency(vacuum_wavelength)
         kpar = self.n_effective * omega
         response_pwe = PlaneWaveExpansion(n_effective=self.n_effective, azimuthal_angles=self.azimuthal_angles,
@@ -273,6 +274,8 @@ class PlaneWaveExpansion:
             k_iS = self.layer_system.refractive_indices[iS] * angular_frequency
             kz_iS = coord.k_z(k_parallel=self.n_effective_grid() * angular_frequency, k=k_iS)
 
+            kz_iS_vec = coord.k_z(k_parallel=self.n_effective * angular_frequency, k=k_iS)
+
             kvec_pl_iS = np.array([kx, ky, kz_iS])
             kvec_mn_iS = np.array([kx, ky, -kz_iS])
 
@@ -280,8 +283,12 @@ class PlaneWaveExpansion:
             rvec_S = np.array(particle.position)
 
             # phase factors for the translation of the reference point from rvec_iS to rvec_S
-            ejkplriSS = np.exp(1j * np.tensordot(kvec_pl_iS, rvec_S - rvec_iS, axes=0))
-            ejkmnriSS = np.exp(1j * np.tensordot(kvec_mn_iS, rvec_S - rvec_iS, axes=0))
+            ejkplriSS = np.exp(1j * np.tensordot(kvec_pl_iS, rvec_S - rvec_iS, axes=([0], [0])))
+            ejkmnriSS = np.exp(1j * np.tensordot(kvec_mn_iS, rvec_S - rvec_iS, axes=([0], [0])))
+
+            # phase factors times pwe coefficients
+            gejkplriSS = self.coefficients[iS][:, 0, :, :] * ejkplriSS[None, :, :]  # indices: pol, jk, ja
+            gejkmnriSS = self.coefficients[iS][:, 1, :, :] * ejkmnriSS[None, :, :]
 
             # indices: n, pol, pl/mn, jk
             Bdag = np.zeros((blocksize(lmax, mmax), 2, 2, len(self.n_effective)), dtype=complex)
@@ -295,20 +302,19 @@ class PlaneWaveExpansion:
                         an_integrand = np.zeros(ngrid.shape, dtype=complex)
                         emjma[n, :] = emjma_temp
                         for pol in range(2):
-                            Bdag[n, pol, 0, :] = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=kpvec, kz=kz_iS,
-                                                                                 dagger=True)
+                            Bdag[n, pol, 0, :] = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=kpvec,
+                                                                                 kz=kz_iS_vec, dagger=True)
                             Bdag[n, pol, 1, :] = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=kpvec,
-                                                                                 kz=-kz_iS, dagger=True)
-
-                            an_integrand += (np.outer(Bdag[n, pol, 0, :], emjma[n, :]) * ejkplriSS
-                                             + np.outer(Bdag[n, pol, 1, :], emjma[n, :]) * ejkmnriSS)
+                                                                                 kz=-kz_iS_vec, dagger=True)
+                            an_integrand += (np.outer(Bdag[n, pol, 0, :], emjma[n, :]) * gejkplriSS[pol, :, :]
+                                             + np.outer(Bdag[n, pol, 1, :], emjma[n, :]) * gejkmnriSS[pol, :, :])
 
                         if len(self.n_effective) > 1:
                             an = np.trapz(np.trapz(an_integrand, self.azimuthal_angle_grid()) * self.n_effective,
                                           self.n_effective) * 4 * angular_frequency**2
                         else:
                             an = an_integrand * 4
-                        a.coefficients[a.multi_to_collection_index(i, tau, l, m)] = an
+                        a.coefficients[a.multi_to_collection_index(i, tau, l, m)] = an[0, 0]
         return a
 
 
