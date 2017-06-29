@@ -90,6 +90,13 @@ class SphericalWaveExpansion:
 
     Args:
         particle_collection (smuthi.particles.ParticleCollection):  Particle collection to which the SWE refers.
+
+    Attributes:
+        particle_collection (smuthi.particles.ParticleCollection): Particle collection to which the SWE refers.
+        blocksizes (list): Blocksizes of the coefficient vector segments belonging to the individual particles.
+        number_of_coefficients (int): Total size of the coefficients vector
+        coefficients (array): The actual expansion coefficients as an array. The expansion coefficients of the
+                              individual particles are concatenated to a single overall array.
     """
 
     def __init__(self, particle_collection):
@@ -115,6 +122,14 @@ class SphericalWaveExpansion:
                                                                  self.particle_collection.particles[iS].m_max)
 
     def collection_index_block(self, iS):
+        """Numpy array of indices that refer to a segment of the coefficients vector that belong to a certain particle.
+
+        Args:
+            iS (int): Particle number
+
+        Returns:
+            Numpy array of indices for iS.
+        """
         lmax = self.particle_collection.particles[iS].l_max
         mmax = self.particle_collection.particles[iS].m_max
         return np.arange(self.multi_to_collection_index(iS, 0, 1, -mmax),
@@ -135,6 +150,14 @@ class SphericalWaveExpansion:
         return self.coefficients[self.multi_to_collection_index(iS, tau, l, m)]
 
     def coefficient_block(self, iS):
+        """Expansion coefficients belonging to a certain particle.
+
+        Args:
+            iS (int): Particle number
+
+        Returns:
+            Numpy array of expansion coefficients for particle iS.
+        """
         return self.coefficients[self.collection_index_block(iS)]
 
     def electric_field(self, field_points, reference_point, wavenumber):
@@ -155,11 +178,9 @@ class PlaneWaveExpansion:
     :math:`\mathbf{\Phi}^\pm_j` are the PVWFs, see :meth:`plane_vector_wave_function`.
 
     Internally, the expansion coefficients :math:`g_{ij}^\pm(\kappa, \alpha)` are stored as a list of 4-dimensional
-    arrays. The attribute ``coefficients[i][j, pm, k, l]`` contains :math:`g^\pm_{ij}(\kappa_{k}, \alpha_{l})`
-    where :math:`\pm=+` for ``pm`` = 0 and :math:`\pm=-` for ``pm`` = 1, and the coordinates :math:`\kappa_{k}` and
-    :math:`\alpha_{l}` correspond to ``n_effective[k]`` times the angular frequency and ``azimuthal_angles[l]``,
-    respectively.
-    If ``n_effective`` and ``azimuthal_angles`` have only a single entry, a discrete distribution is assumed:
+    arrays.
+    If the attributes n_effective and azimuthal_angles have only a single entry, a discrete distribution is
+    assumed:
 
     .. math::
         g_{ij}^-(\kappa, \alpha) \sim \delta^2(\mathbf{k}_\parallel - \mathbf{k}_{\parallel, 0})
@@ -169,6 +190,16 @@ class PlaneWaveExpansion:
                                                     numpy.array
         azimuthal_angles (ndarray):                 :math:`\alpha`, from 0 to :math:`2\pi`
         layer_system (smuthi.layers.LayerSystem):   Layer system in which the field is expanded
+
+    Attributes:
+        n_effective (array): Effective refractive index values of plane waves. Can for example be generated with
+            smuthi.coordinates.ComplexContour
+        azimuthal_angles (array): Azimuthal propagation angles of partial plane waves
+        layer_system (smuthi.layers.LayerSystem): Layer system object to which the plane wave expansion refers.
+        coefficients (list of numpy arrays): coefficients[i][j, pm, k, l] contains
+            :math:`g^\pm_{ij}(\kappa_{k}, \alpha_{l})`, where :math:`\pm` is + for pm = 0 and :math:`\pm` is - for
+            pm = 1, and the coordinates :math:`\kappa_{k}` and :math:`\alpha_{l}` correspond to n_effective[k] times the
+            angular frequency and azimuthal_angles[l], respectively.
     """
     def __init__(self, n_effective=None, azimuthal_angles=None, layer_system=None):
 
@@ -187,10 +218,12 @@ class PlaneWaveExpansion:
                              for i in range(layer_system.number_of_layers())]
 
     def n_effective_grid(self):
+        """Meshgrid of n_effective with respect to azimuthal_angles"""
         neff_grid, _ = np.meshgrid(self.n_effective, self.azimuthal_angles, indexing='ij')
         return neff_grid
 
     def azimuthal_angle_grid(self):
+        """Meshgrid of azimuthal_angles with respect to n_effective"""
         _, a_grid = np.meshgrid(self.n_effective, self.azimuthal_angles, indexing='ij')
         return a_grid
 
@@ -248,8 +281,6 @@ class PlaneWaveExpansion:
         """Regular spherical wave expansion of the field represented by this plane wave expansion.
 
         .. todo:: Speed up by recycling the Bdag values
-
-        .. todo:: Testing!!
 
         Args:
             vacuum_wavelength (float)
@@ -318,23 +349,6 @@ class PlaneWaveExpansion:
         return a
 
 
-class DiscretePlaneWaveExpansion(PlaneWaveExpansion):
-    r"""A class to manage discrete plane wave expansions of the form
-
-    .. math::
-        \mathbf{E}(\mathbf{r}) = \sum_{j=1}^2 \sum_{i}
-        (g_{ji}^+ \mathbf{\Phi}^+_j(\kappa_i, \alpha_i; \mathbf{r} - \mathbf{r}_0) +
-        g_j^-(\kappa, \alpha) \mathbf{\Phi}^-_j(\kappa, \alpha; \mathbf{r} - \mathbf{r}_0) )
-
-    where :math:`\mathrm{d}^2\mathbf{k}_\parallel = \kappa\,\mathrm{d}\alpha\,\mathrm{d}\kappa` and the double integral
-    runs over :math:`\alpha\in[0, 2\pi]` and :math:`\kappa\in[0,\kappa_\mathrm{max}`. Further,
-    :math:`\mathbf{\Phi}^\pm_j` are the PVWFs, see :meth:`plane_vector_wave_function`.
-    """
-
-    def electric_field(self, field_points, reference_point):
-        pass  # to do
-
-
 def plane_vector_wave_function(x, y, z, kp, alpha, kz, pol):
     r"""Electric field components of plane wave (PVWF).
 
@@ -392,7 +406,8 @@ def plane_vector_wave_function(x, y, z, kp, alpha, kz, pol):
 
 def spherical_vector_wave_function(x, y, z, k, nu, tau, l, m):
     """Electric field components of spherical vector wave function (SVWF). The conventions are chosen according to
-    A. Doicu, T. Wriedt, and Y. A. Eremin: "Light Scattering by Systems of Particles", Springer-Verlag, 2006.
+    `A. Doicu, T. Wriedt, and Y. A. Eremin: "Light Scattering by Systems of Particles", Springer-Verlag, 2006
+    <https://doi.org/10.1007/978-3-540-33697-6>`_
 
     Args:
         x (numpy.ndarray):      x-coordinate of position where to test the field (length unit)
@@ -465,9 +480,15 @@ def spherical_vector_wave_function(x, y, z, k, nu, tau, l, m):
 
 
 def transformation_coefficients_VWF(tau, l, m, pol, kp=None, kz=None, pilm_list=None, taulm_list=None, dagger=False):
-    """Transformation coefficients B to expand SVWF in PVWF and vice versa.
+    r"""Transformation coefficients B to expand SVWF in PVWF and vice versa:
 
-    .. todo:: Add formula to documentation
+    .. math::
+        B_{\tau l m,j}(x) = -\frac{1}{\mathrm{i}^{l+1}} \frac{1}{\sqrt{2l(l+1)}} (\mathrm{i} \delta_{j1} + \delta_{j2})
+        (\delta_{\tau j} \tau_l^{|m|}(x) + (1-\delta_{\tau j} m \pi_l^{|m|}(x))
+
+    For the definition of the :math:`\tau_l^m` and :math:`\pi_l^m` functions, see
+    `A. Doicu, T. Wriedt, and Y. A. Eremin: "Light Scattering by Systems of Particles", Springer-Verlag, 2006
+    <https://doi.org/10.1007/978-3-540-33697-6>`_
 
     Args:
         tau (int):          SVWF polarization, 0 for spherical TE, 1 for spherical TM
@@ -512,32 +533,36 @@ def transformation_coefficients_VWF(tau, l, m, pol, kp=None, kz=None, pilm_list=
             raise ValueError('pol must be 0 (TE) or 1 (TM)')
 
     B = prefac * sphfun
-
     return B
 
 
-def translation_coefficients_svwf(l1, m1, l2, m2, k, d, sph_hankel=None, legendre=None, exp_immphi=None):
-    """Coefficients of the translation operator for the expansion of an outgoing spherical wave in terms of
-    regular spherical waves with respect to a different origin.
-    The output is a tuple (A,B), where the translation operator
-        trans = \delta_pp' * A + (1-\delta_pp') * B
+def translation_coefficients_svwf(tau1, l1, m1, tau2, l2, m2, k, d, sph_hankel=None, legendre=None, exp_immphi=None):
+    r"""Coefficients of the translation operator for the expansion of an outgoing spherical wave in terms of
+    regular spherical waves with respect to a different origin:
+
+    .. math::
+        \mathbf{\Psi}_{\tau l m}^{(3)}(\mathbf{r} + \mathbf{d} = \sum_{\tau'} \sum_{l'} \sum_{m'}
+        A_{\tau l m, \tau' l' m'} (\mathbf{d}) \mathbf{\Psi}_{\tau' l' m'}^{(1)}(\mathbf{r})
+
+    for :math:`|\mathbf{r}|<|\mathbf{d}|`.
 
     Args:
-        l1 (int): l=1,...:      Original wave's SVWF multipole degree
-        m1 (int): m=-l,...,l:   Original wave's SVWF multipole order
-        l2 (int): l=1,...:      Partial wave's SVWF multipole degree
-        m2 (int): m=-l,...,l:   Partial wave's SVWF multipole order
+        tau1 (int):             tau1=0,1: Original wave's spherical polarization
+        l1 (int):               l=1,...: Original wave's SVWF multipole degree
+        m1 (int):               m=-l,...,l: Original wave's SVWF multipole order
+        tau2 (int):             tau2=0,1: Partial wave's spherical polarization
+        l2 (int):               l=1,...: Partial wave's SVWF multipole degree
+        m2 (int):               m=-l,...,l: Partial wave's SVWF multipole order
         k (float or complex):   wavenumber (inverse length unit)
         d (list):               translation vectors in format [dx, dy, dz] (length unit)
                                 dx, dy, dz can be scalars or ndarrays
-        sph_hankel (list):      sph_hankel[i] contains the spherical hankel funciton of degree i, evaluated at k*d where
-                                d is the norm of the distance vector(s)
-        legendre (list):        legendre[l][m] contains the legendre function of order l and degree m, evaluated at
-                                cos(theta) where theta is the polar angle(s) of the distance vector(s)
+        sph_hankel (list):      Optional. sph_hankel[i] contains the spherical hankel funciton of degree i, evaluated at
+                                k*d where d is the norm of the distance vector(s)
+        legendre (list):        Optional. legendre[l][m] contains the legendre function of order l and degree m,
+                                evaluated at cos(theta) where theta is the polar angle(s) of the distance vector(s)
 
     Returns:
-        - translation coefficient A
-        - translation coefficient B
+        translation coefficient A (complex)
 
     """
     # spherical coordinates of d:
@@ -557,33 +582,45 @@ def translation_coefficients_svwf(l1, m1, l2, m2, k, d, sph_hankel=None, legendr
         sinthetd = np.sqrt(d[0] ** 2 + d[1] ** 2) / dd
         legendre, _, _ = sf.legendre_normalized(costthetd, sinthetd, l1 + l2)
 
-    A, B = complex(0), complex(0)
+    A = complex(0)
     for ld in range(abs(l1 - l2), l1 + l2 + 1):
         a5, b5 = ab5_coefficients(l1, m1, l2, m2, ld)
-        A += a5 * sph_hankel[ld] * legendre[ld][abs(m1 - m2)]
-        B += b5 * sph_hankel[ld] * legendre[ld][abs(m1 - m2)]
-    A, B = eimph * A, eimph * B
-    return A, B
+        if tau1 == tau2:
+            A += a5 * sph_hankel[ld] * legendre[ld][abs(m1 - m2)]
+        else:
+            A += b5 * sph_hankel[ld] * legendre[ld][abs(m1 - m2)]
+    A = eimph * A
+    return A
 
 
-def translation_coefficients_svwf_out_to_out(l1, m1, l2, m2, k, d, sph_bessel=None, legendre=None, exp_immphi=None):
-    """Return the coefficients of the translation operator for the expansion of an outgoing spherical wave in terms of
-    outgoing spherical waves with respect to a different origin.
-    The output is a tuple (A,B), where the translation operator
-        trans = \delta_pp' * A + (1-\delta_pp') * B
+def translation_coefficients_svwf_out_to_out(tau1, l1, m1, tau2, l2, m2, k, d, sph_bessel=None, legendre=None,
+                                             exp_immphi=None):
+    r"""Coefficients of the translation operator for the expansion of an outgoing spherical wave in terms of
+    outgoing spherical waves with respect to a different origin:
 
-    Input:
-    l1          integaer: l=1,...: Original wave's SVWF multipole degree
-    m1          integaer: m=-l,...,l: Original wave's SVWF multipole order
-    l2          integaer: l=1,...: Partial wave's SVWF multipole degree
-    m2          integaer: m=-l,...,l: Partial wave's SVWF multipole order
-    k           complex: wavenumber (inverse length unit)
-    d           translation vectors in format [dx, dy, dz] (length unit)
-                dx, dy, dz can be scalars or ndarrays
-    sph_bessel  list: sph_bessel[i] contains the spherical bessel funciton of degree i, evaluated at k*d where d is the
-                norm of the distance vector(s)
-    legendre    list of lists: legendre[l][m] contains the legendre function of order l and degree m, evaluated at
-                cos(theta) where theta is the polar angle(s) of the distance vector(s)
+    .. math::
+        \mathbf{\Psi}_{\tau l m}^{(3)}(\mathbf{r} + \mathbf{d} = \sum_{\tau'} \sum_{l'} \sum_{m'}
+        A_{\tau l m, \tau' l' m'} (\mathbf{d}) \mathbf{\Psi}_{\tau' l' m'}^{(3)}(\mathbf{r})
+
+    for :math:`|\mathbf{r}|>|\mathbf{d}|`.
+
+    Args:
+        tau1 (int):             tau1=0,1: Original wave's spherical polarization
+        l1 (int):               l=1,...: Original wave's SVWF multipole degree
+        m1 (int):               m=-l,...,l: Original wave's SVWF multipole order
+        tau2 (int):             tau2=0,1: Partial wave's spherical polarization
+        l2 (int):               l=1,...: Partial wave's SVWF multipole degree
+        m2 (int):               m=-l,...,l: Partial wave's SVWF multipole order
+        k (float or complex):   wavenumber (inverse length unit)
+        d (list):               translation vectors in format [dx, dy, dz] (length unit)
+                                dx, dy, dz can be scalars or ndarrays
+        sph_bessel (list):      Optional. sph_bessel[i] contains the spherical Bessel funciton of degree i, evaluated at
+                                k*d where d is the norm of the distance vector(s)
+        legendre (list):        Optional. legendre[l][m] contains the legendre function of order l and degree m,
+                                evaluated at cos(theta) where theta is the polar angle(s) of the distance vector(s)
+
+    Returns:
+        translation coefficient A (complex)
     """
     # spherical coordinates of d:
     dd = np.sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2)
@@ -602,19 +639,31 @@ def translation_coefficients_svwf_out_to_out(l1, m1, l2, m2, k, d, sph_bessel=No
         sinthetd = np.sqrt(d[0] ** 2 + d[1] ** 2) / dd
         legendre, _, _ = sf.legendre_normalized(costthetd, sinthetd, l1 + l2)
 
-    A, B = complex(0), complex(0)
+    A = complex(0), complex(0)
     for ld in range(abs(l1 - l2), l1 + l2 + 1):
         a5, b5 = ab5_coefficients(l1, m1, l2, m2, ld)
-        A += a5 * sph_bessel[ld] * legendre[ld][abs(m1 - m2)]
-        B += b5 * sph_bessel[ld] * legendre[ld][abs(m1 - m2)]
-    A, B = eimph * A, eimph * B
-    return A, B
+        if tau1==tau2:
+            A += a5 * sph_bessel[ld] * legendre[ld][abs(m1 - m2)]
+        else:
+            A += b5 * sph_bessel[ld] * legendre[ld][abs(m1 - m2)]
+    A = eimph * A
+    return A
 
 
 def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
-    """Return a tuple (a5, b5) where a5 and b5 are the coefficients used in the evaluation of the SVWF translation
-    operator. The computation is based on the sympy.physics.wigner package and is performed with symbolic numbers.
-    If symbolic=True is specified as input argument, symbolic numbers are returned. Otherwise, complex (default).
+    """a5 and b5 are the coefficients used in the evaluation of the SVWF translation
+    operator. Their computation is based on the sympy.physics.wigner package and is performed with symbolic numbers.
+
+    Args:
+        l1 (int):           l=1,...: Original wave's SVWF multipole degree
+        m1 (int):           m=-l,...,l: Original wave's SVWF multipole order
+        l2 (int):           l=1,...: Partial wave's SVWF multipole degree
+        m2 (int):           m=-l,...,l: Partial wave's SVWF multipole order
+        p (int):            p parameter
+        symbolic (bool):    If True, symbolic numbers are returned. Otherwise, complex.
+
+    Returns:
+        A tuple (a5, b5) where a5 and b5 are symbolic or complex.
     """
     jfac = sympy.I ** (abs(m1 - m2) - abs(m1) - abs(m2) + l2 - l1 + p) * (-1) ** (m1 - m2)
     fac1 = sympy.sqrt((2 * l1 + 1) * (2 * l2 + 1) / sympy.S(2 * l1 * (l1 + 1) * l2 * (l2 + 1)))

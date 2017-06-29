@@ -6,21 +6,22 @@ import warnings
 
 
 def legendre_normalized(ct, st, lmax):
-    """Return the normalized associated Legendre function P_l^m(cos \theta) and the angular functions
-    \pi_l^m(cos \theta) and \tau_l^m(cos \theta), as defined in
-    A. Doicu, T. Wriedt, and Y. A. Eremin: "Light Scattering by Systems of Particles", Springer-Verlag, 2006.
+    r"""Return the normalized associated Legendre function :math:`P_l^m(\cos\theta)` and the angular functions
+    :math:`\pi_l^m(\cos \theta)` and :math:`\tau_l^m(\cos \theta)`, as defined in
+    `A. Doicu, T. Wriedt, and Y. A. Eremin: "Light Scattering by Systems of Particles", Springer-Verlag, 2006
+    <https://doi.org/10.1007/978-3-540-33697-6>`_.
     Two arguments (ct and st) are passed such that the function is valid for general complex arguments, while the branch
     cuts are defined by the user already in the definition of st.
 
-    Input:
-    ct      Array: cosine of theta (or kz/k)
-    st      Array: sine of theta (or kp/k), need to have same dimension as ct, and st**2+ct**2=1 is assumed
-    lmax    Integer: maximal multipole order
+    Args:
+        ct (array): cosine of theta (or kz/k)
+        st (array): sine of theta (or kp/k), need to have same dimension as ct, and st**2+ct**2=1 is assumed
+        lmax (int): maximal multipole order
 
-    Output:
-    plm     List: plm[l][m] contains P_l^m(cos \theta). The entries of the list have same dimension as ct (and st)
-    pilm    List: pilm[l][m] contains \pi_l^m(cos \theta).
-    taulm   List: taulm[l][m] contains \tau_l^m(cos \theta).
+    Returns:
+        - list plm[l][m] contains :math:`P_l^m(\cos \theta)`. The entries of the list have same dimension as ct (and st)
+        - list pilm[l][m] contains :math:`\pi_l^m(\cos \theta)`.
+        - list taulm[l][m] contains :math:`\tau_l^m(\cos \theta)`.
     """
     zr = ct - ct
     plm = [[zr for m in range(lmax + 1)] for l in range(lmax + 1)]
