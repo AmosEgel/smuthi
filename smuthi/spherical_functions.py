@@ -61,14 +61,18 @@ def legendre_normalized(ct, st, lmax):
 
 
 def spherical_bessel(n, x):
-    """Return the spherical Bessel function.
+    """Spherical Bessel function. This is a wrapper for scipy.special.sph_jn to make it operate on numpy
+    arrays.
 
     As soon as some bug for complex arguments is resolved, this can be replaced by scipy.special.spherical_jn.
     https://github.com/ContinuumIO/anaconda-issues/issues/1415
 
-    Input:
-    n   Int: Order of spherical Bessel function
-    x   Complex or float array: Argument for Bessel function
+    Args:
+        n (int): Order of spherical Bessel function
+        x (array, complex or float): Argument for Bessel function
+
+    Returns:
+        Spherical Bessel function as array.
     """
     sphj = scipy.special.sph_jn
     if hasattr(x, "__iter__"):
@@ -81,11 +85,14 @@ def spherical_bessel(n, x):
 
 
 def spherical_hankel(n, x):
-    """Return the spherical Hankel function of first kind.
+    """Spherical Hankel function of first kind.
 
-    Input:
-    n   Int: Order of spherical Hankel function
-    x   Complex or float array: Argument for spherical Hankel function
+    Args:
+        n (int): Order of spherical Bessel function
+        x (array, complex or float): Argument for Hankel function
+
+    Returns:
+        Spherical Hankel function as array.
     """
     sphj = scipy.special.sph_jn
     sphy = scipy.special.sph_yn
@@ -99,29 +106,43 @@ def spherical_hankel(n, x):
 
 
 def dx_xj(n, x):
-    """Return the derivative of x*j_n(x), where j_n(x) is the spherical Bessel function.
+    r"""Derivative of :math:`x j_n(x)`, where :math:`j_n(x)` is the spherical Bessel function.
 
-    Input:
-    n   Int (n>0): Order of spherical Bessel function
-    x   Complex or float array: Argument for spherical Hankel function
+    Args:
+        n (int): (n>0): Order of spherical Bessel function
+        x (array, complex or float): Argument for spherical Bessel function
+
+    Returns:
+        Derivative :math:`\partial_x(x j_n(x))` as array.
     """
     res = x * spherical_bessel(n - 1, x) - n * spherical_bessel(n, x)
     return res
 
 
 def dx_xh(n, x):
-    """Return the derivative of x*h_n(x), where h_n(x) is the spherical Hankel function of first kind.
+    r"""Derivative of :math:`x h_n(x)`, where :math:`h_n(x)` is the spherical Hankel function.
 
-    Input:
-    n   Int (n>0): Order of spherical Bessel function
-    x   Complex or float array: Argument for spherical Hankel function
+    Args:
+        n (int): (n>0): Order of spherical Bessel function
+        x (array, complex or float): Argument for spherical Hankel function
+
+    Returns:
+        Derivative :math:`\partial_x(x h_n(x))` as array.
     """
     res = x * spherical_hankel(n - 1, x) - n * spherical_hankel(n, x)
     return res
 
 
 def factorial(n):
-    """Return factorial."""
+    """Return factorial.
+
+    Args:
+        n (int): Argument (non-negative)
+
+    Returns:
+        Factorial of n
+    """
+    assert type(n) == int and n >= 0
     if n == 0:
         return 1
     else:
@@ -129,7 +150,15 @@ def factorial(n):
 
 
 def double_factorial(n):
-    """Return double factorial."""
+    """Return double factorial.
+
+    Args:
+        n (int): Argument (non-negative)
+
+    Returns:
+        Double factorial of n
+    """
+    assert type(n) == int and n >= 0
     if n in (0, 1):
         return 1
     else:

@@ -31,8 +31,8 @@ class Particle:
 
         self.euler_angles=euler_angles
         self.refractive_index = refractive_index
-        self.l_max = l_max
-        self.m_max = m_max
+        self.initial_field = fldex.RegularSphericalWaveExpansion(l_max=l_max, m_max=m_max)
+        self.scattered_field = fldex.OutgoingSphericalWaveExpansion(l_max=l_max, m_max=m_max)
 
 
 class Sphere(Particle):
@@ -134,38 +134,3 @@ class FiniteCylinder(Particle):
 
         Particle.__init__(self, position=position, euler_angles=euler_angles, refractive_index=refractive_index,
                           l_max=l_max, m_max=m_max)
-
-
-class ParticleCollection:
-    """Collection of scattering particles."""
-    def __init__(self, particle_list=None):
-        """A list of dictionaries Particle objects"""
-        if particle_list is None:
-            self.particles = []
-        else:
-            self.particles = particle_list
-
-    def add(self, particle):
-        """Add particle to collection"""
-        self.particles.append(particle)
-
-    def remove_particle(self, i):
-        """Remove i-th particle from collection"""
-        del self.particles[i]
-
-    def particle_number(self):
-        """Return total number of particles in collection"""
-        return len(self.particles)
-
-    def particle_positions(self):
-        """Return a list of particle positions"""
-        return [particle.position for particle in self.particles]
-
-    def __getitem__(self, i):
-        return self.particles[i]
-
-    def __len__(self):
-        return self.particle_number()
-
-    def __iter__(self):
-        return self.particles

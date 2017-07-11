@@ -73,7 +73,27 @@ def blocksize(l_max, m_max):
     return multi_to_single_index(tau=1, l=l_max, m=m_max, l_max=l_max, m_max=m_max) + 1
 
 
-class SphericalWaveExpansion:
+class RegularSphericalWaveExpansion:
+    def __init__(self, l_max, m_max=None):
+        self.l_max = l_max
+        if m_max:
+            self.m_max = m_max
+        else:
+            self.m_max = l_max
+        self.coefficients = np.zeros(blocksize(self.l_max, self.m_max), dtype=complex)
+
+
+class OutgoingSphericalWaveExpansion:
+    def __init__(self, l_max, m_max=None):
+        self.l_max = l_max
+        if m_max:
+            self.m_max = m_max
+        else:
+            self.m_max = l_max
+        self.coefficients = None
+
+
+class SphericalWaveExpansion_old:
     r"""A class to manage spherical wave expansions of the form
 
     .. math::
@@ -277,20 +297,13 @@ class PlaneWaveExpansion:
         """
         pass
 
-    def spherical_wave_expansion(self, vacuum_wavelength, particle_collection):
+    def swe_coefficients(self, vacuum_wavelength, particle):
         """Regular spherical wave expansion of the field represented by this plane wave expansion.
 
         .. todo:: Speed up by recycling the Bdag values
-
-        Args:
-            vacuum_wavelength (float)
-            particle_collection (smuthi.particles.ParticleCollection):  The particle collection for which the SWE is
-                                                                        computed (incoming field)
-
-        Returns:
-            SWE coefficients as a :class:`SphericalWaveExpansion` object.
         """
-        a = SphericalWaveExpansion(particle_collection)
+        coeff = np.zeros(blocksize(particle.initial_field.l_max))
+        a = RegularSphericalWaveExpansion(particle_collection)
         angular_frequency = coord.angular_frequency(vacuum_wavelength)
         kpvec = self.n_effective * angular_frequency
         ngrid = self.n_effective_grid()
@@ -680,3 +693,58 @@ def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
         a = complex(jfac * fac1 * fac2a * wig1 * wig2a)
         b = complex(jfac * fac1 * fac2b * wig1 * wig2b)
     return a, b
+
+
+def pwe_to_swe_conversion(pwe, swe, vacuum_wavelength, particle_position):
+    coefficients = np.zeros(blocksize(swe.l_max, swe.m_max), dtype=complex)
+    angular_frequency = coord.angular_frequency(vacuum_wavelength)
+    kpvec = pwe.n_effective * angular_frequency
+    ngrid = pwe.n_effective_grid()
+    agrid = pwe.azimuthal_angle_grid()
+    kx = ngrid * np.cos(agrid) * angular_frequency
+    ky = ngrid * np.sin(agrid) * angular_frequency
+
+    iS = pwe.layer_system.layer_number(particle_position[2])
+    k_iS = pwe.layer_system.refractive_indices[iS] * angular_frequency
+    kz_iS = coord.k_z(k_parallel=pwe.n_effective_grid() * angular_frequency, k=k_iS)
+    kz_iS_vec = coord.k_z(k_parallel=pwe.n_effective * angular_frequency, k=k_iS)
+    kvec_pl_iS = np.array([kx, ky, kz_iS])
+    kvec_mn_iS = np.array([kx, ky, -kz_iS])
+
+    rvec_iS = np.array([0, 0, pwe.layer_system.reference_z(iS)])
+    rvec_S = np.array(particle_position)
+
+    # phase factors for the translation of the reference point from rvec_iS to rvec_S
+    ejkplriSS = np.exp(1j * np.tensordot(kvec_pl_iS, rvec_S - rvec_iS, axes=([0], [0])))
+    ejkmnriSS = np.exp(1j * np.tensordot(kvec_mn_iS, rvec_S - rvec_iS, axes=([0], [0])))
+
+    # phase factors times pwe coefficients
+    gejkplriSS = pwe.coefficients[iS][:, 0, :, :] * ejkplriSS[None, :, :]  # indices: pol, jk, ja
+    gejkmnriSS = pwe.coefficients[iS][:, 1, :, :] * ejkmnriSS[None, :, :]
+
+    # indices: n, pol, pl/mn, jk
+    Bdag = np.zeros((blocksize(swe.l_max, swe.m_max), 2, 2, len(pwe.n_effective)), dtype=complex)
+    # indices: n, ja
+    emjma = np.zeros((blocksize(swe.l_max, swe.m_max), len(pwe.azimuthal_angle_grid())), dtype=complex)
+    for tau in range(2):
+        for m in range(-swe.m_max, swe.m_max + 1):
+            emjma_temp = np.exp(-1j * m * pwe.azimuthal_angles)
+            for l in range(max(1, abs(m)), swe.l_max + 1):
+                n = multi_to_single_index(tau, l, m, l_max=swe.l_max, m_max=swe.m_max)
+                an_integrand = np.zeros(ngrid.shape, dtype=complex)
+                emjma[n, :] = emjma_temp
+                for pol in range(2):
+                    Bdag[n, pol, 0, :] = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=kpvec,
+                                                                         kz=kz_iS_vec, dagger=True)
+                    Bdag[n, pol, 1, :] = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=kpvec,
+                                                                         kz=-kz_iS_vec, dagger=True)
+                    an_integrand += (np.outer(Bdag[n, pol, 0, :], emjma[n, :]) * gejkplriSS[pol, :, :]
+                                     + np.outer(Bdag[n, pol, 1, :], emjma[n, :]) * gejkmnriSS[pol, :, :])
+
+                if len(pwe.n_effective) > 1:
+                    an = np.trapz(np.trapz(an_integrand, pwe.azimuthal_angle_grid()) * pwe.n_effective,
+                                  pwe.n_effective) * 4 * angular_frequency ** 2
+                else:
+                    an = an_integrand * 4
+                coefficients[multi_to_single_index(tau, l, m, swe.l_max, swe.m_max)] = an[0, 0]
+    return coefficients

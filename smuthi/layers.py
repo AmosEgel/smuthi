@@ -3,6 +3,9 @@
 
 import numpy as np
 import sympy
+from functools import lru_cache
+import smuthi.memoizing as memo
+
 
 # global variables
 matrix_format = np.array
@@ -96,14 +99,17 @@ class LayerSystem:
 
 
 def fresnel_r(pol, kz1, kz2, n1, n2):
-    """Return the complex Fresnel reflection coefficient.
+    """Fresnel reflection coefficient.
 
-    Input:
-    pol     polarization (0=TE, 1=TM)
-    kz1     incoming wave's z-wavenumber (k*cos(alpha1))
-    kz2     transmitted wave's z-wavenumber (k*cos(alpha2))
-    n1      first medium's complex refractive index (n+ik)
-    n2      second medium's complex refractive index (n+ik)
+    Args:
+        pol (int):              polarization (0=TE, 1=TM)
+        kz1 (float or array):   incoming wave's z-wavenumber (k*cos(alpha1))
+        kz2 (float or array):   transmitted wave's z-wavenumber (k*cos(alpha2))
+        n1 (float or complex):  first medium's complex refractive index (n+ik)
+        n2 (float or complex):  second medium's complex refractive index (n+ik)
+
+    Returns:
+        Complex Fresnel reflection coefficient (float or array)
     """
     if pol == 0:
         return (kz1 - kz2) / (kz1 + kz2)
@@ -112,15 +118,19 @@ def fresnel_r(pol, kz1, kz2, n1, n2):
 
 
 def fresnel_t(pol, kz1, kz2, n1, n2):
-    """Return the complex Fresnel transmission coefficient.
+    """Fresnel transmission coefficient.
 
-    Input:
-    pol     polarization (0=TE, 1=TM)
-    kz1     incoming wave's z-wavenumber (k*cos(alpha1))
-    kz2     transmitted wave's z-wavenumber (k*cos(alpha2))
-    n1      first medium's complex refractive index (n+ik)
-    n2      second medium's complex refractive index (n+ik)
+    Args:
+        pol (int):              polarization (0=TE, 1=TM)
+        kz1 (float or array):   incoming wave's z-wavenumber (k*cos(alpha1))
+        kz2 (float or array):   transmitted wave's z-wavenumber (k*cos(alpha2))
+        n1 (float or complex):  first medium's complex refractive index (n+ik)
+        n2 (float or complex):  second medium's complex refractive index (n+ik)
+
+    Returns:
+        Complex Fresnel transmission coefficient (float or array)
     """
+
     if pol == 0:
         return 2 * kz1 / (kz1 + kz2)
     else:
@@ -128,14 +138,17 @@ def fresnel_t(pol, kz1, kz2, n1, n2):
 
 
 def interface_transition_matrix(pol, kz1, kz2, n1, n2):
-    """Return the interface transition matrix to be used in the Transfer matrix algorithm.
+    """Interface transition matrix to be used in the Transfer matrix algorithm.
 
-    Input:
-    pol                 polarization (0=TE, 1=TM)
-    kz1                 incoming wave's z-wavenumber (k*cos(alpha1))
-    kz2                 transmitted wave's z-wavenumber (k*cos(alpha2))
-    n1                  first medium's complex refractive index (n+ik)
-    n2                  second medium's complex refractive index (n+ik)
+    Args:
+        pol (int):              polarization (0=TE, 1=TM)
+        kz1 (float or array):   incoming wave's z-wavenumber (k*cos(alpha1))
+        kz2 (float or array):   transmitted wave's z-wavenumber (k*cos(alpha2))
+        n1 (float or complex):  first medium's complex refractive index (n+ik)
+        n2 (float or complex):  second medium's complex refractive index (n+ik)
+
+    Returns:
+        Interface transition matrix as 2x2 numpy array or as 2x2 sympy.mpmath.matrix
     """
     t = fresnel_t(pol, kz1, kz2, n1, n2)
     r = fresnel_r(pol, kz1, kz2, n1, n2)
@@ -143,24 +156,30 @@ def interface_transition_matrix(pol, kz1, kz2, n1, n2):
 
 
 def layer_propagation_matrix(kz, d):
-    """Return the layer propagation matrix to be used in the Transfer matrix algorithm.
+    """Layer propagation matrix to be used in the Transfer matrix algorithm.
 
-    Input:
-    kz                  z-wavenumber (k*cos(alpha))
-    d                   thickness of layer
+    Args:
+        kz (float or complex):  z-wavenumber (k*cos(alpha))
+        d  (float):             thickness of layer
+
+    Returns:
+        Layer propagation matrix as 2x2 numpy array or as 2x2 sympy.mpmath.matrix
     """
     return matrix_format([[math_module.exp(-1j * kz * d), 0], [0, math_module.exp(1j * kz * d)]])
 
 
 def layersystem_transfer_matrix(pol, layer_d, layer_n, kpar, omega):
-    """Return the transfer matrix of a planarly layered medium.
+    """Transfer matrix of a planarly layered medium.
 
-    Input:
-    pol                 polarization(0=TE, 1=TM)
-    layer_d             numpy array of layer thicknesses
-    layer_n             numpy array of complex layer refractive indices
-    kpar                in-plane wavenumber
-    omega               angular frequency in units of c=1: omega=2*pi/lambda
+    Args:
+        pol (int):      polarization(0=TE, 1=TM)
+        layer_d (list): layer thicknesses
+        layer_n (list): complex layer refractive indices
+        kpar (float):   in-plane wavenumber
+        omega (float):  angular frequency in units of c=1: omega=2*pi/lambda
+
+    Returns:
+        Transfer matrix as 2x2 numpy array or as 2x2 sympy.mpmath.matrix
     """
     layer_kz = []
     for n in layer_n:
@@ -177,14 +196,17 @@ def layersystem_transfer_matrix(pol, layer_d, layer_n, kpar, omega):
 
 
 def layersystem_scattering_matrix(pol, layer_d, layer_n, kpar, omega):
-    """Return the scattering matrix of a planarly layered medium.
+    """Scattering matrix of a planarly layered medium.
 
-    Input:
-    pol                 polarization(0=TE, 1=TM)
-    layer_d             numpy array of layer thicknesses
-    layer_n             numpy array of complex layer refractive indices
-    kpar                in-plane wavenumber
-    omega               angular frequency in units of c=1: omega=2*pi/lambda
+    Args:
+        pol (int):      polarization(0=TE, 1=TM)
+        layer_d (list): layer thicknesses
+        layer_n (list): complex layer refractive indices
+        kpar (float):   in-plane wavenumber
+        omega (float):  angular frequency in units of c=1: omega=2*pi/lambda
+
+    Returns:
+        Scattering matrix as 2x2 numpy array or as 2x2 sympy.mpmath.matrix
     """
     layer_kz = []
     for n in layer_n:
@@ -205,36 +227,28 @@ def layersystem_scattering_matrix(pol, layer_d, layer_n, kpar, omega):
     return smat
 
 
-def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, tolayer, precision=None):
-    """Return the layer system response matrix of a planarly layered medium.
+#@lru_cache(128)
+@memo.Memoize
+def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, tolayer):
+    """Layer system response matrix of a planarly layered medium.
 
-    If kpar is specified as an array with length N, return N 2x2 matrices as an 2x2xN ndarray.
+    Args:
+        pol (int):                  polarization(0=TE, 1=TM)
+        layer_d (list):             layer thicknesses
+        layer_n (list):             complex layer refractive indices
+        kpar (float or array like): in-plane wavenumber
+        omega (float):              angular frequency in units of c=1: omega=2*pi/lambda
+        fromlayer (int):            number of layer where the excitation is located
+        tolayer (int):             number of layer where the response is evaluated
 
-    Input:
-    pol         polarization(0=TE, 1=TM)
-    layer_d     list of layer thicknesses
-    layer_n     list of complex layer refractive indices
-    kpar        (complex float or array-like) in-plane wavenumber
-    omega       angular frequency in units of c=1: omega=2*pi/lambda
-    fromlayer   number of layer where the excitation is located
-    tolayer     number of layer where the response is evaluated
-    precision   number of decimal digits to keep in interim calculations
+    Returns:
+        Layer system response matrix as a 2x2 array if kpar is float, or as 2x2xN array if kpar is array with len = N.
     """
-    global matrix_format
-    global math_module
-    if precision is None:
-        matrix_format = np.array
-        math_module = np
-    else:
-        sympy.mpmath.mp.dps = precision
-        matrix_format = sympy.mpmath.matrix
-        math_module = sympy.mpmath
 
     if hasattr(kpar, "__len__"):    # is kpar an array? then use recursive call to fill an 2 x 2 x N ndarray
         result = np.zeros((2, 2, len(kpar)), dtype=complex)
         for i, kp in enumerate(kpar):
-            result[:, :, i] = layersystem_response_matrix(pol, layer_d, layer_n, kp, omega, fromlayer, tolayer,
-                                                          precision)
+            result[:, :, i] = layersystem_response_matrix(pol, layer_d, layer_n, kp, omega, fromlayer, tolayer)
         return result
 
     layer_d_above = [0] + layer_d[fromlayer:]
@@ -268,55 +282,6 @@ def matrix_inverse(m):
         return m ** (-1)
     elif isinstance(m, np.ndarray):
         return np.linalg.inv(m)
-
-
-def evaluate_layerresponse_lookup(layer_d, layer_n, kpar, omega, fromlayer, tolayer, precision):
-    """Return the layer system response matrix of a planarly layered medium as a 2x2x2xN ndarray.
-    The indices are: polarization, first index of layer response matrix, second index of layer response matrix,
-    index of parallel wave vector.
-    The result is stored in a lookup table, and returned when the function is called for the second time with the same
-    arguments.
-
-    Input:
-    layer_d     list of layer thicknesses
-    layer_n     list of complex layer refractive indices
-    kpar        (complex float or array-like) in-plane wavenumber
-    omega       angular frequency in units of c=1: omega=2*pi/lambda
-    fromlayer   number of layer where the excitation is located
-    tolayer     number of layer where the response is evaluated
-    precision   number of decimal digits to keep in interim calculations
-    """
-    global layerresponse_lookup
-    L_args = {'thicknesses': layer_d, 'refractive indices': layer_n, 'kpar': kpar, 'omega': omega,
-              'precision': precision}
-    laynum = len(layer_d)
-
-    # check for argument equality:
-    equal_args = (L_args.get('thicknesses') == layerresponse_lookup['args'].get('thicknesses')
-                  and L_args.get('refractive indices') == layerresponse_lookup['args'].get('refractive indices')
-                  and np.all(L_args.get('kpar') == layerresponse_lookup['args'].get('kpar'))
-                  and L_args.get('omega') == layerresponse_lookup['args'].get('omega')
-                  and L_args.get('precision') == layerresponse_lookup['args'].get('precision'))
-
-    if equal_args:
-        if layerresponse_lookup['data'][fromlayer][tolayer] is not None:
-            L = layerresponse_lookup['data'][fromlayer][tolayer]
-        else:
-            L = np.zeros((2, 2, 2, len(kpar)), dtype=complex)  # indices are: polarization, pl/mn1, pl/mn2, kpar_idx
-            for pol in range(2):
-                L[pol, :, :, :] = layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, tolayer,
-                                                              precision)
-            layerresponse_lookup['data'][fromlayer][tolayer] = L
-    else:
-        layerresponse_lookup['args'] = L_args
-        layerresponse_lookup['data'] = [[None for x in range(laynum)] for x in range(laynum)]
-        L = np.zeros((2, 2, 2, len(kpar)), dtype=complex)  # indices are: polarization, pl/mn1, pl/mn2, kpar_idx
-        for pol in range(2):
-            L[pol, :, :, :] = layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, tolayer,
-                                                          precision)
-        layerresponse_lookup['data'][fromlayer][tolayer] = L
-
-    return L
 
 
 def set_precision(precision=None):

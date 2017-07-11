@@ -18,11 +18,10 @@ particle_collection.add(particle)
 particle_collection.add(particle2)
 plane_wave = init.PlaneWave(vacuum_wavelength=ld, polar_angle=beta, azimuthal_angle=alpha, polarization=pol,
                             amplitude=A, reference_point=[0, 0, 500])
-swe = plane_wave.spherical_wave_expansion(particle_collection, laysys)
-
+plane_wave.evaluate_swe_coefficients(particle, laysys)
 
 def test_SWE_coefficients_against_prototype():
-    aI = swe.coefficients
+    aI = particle.initial_field.coefficients
     np.testing.assert_allclose(aI[0], 0.037915264196848 + 0.749562792043970j)
     np.testing.assert_allclose(aI[0], 0.037915264196848 + 0.749562792043970j)
     np.testing.assert_allclose(aI[5], 0.234585233040185 - 0.458335592154664j)

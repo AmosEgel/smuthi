@@ -11,7 +11,7 @@ class InitialField:
     def __init__(self, vacuum_wavelength):
         self.vacuum_wavelength = vacuum_wavelength
 
-    def spherical_wave_expansion(self, particle_collection, layer_system):
+    def swe_coefficients(self, particle, layer_system):
         """Virtual method to be overwritten."""
         pass
 
@@ -82,18 +82,11 @@ class PlaneWave(InitialField):
 
         return gtotal
 
-    def spherical_wave_expansion(self, particle_collection, layer_system):
+    def evaluate_swe_coefficients(self, particle, layer_system):
         """Regular spherical wave expansion of the plane wave including layer system response, at the locations of the
         particles
 
-        Args:
-            particle_collection (smuthi.particles.ParticleCollection):  Particle collection for which the SWE is
-                                                                        computed.
-            layer_system (smuthi.layers.LayerSystem):                   Layer system in which the particles are located.
-
-        Returns:
-            Spherical wave expansion as smuthi.field_expansion.SphericalWaveExpansion object.
         """
         gtotal = self.plane_wave_expansion(layer_system)
-        a = gtotal.spherical_wave_expansion(self.vacuum_wavelength, particle_collection)
-        return a
+        particle.initial_field.coefficients = fldex.pwe_to_swe_conversion(gtotal, particle.initial_field,
+                                                                          self.vacuum_wavelength, particle.position)

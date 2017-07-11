@@ -3,48 +3,42 @@
 
 import numpy as np
 import scipy.special
-import smuthi.index_conversion as idx
 import smuthi.coordinates as coord
 import smuthi.layers as lay
-import smuthi.vector_wave_functions as vwf
 import smuthi.spherical_functions as sf
+import smuthi.field_expansion as fldex
 import matplotlib.pyplot as plt
 import warnings
 
 
-def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position, emitting_particle_position,
-                                  layer_system, neff_contour, layerresponse_precision=None, show_integrand=False):
-    """Return the layer-system mediated particle coupling matrix W^R for two particles. This routine is explicit, but
-    slow.
+def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emitting_particle, layer_system, neff_contour,
+                                  show_integrand=False):
+    """Layer-system mediated particle coupling matrix :math:`W^R` for two particles. This routine is explicit, but slow.
 
     Args:
-        vacuum_wavelength (float):                      Vacuum wavelength :math:`\lambda` (length unit)
-        receiving_particle_position (list or array):    In the format [x,y,z] (length unit)
-        emitting_particle_position (list or array):     In the format [x,y,z] (length unit)
-        layer_system:                                   An instance of smuthi.layers.LayerSystem describing the
-                                                        stratified medium
-        neff_contour:                                   An instance of smuthi.coordinates.ComplexContour to define the
-                                                        contour of the Sommerfeld integral
-        layerresponse_precision:                        Number of decimal digits (int). If specified, the layer-response
-                                                        is evaluated using mpmath multiple precision. Otherwise,
-                                                        standard numpy.
-        show_integrand:                                 If True, the norm of the integrand is plotted.
+        vacuum_wavelength (float):                          Vacuum wavelength :math:`\lambda` (length unit)
+        receiving_particle (smuthi.particles.Particle):     Particle that receives the scattered field
+        emitting_particle (smuthi.particles.Particle):      Particle that emits the scattered field
+        layer_system (smuthi.layers.LayerSystem):           Stratified medium in which the coupling takes place
+        neff_contour (smuthi.coordinates.ComplexContour):   Contour of the Sommerfeld integral
+        show_integrand (bool):                              If True, the norm of the integrand is plotted.
 
     Returns:
-        sdf
-
-
+        Layer mediated coupling matrix block as numpy array.
     """
     omega = coord.angular_frequency(vacuum_wavelength)
 
-    # read out index specs
-    lmax = idx.l_max
-    mmax = idx.m_max
-    blocksize = idx.number_of_indices()
+    # index specs
+    lmax1 = receiving_particle.scattered_field.l_max
+    mmax1 = receiving_particle.scattered_field.m_max
+    lmax2 = emitting_particle.scattered_field.l_max
+    mmax2 = emitting_particle.scattered_field.m_max
+    blocksize1 = fldex.blocksize(lmax1, mmax1)
+    blocksize2 = fldex.blocksize(lmax2, mmax2)
 
     # cylindrical coordinates of relative position vectors
-    rs1 = np.array(receiving_particle_position)
-    rs2 = np.array(emitting_particle_position)
+    rs1 = np.array(receiving_particle.position)
+    rs2 = np.array(emitting_particle.position)
     rs2s1 = rs1 - rs2
     rhos2s1 = np.linalg.norm(rs2s1[0:2])
     phis2s1 = np.arctan2(rs2s1[1], rs2s1[0])
@@ -70,49 +64,58 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle_position
     ejkz[1, 1, :] = np.exp(- 1j * kzis2 * ziss2)
 
     # layer response
-    L = lay.evaluate_layerresponse_lookup(layer_system.thicknesses, layer_system.refractive_indices, kpar, omega, is2,
-                                          is1, layerresponse_precision)  # polarization, pl/mn1, pl/mn2, kpar_idx
+    L = np.zeros((2, 2, 2, len(neff)), dtype=complex)  # polarization, pl/mn1, pl/mn2, kpar_idx
+    for pol in range(2):
+        L[pol, :, :, :] = lay.layersystem_response_matrix(pol, layer_system.thicknesses,
+                                                          layer_system.refractive_indices, kpar, omega, is2, is1)
 
     # transformation coefficients
-    B = np.zeros((2, 2, 2, blocksize, len(neff)), dtype=complex)  # indices are: particle, pol, plus/minus, n, kpar_idx
+    B = [np.zeros((2, 2, blocksize1, len(neff)), dtype=complex), np.zeros((2, 2, blocksize2, len(neff)), dtype=complex)]
+    # list index: particle, np indices: pol, plus/minus, n, kpar_idx
 
-    m_vec = np.zeros(blocksize, dtype=int)
+    m_vec = [np.zeros(blocksize1, dtype=int), np.zeros(blocksize1, dtype=int)]
     kz_tup = (kzis1, kzis2)
     plmn_tup = (1, -1)
-    dagger_tup = (True, False)
 
     for tau in range(2):
-        for m in range(-mmax, mmax + 1):
-            for l in range(max(1, abs(m)), lmax + 1):
-                n = idx.multi_to_single_index(tau, l, m)
-                m_vec[n] = m
-                for iprt in range(2):
-                    for iplmn, plmn in enumerate(plmn_tup):
-                        for pol in range(2):
-                            B[iprt, pol, iplmn, n, :] = vwf.transformation_coefficients_VWF(tau, l, m, pol, kpar,
-                                                                                            plmn * kz_tup[iprt],
-                                                                                            dagger=dagger_tup[iprt])
+        for m in range(-mmax1, mmax1 + 1):
+            for l in range(max(1, abs(m)), lmax1 + 1):
+                n = fldex.multi_to_single_index(tau, l, m, lmax1, mmax1)
+                m_vec[0][n] = m
+                for iplmn, plmn in enumerate(plmn_tup):
+                    for pol in range(2):
+                        B[0][pol, iplmn, n, :] = fldex.transformation_coefficients_VWF(tau, l, m, pol, kpar, plmn*kzis1,
+                                                                                       dagger=True)
 
-    BeL = np.zeros((2, 2, blocksize, len(neff)), dtype=complex)  # indices are: pol, plmn2, n1, kpar_idx
+        for m in range(-mmax2, mmax2 + 1):
+            for l in range(max(1, abs(m)), lmax2 + 1):
+                n = fldex.multi_to_single_index(tau, l, m, lmax2, mmax2)
+                m_vec[1][n] = m
+                for iplmn, plmn in enumerate(plmn_tup):
+                    for pol in range(2):
+                        B[1][pol, iplmn, n, :] = fldex.transformation_coefficients_VWF(tau, l, m, pol, kpar, plmn*kzis2,
+                                                                                       dagger=False)
+
+    BeL = np.zeros((2, 2, blocksize1, len(neff)), dtype=complex)  # indices are: pol, plmn2, n1, kpar_idx
     for iplmn1 in range(2):
         for pol in range(2):
-            BeL[pol, :, :, :] += (L[pol, iplmn1, :, np.newaxis, :] *
-                                     B[0, pol, iplmn1, np.newaxis, :, :] * ejkz[0, iplmn1, :])
-    BeLBe = np.zeros((blocksize, blocksize, len(neff)), dtype=complex)  # indices are: n1, n2, kpar_idx
+            BeL[pol, :, :, :] += (L[pol, iplmn1, :, np.newaxis, :] * B[0][pol, iplmn1, np.newaxis, :, :]
+                                  * ejkz[0, iplmn1, :])
+    BeLBe = np.zeros((blocksize1, blocksize2, len(neff)), dtype=complex)  # indices are: n1, n2, kpar_idx
     for iplmn2 in range(2):
         for pol in range(2):
-            BeLBe += BeL[pol, iplmn2, :, np.newaxis, :] * B[1, pol, iplmn2, :, :] * ejkz[1, 1 - iplmn2, :]
+            BeLBe += BeL[pol, iplmn2, :, np.newaxis, :] * B[1][pol, iplmn2, :, :] * ejkz[1, 1 - iplmn2, :]
 
     # bessel function and jacobi factor
     bessel_list = []
-    for dm in range(2 * lmax + 1):
+    for dm in range(lmax1 + lmax2 + 1):
         bessel_list.append(scipy.special.jv(dm, kpar * rhos2s1))
-    bessel_full = np.array([[bessel_list[abs(m_vec[n1] - m_vec[n2])]
-                             for n1 in range(blocksize)] for n2 in range(blocksize)])
+    bessel_full = np.array([[bessel_list[abs(m_vec[0][n1] - m_vec[1][n2])]
+                             for n1 in range(blocksize1)] for n2 in range(blocksize2)])
     jacobi_vector = kpar / (kzis2 * kis2)
     integrand = bessel_full * jacobi_vector * BeLBe
     integral = np.trapz(integrand, x=kpar, axis=-1)
-    m2_minus_m1 = m_vec - m_vec[np.newaxis].T
+    m2_minus_m1 = m_vec[1] - m_vec[0][np.newaxis].T
     wr = 4 * (1j) ** abs(m2_minus_m1) * np.exp(1j * m2_minus_m1 * phis2s1) * integral
 
     if show_integrand:
@@ -158,6 +161,74 @@ def layer_mediated_coupling_matrix(vacuum_wavelength, particle_collection, layer
             wr[s1, :, s2, :] = wrblock
 
     return wr
+
+
+def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_particle, layer_system):
+    """Direct particle coupling matrix :math:`W` for two particles. This routine is explicit, but slow.
+
+    Args:
+        vacuum_wavelength (float):                          Vacuum wavelength :math:`\lambda` (length unit)
+        receiving_particle (smuthi.particles.Particle):     Particle that receives the scattered field
+        emitting_particle (smuthi.particles.Particle):      Particle that emits the scattered field
+        layer_system (smuthi.layers.LayerSystem):           Stratified medium in which the coupling takes place
+
+    Returns:
+        Direct coupling matrix block as numpy array.
+    """
+    omega = coord.angular_frequency(vacuum_wavelength)
+
+    # index specs
+    lmax1 = receiving_particle.scattered_field.l_max
+    mmax1 = receiving_particle.scattered_field.m_max
+    lmax2 = emitting_particle.scattered_field.l_max
+    mmax2 = emitting_particle.scattered_field.m_max
+    blocksize1 = fldex.blocksize(lmax1, mmax1)
+    blocksize2 = fldex.blocksize(lmax2, mmax2)
+
+    # initialize result
+    w = np.zeros((blocksize1, blocksize2), dtype=complex)
+
+    # check if particles are in same layer
+    rS1 = receiving_particle.position
+    rS2 = emitting_particle.position
+    iS1 = layer_system.layer_number(rS1[2])
+    iS2 = layer_system.layer_number(rS2[2])
+    if iS1 == iS2 and not emitting_particle == receiving_particle:
+        k = omega * layer_system.refractive_indices[iS1]
+        dx = rS1[0] - rS2[0]
+        dy = rS1[1] - rS2[1]
+        dz = rS1[2] - rS2[2]
+        d = np.sqrt(dx**2 + dy**2 + dz**2)
+        cos_theta = dz / d
+        sin_theta = np.sqrt(dx**2 + dy**2) / d
+        phi = np.arctan2(dy, dx)
+
+        # spherical functions
+        bessel_h = [sf.spherical_hankel(n, k * d) for n in range(lmax1 + lmax2 + 1)]
+        legendre, _, _ = sf.legendre_normalized(cos_theta, sin_theta, lmax1 + lmax2)
+
+        for m1 in range(-mmax1, mmax1 + 1):
+            for m2 in range(-mmax2, mmax2 + 1):
+                eimph = np.exp(1j * (m1 - m2) * phi)
+                for l1 in range(max(1, abs(m1)), lmax1 + 1):
+                    for l2 in range(max(1, abs(m2)), lmax2 + 1):
+                        A, B = complex(0), complex(0)
+                        for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
+                            a5, b5 = fldex.ab5_coefficients(l1, m1, l2, m2, ld)
+                            A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
+                            B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
+                        A, B = eimph * A, eimph * B
+                        for tau1 in range(2):
+                            n1 = fldex.multi_to_single_index(tau1, l1, m1, lmax1, mmax1)
+                            for tau2 in range(2):
+                                n2 = fldex.multi_to_single_index(tau2, l2, m2, lmax2, mmax2)
+                                if tau1 == tau2:
+                                    w[n2, n1] = A  # remember that w = A.T
+                                else:
+                                    w[n2, n1] = B
+
+    return w
+
 
 
 def direct_coupling_matrix(vacuum_wavelength, particle_collection, layer_system):

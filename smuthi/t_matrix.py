@@ -117,18 +117,18 @@ class TMatrixCollection:
     .. todo:: use caching to speed up and save memory
 
     Args:
-        vacuum_wavelength(float)
+        initial_field (smuthi.initial_field.InitialField)
         particle_collection(smuthi.particles.ParticleCollection)
         layer_system(smuthi.layers.LayerSystem)
     """
-    def __init__(self, vacuum_wavelength=None, particle_collection=None, layer_system=None):
+    def __init__(self, initial_field=None, particle_collection=None, layer_system=None):
         self.t_matrix_list = []
 
         for particle in particle_collection.particles:
             zS = particle.position[2]
             iS = layer_system.layer_number(zS)
             n_medium = layer_system.refractive_indices[iS]
-            t_matrix_unrotated = t_matrix(vacuum_wavelength, n_medium, particle)
+            t_matrix_unrotated = t_matrix(initial_field.vacuum_wavelength, n_medium, particle)
             t_matrix_rotated = rotate_t_matrix(t=t_matrix_unrotated, euler_angles=particle.euler_angles)
             self.t_matrix_list.append(t_matrix_rotated)
 
