@@ -11,7 +11,7 @@ class InitialField:
     def __init__(self, vacuum_wavelength):
         self.vacuum_wavelength = vacuum_wavelength
 
-    def swe_coefficients(self, particle, layer_system):
+    def evaluate_swe_coefficients(self, particle, layer_system):
         """Virtual method to be overwritten."""
         pass
 

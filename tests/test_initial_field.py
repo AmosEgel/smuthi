@@ -13,12 +13,11 @@ rS2 = [200, -200, 200]
 laysys = smuthi.layers.LayerSystem(thicknesses=[0, 500, 0], refractive_indices=[1, 2, 1])
 particle = smuthi.particles.Sphere(position=rS, l_max=3, m_max=3)
 particle2 = smuthi.particles.Sphere(position=rS2, l_max=3, m_max=3)
-particle_collection = smuthi.particles.ParticleCollection()
-particle_collection.add(particle)
-particle_collection.add(particle2)
+particle_list = [particle, particle2]
 plane_wave = init.PlaneWave(vacuum_wavelength=ld, polar_angle=beta, azimuthal_angle=alpha, polarization=pol,
                             amplitude=A, reference_point=[0, 0, 500])
 plane_wave.evaluate_swe_coefficients(particle, laysys)
+
 
 def test_SWE_coefficients_against_prototype():
     aI = particle.initial_field.coefficients

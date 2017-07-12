@@ -247,7 +247,7 @@ class PlaneWaveExpansion:
         _, a_grid = np.meshgrid(self.n_effective, self.azimuthal_angles, indexing='ij')
         return a_grid
 
-    def response(self, vacuum_wavelength, excitation_layer_number, layer_numbers='all', precision=None):
+    def response(self, vacuum_wavelength, excitation_layer_number, layer_numbers='all'):
         """Construct the plane wave expansion of the layer system response to this plane wave expansion.
 
         Args:
@@ -255,8 +255,6 @@ class PlaneWaveExpansion:
             excitation_layer_number (int):  The coefficients of this layer are interpreted as an excitation PWE
             layer_numbers (list or str):    If 'all', propagate field to all layers. Otherwise, only to the layers the
                                             numbers of which are part of that list
-            precision (int):                That many digits are regarded in the layer system response (multi precision)
-                                            If None, normal double precision numpy algorithms are used.
 
         Returns:
             :class:`PlaneWaveExpansion` object containing the layer system response in the layers
@@ -271,9 +269,11 @@ class PlaneWaveExpansion:
         gex = self.coefficients[excitation_layer_number]
         for iL in layer_numbers:
             gij = np.zeros((2, 2, len(self.n_effective), len(self.azimuthal_angles)), dtype=complex)
-            l_matrix = lay.evaluate_layerresponse_lookup(self.layer_system.thicknesses,
-                                                         self.layer_system.refractive_indices,
-                                                         kpar, omega, excitation_layer_number, iL, precision)
+            l_matrix = np.zeros((2, 2, 2, len(self.n_effective)), dtype=complex)
+            for pol in range(2):
+                l_matrix[pol, :, :, :] = lay. layersystem_response_matrix(pol, self.layer_system.thicknesses,
+                                                                          self.layer_system.refractive_indices, kpar,
+                                                                          omega, excitation_layer_number, iL)
             for pol in [0, 1]:
                 for ud_excite in [0, 1]:
                     for ud_receive in [0, 1]:

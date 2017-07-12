@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 """Provide class to manage a simulation."""
 
-import smuthi.particles as part
-import smuthi.layers as lay
-import smuthi.initial_field as init
 import smuthi.t_matrix as tmt
 import smuthi.particle_coupling as coup
-import smuthi.coordinates as coord
-import smuthi.post_processing as pp
 import smuthi.field_expansion as fldex
 import sys
 import os
@@ -20,42 +15,21 @@ import numpy as np
 import scipy.linalg
 
 
-
 class Simulation:
-    def __init__(self, layer_system=None, particle_collection=None, initial_field=None, linear_system=None,
-                 wr_neff_contour=None, post_processing=None, tmatrix_method=None, solver='LU', length_unit='length unit',
-                 input_file=None, output_dir='smuthi_output', save_after_run=False):
-
-        if layer_system is None:
-            layer_system = lay.LayerSystem()
-        if particle_collection is None:
-            particle_collection = part.ParticleCollection()
-        if initial_field is None:
-            initial_field = init.InitialField()
-        if linear_system is None:
-            linear_system = LinearSystem()
-        if wr_neff_contour is None:
-            wr_neff_contour = coord.ComplexContour()
-        if post_processing is None:
-            post_processing = pp.PostProcessing()
-        if tmatrix_method is None:
-            tmatrix_method = {}
+    def __init__(self, layer_system=None, particle_list=None, initial_field=None, wr_neff_contour=None,
+                 post_processing=None, solver='LU', length_unit='length unit', input_file=None,
+                 output_dir='smuthi_output', save_after_run=False):
 
         # initialize attributes
         self.layer_system = layer_system
-        self.particle_collection = particle_collection
+        self.particle_list = particle_list
         self.initial_field = initial_field
-        self.linear_system = linear_system
         self.wr_neff_contour = wr_neff_contour
         self.post_processing = post_processing
-        self.tmatrix_method = tmatrix_method
         self.length_unit = length_unit
         self.save_after_run = save_after_run
 
         # linear system
-        self.t_matrices = None
-        self.initial_field_expansion = None
-        self.scattered_field_expansion = None
         self.solver = solver # solve with what algorithm?
         self.LU_piv = None  # will be overwritten with data if solver=='LU'
 
@@ -81,48 +55,74 @@ class Simulation:
 
     def run(self):
         print(welcome_message())
-        self.initialize_linear_system()
+        self.prepare_linear_system()
         self.solve()
 
         # post processing
-        sys.stdout.write("Post processing ... ")
-        sys.stdout.flush()
-        self.post_processing.run(self)
-        sys.stdout.write("done. \n")
+        if self.post_processing:
+            sys.stdout.write("Post processing ... ")
+            sys.stdout.flush()
+            self.post_processing.run(self)
+            sys.stdout.write("done. \n")
 
         if self.save_after_run:
             self.save(self.output_dir + '/simulation.p')
 
         plt.show()
 
-    def initialize_linear_system(self):
+    def prepare_linear_system(self):
         # compute initial field coefficients
         sys.stdout.write("Compute initial field coefficients ... ")
         sys.stdout.flush()
-        self.initial_field_expansion = self.initial_field.spherical_wave_expansion(self.particle_collection,
-                                                                                   self.layer_system)
+        for particle in self.particle_list:
+            self.initial_field.evaluate_swe_coefficients(particle, self.layer_system)
         sys.stdout.write("done. \n")
 
         # compute T-matrix
         sys.stdout.write("Compute T-matrices ... ")
         sys.stdout.flush()
-        self.t_matrices = tmt.TMatrixCollection(self.initial_field.vacuum_wavelength, self.particle_collection)
+        for particle in self.particle_list:
+            niS = self.layer_system.refractive_indices[self.layer_system.layer_number(particle.position[2])]
+            particle.t_matrix = tmt.t_matrix(self.initial_field.vacuum_wavelength, niS, particle)
         sys.stdout.write("done. \n")
 
         # compute particle coupling matrices
         sys.stdout.write("Compute direct particle coupling matrix ... ")
         sys.stdout.flush()
-        self.coupling_matrix = coup.direct_coupling_matrix(self.initial_field.vacuum_wavelength,
-                                                           self.particle_collection, self.layer_system)
+        self.coupling_matrix = coup.direct_coupling_matrix(self.initial_field.vacuum_wavelength, self.particle_list,
+                                                           self.layer_system)
         sys.stdout.write("done. \n")
 
         sys.stdout.write("Compute layer system mediated particle coupling matrix ... ")
         sys.stdout.flush()
         self.coupling_matrix += coup.layer_mediated_coupling_matrix(self.initial_field.vacuum_wavelength,
-                                                                    self.particle_collection, self.layer_system,
+                                                                    self.particle_list, self.layer_system,
                                                                     self.wr_neff_contour)
-        self.scattered_field_expansion = fldex.SphericalWaveExpansion(self.particle_collection)
         sys.stdout.write("done. \n")
+
+    def number_of_unknowns(self):
+        blocksizes = [fldex.blocksize(particle.scattered_field.l_max, particle.scattered_field.m_max)
+                      for particle in self.particle_list]
+        return sum(blocksizes)
+
+    def index_block(self, iS):
+        blocksizes = [fldex.blocksize(particle.scattered_field.l_max, particle.scattered_field.m_max)
+                      for particle in self.particle_list]
+        return range(sum(blocksizes[:iS]), sum(blocksizes[:(iS + 1)]))
+
+    def right_hand_side(self):
+        tai = np.zeros(self.number_of_unknowns(), dtype=complex)
+        for iS, particle in enumerate(self.particle_list):
+            tai[self.index_block(iS)] = particle.t_matrix.dot(particle.initial_field.coefficients)
+        return tai
+
+    def master_matrix(self):
+        tw = np.copy(self.coupling_matrix)
+        for iS, particle in enumerate(self.particle_list):
+            idx_block = self.index_block(iS)
+            tw[idx_block, :] = particle.t_matrix.dot(tw[idx_block, :])
+        mm = np.eye(self.number_of_unknowns(), dtype=complex) - tw
+        return mm
 
     def solve(self):
         """Compute scattered field coefficients"""
@@ -132,28 +132,14 @@ class Simulation:
             if self.LU_piv is None:
                 lu, piv = scipy.linalg.lu_factor(self.master_matrix(), overwrite_a=False)
                 self.LU_piv = (lu, piv)
-            self.scattered_field_expansion.coefficients = scipy.linalg.lu_solve(self.LU_piv, self.right_hand_side())
+            b = scipy.linalg.lu_solve(self.LU_piv, self.right_hand_side())
         else:
             raise ValueError('This solver type is currently not implemented.')
+
+        for iS, particle in enumerate(self.particle_list):
+            particle.scattered_field.coefficients = b[self.index_block(iS)]
+
         sys.stdout.write("done. \n")
-
-    def right_hand_side(self):
-        tai = self.t_matrices * self.initial_field_coefficients[:, np.newaxis, :]
-        tai = tai.sum(axis=2)
-        return np.concatenate(tai)
-
-    def master_matrix(self):
-        dim = self.scattered_field_expansion.number_of_coefficients
-        NS = len(self.t_matrices[:, 0, 0])
-        blocksize = len(self.t_matrices[0, 0, :])
-        mm = np.eye(NS * blocksize, dtype=complex)
-        w = np.reshape(self.coupling_matrix, (NS * blocksize, NS * blocksize))
-        for s in range(NS):
-            t = self.t_matrices[s, :, :]
-            wblockrow = w[s * blocksize:((s + 1) * blocksize), :]
-            twbl = np.dot(t, wblockrow)
-            mm[s * blocksize:((s + 1) * blocksize), :] -= twbl
-        return mm
 
 
 class Logger(object):
@@ -176,40 +162,3 @@ def welcome_message():
            "    SMUTHI version " + version + "\n"
            "********************************\n")
     return msg
-
-
-class LinearSystem:
-    """Linear equation for the scattered field swe coefficients."""
-    def __init__(self, initial_field, particle_collection, layer_system):
-
-        # compute initial field coefficients
-        sys.stdout.write("Compute initial field coefficients ... ")
-        sys.stdout.flush()
-        self.initial_field_expansion = initial_field.spherical_wave_expansion(particle_collection, layer_system)
-        sys.stdout.write("done. \n")
-
-        # compute T-matrix
-        sys.stdout.write("Compute T-matrices ... ")
-        sys.stdout.flush()
-        self.t_matrices = tmt.TMatrixCollection(initial_field, particle_collection, layer_system)
-        sys.stdout.write("done. \n")
-
-        self.scattered_field_expansion = fldex.SphericalWaveExpansion(particle_collection)
-
-        # compute particle coupling matrices
-        sys.stdout.write("Compute direct particle coupling matrix ... ")
-        sys.stdout.flush()
-        self.coupling_matrix = coup.direct_coupling_matrix(initial_field, particle_collection, layer_system)
-        sys.stdout.write("done. \n")
-        sys.stdout.write("Compute layer system mediated particle coupling matrix ... ")
-        sys.stdout.flush()
-        self.coupling_matrix += coup.layer_mediated_coupling_matrix(initial_field, particle_collection, layer_system,
-                                                                    wr_neff_contour)
-        sys.stdout.write("done. \n")
-
-        # how to solve?
-        self.solver = 'LU'
-
-        # only relevant if solver='LU'
-        self.LU_piv = None
-

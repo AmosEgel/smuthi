@@ -33,6 +33,7 @@ class Particle:
         self.refractive_index = refractive_index
         self.initial_field = fldex.RegularSphericalWaveExpansion(l_max=l_max, m_max=m_max)
         self.scattered_field = fldex.OutgoingSphericalWaveExpansion(l_max=l_max, m_max=m_max)
+        self.t_matrix = None
 
 
 class Sphere(Particle):
