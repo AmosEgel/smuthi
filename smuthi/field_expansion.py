@@ -73,118 +73,126 @@ def blocksize(l_max, m_max):
     return multi_to_single_index(tau=1, l=l_max, m=m_max, l_max=l_max, m_max=m_max) + 1
 
 
-class RegularSphericalWaveExpansion:
-    def __init__(self, l_max, m_max=None):
+class SphericalWaveExpansion:
+    def __init__(self, k, l_max, m_max=None, type=None, reference_point=None, valid_between=None):
+        self.k = k
         self.l_max = l_max
         if m_max:
             self.m_max = m_max
         else:
             self.m_max = l_max
         self.coefficients = np.zeros(blocksize(self.l_max, self.m_max), dtype=complex)
+        self.type = type  # 'regular' or 'outgoing'
+        self.reference_point = reference_point
+        self.valid_between = valid_between
 
-
-class OutgoingSphericalWaveExpansion:
-    def __init__(self, l_max, m_max=None):
-        self.l_max = l_max
-        if m_max:
-            self.m_max = m_max
-        else:
-            self.m_max = l_max
-        self.coefficients = None
-
-
-class SphericalWaveExpansion_old:
-    r"""A class to manage spherical wave expansions of the form
-
-    .. math::
-        \mathbf{E}(\mathbf{r}) = \sum_{S} \sum_{\tau} \sum_l \sum_m c_{S \tau l m}
-        \Psi^{(\nu)}_{\tau l m}(\mathbf{r}-\mathbf{r}_S),
-
-    where :math:`\mathbf{\Psi}_{\tau l m}^{(\nu)}` are the regular (:math:`\nu=1`) or outgoing (:math:`\nu=3`) SVWFs,
-    see :meth:`spherical_vector_wave_function`, :math:`\mathbf{r}_S` is the reference point
-    of particle :math:`S` whereas :math:`\tau=1,2`, :math:`l=1,...,l_\mathrm{max}` and
-    :math:`m=-\min(l,m_\mathrm{max}),...,\min(l,m_\mathrm{max})` are the indices of the SVWFs.
-
-    The SphericalWaveExpansion object contains the expansion ceofficients :math:`c_{S \tau l m}`, stored as a ndarray,
-    as well as metadata and methods to assign the entries of that array to the particles and multipole indices.
-
-    Args:
-        particle_collection (smuthi.particles.ParticleCollection):  Particle collection to which the SWE refers.
-
-    Attributes:
-        particle_collection (smuthi.particles.ParticleCollection): Particle collection to which the SWE refers.
-        blocksizes (list): Blocksizes of the coefficient vector segments belonging to the individual particles.
-        number_of_coefficients (int): Total size of the coefficients vector
-        coefficients (array): The actual expansion coefficients as an array. The expansion coefficients of the
-                              individual particles are concatenated to a single overall array.
-    """
-
-    def __init__(self, particle_collection):
-        self.particle_collection = particle_collection
-        self.blocksizes = [blocksize(particle.l_max, particle.m_max) for particle in self.particle_collection.particles]
-        self.number_of_coefficients = sum(self.blocksizes)
-        self.coefficients = np.zeros(self.number_of_coefficients, dtype=complex)
-
-    def multi_to_collection_index(self, iS, tau, l, m):
-        """Index of a given multipole for a given particle in the coefficients array.
-
-        Args:
-            iS (int):   Particle number
-            tau (int):  Spherical polarization
-            l (int):    Multipole degree
-            m (int):    Multipole order
-
-        Returns:
-            Collection index (int)
-        """
-        return sum(self.blocksizes[:iS]) + multi_to_single_index(tau, l, m,
-                                                                 self.particle_collection.particles[iS].l_max,
-                                                                 self.particle_collection.particles[iS].m_max)
-
-    def collection_index_block(self, iS):
-        """Numpy array of indices that refer to a segment of the coefficients vector that belong to a certain particle.
-
-        Args:
-            iS (int): Particle number
-
-        Returns:
-            Numpy array of indices for iS.
-        """
-        lmax = self.particle_collection.particles[iS].l_max
-        mmax = self.particle_collection.particles[iS].m_max
-        return np.arange(self.multi_to_collection_index(iS, 0, 1, -mmax),
-                         self.multi_to_collection_index(iS, 1, lmax, mmax) + 1, dtype=int)
-
-    def expansion_coefficient(self, iS, tau, l, m):
-        r"""Single expansion coefficient for fixed particle and SWE index combination
-
-        Args:
-            iS (int):       Particle number
-            tau (int):      Polarization index :math:`\tau`(0=spherical TE, 1=spherical TM)
-            l (int):        Degree :math:`l` (1, ..., lmax)
-            m (int):        Order :math:`m` (-min(l,mmax),...,min(l,mmax))
-
-        Returns:
-            expansion coefficient :math:`c_{S \tau l m}`
-        """
-        return self.coefficients[self.multi_to_collection_index(iS, tau, l, m)]
-
-    def coefficient_block(self, iS):
-        """Expansion coefficients belonging to a certain particle.
-
-        Args:
-            iS (int): Particle number
-
-        Returns:
-            Numpy array of expansion coefficients for particle iS.
-        """
-        return self.coefficients[self.collection_index_block(iS)]
-
-    def electric_field(self, field_points, reference_point, wavenumber):
-        pass  # to do
+    def coefficients_tlm(self, tau, l, m):
+        n = multi_to_single_index(self.tau, self.l, self.m, self.l_max, self.m_max)
+        return self.coefficients[n]
 
 
 class PlaneWaveExpansion:
+    r"""A class to manage plane wave expansions of the form
+
+    .. math::
+        \mathbf{E}(\mathbf{r}) = \sum_{j=1}^2 \iint \mathrm{d}^2\mathbf{k}_\parallel \,
+        (g_{ij}^+(\kappa, \alpha) \mathbf{\Phi}^+_j(\kappa, \alpha; \mathbf{r} - \mathbf{r}_i) +
+        g_{ij}^-(\kappa, \alpha) \mathbf{\Phi}^-_j(\kappa, \alpha; \mathbf{r} - \mathbf{r}_i) )
+
+    for :math:`\mathbf{r}` located in the :math:`i`-th layer of a layered medium and
+    :math:`\mathrm{d}^2\mathbf{k}_\parallel = \kappa\,\mathrm{d}\alpha\,\mathrm{d}\kappa` and the double integral
+    runs over :math:`\alpha\in[0, 2\pi]` and :math:`\kappa\in[0,\kappa_\mathrm{max}]`. Further,
+    :math:`\mathbf{\Phi}^\pm_j` are the PVWFs, see :meth:`plane_vector_wave_function`.
+
+    Internally, the expansion coefficients :math:`g_{ij}^\pm(\kappa, \alpha)` are stored as a list of 4-dimensional
+    arrays.
+    If the attributes n_effective and azimuthal_angles have only a single entry, a discrete distribution is
+    assumed:
+
+    .. math::
+        g_{ij}^-(\kappa, \alpha) \sim \delta^2(\mathbf{k}_\parallel - \mathbf{k}_{\parallel, 0})
+
+    Args:
+        n_effective (ndarray):                      :math:`n_\mathrm{eff} = \kappa / \omega`, can be float or complex
+                                                    numpy.array
+        azimuthal_angles (ndarray):                 :math:`\alpha`, from 0 to :math:`2\pi`
+        layer_system (smuthi.layers.LayerSystem):   Layer system in which the field is expanded
+
+    Attributes:
+        n_effective (array): Effective refractive index values of plane waves. Can for example be generated with
+            smuthi.coordinates.ComplexContour
+        azimuthal_angles (array): Azimuthal propagation angles of partial plane waves
+        layer_system (smuthi.layers.LayerSystem): Layer system object to which the plane wave expansion refers.
+        coefficients (list of numpy arrays): coefficients[i][j, pm, k, l] contains
+            :math:`g^\pm_{ij}(\kappa_{k}, \alpha_{l})`, where :math:`\pm` is + for pm = 0 and :math:`\pm` is - for
+            pm = 1, and the coordinates :math:`\kappa_{k}` and :math:`\alpha_{l}` correspond to n_effective[k] times the
+            angular frequency and azimuthal_angles[l], respectively.
+    """
+    def __init__(self, k, k_parallel=None, azimuthal_angles=None, type=None, reference_point=None,
+                 valid_between=None):
+
+        self.k = k
+        self.k_parallel = k_parallel
+        self.azimuthal_angles = azimuthal_angles
+        self.type = type  # 'upgoing' or 'downgoing'
+        self.reference_point = reference_point
+        self.valid_between = valid_between
+
+        # The coefficients :math:`g^\pm_{j}(\kappa,\alpha) are represented as a 3-dimensional numpy.ndarray.
+        # The indices are:
+        # -  polarization (0=TE, 1=TM)
+        # - index of the kappa dimension
+        # - index of the alpha dimension
+        self.coefficients = np.zeros((2, len(k_parallel), len(azimuthal_angles)), dtype=complex)
+
+    def k_parallel_grid(self):
+        """Meshgrid of n_effective with respect to azimuthal_angles"""
+        kp_grid, _ = np.meshgrid(self.k_parallel, self.azimuthal_angles, indexing='ij')
+        return kp_grid
+
+    def azimuthal_angle_grid(self):
+        """Meshgrid of azimuthal_angles with respect to n_effective"""
+        _, a_grid = np.meshgrid(self.k_parallel, self.azimuthal_angles, indexing='ij')
+        return a_grid
+
+    def k_z(self):
+        if self.type == 'upgoing':
+            kz = coord.k_z(k_parallel=self.k_parallel, k=self.k)
+        elif self.type == 'downgoing':
+            kz = -coord.k_z(k_parallel=self.k_parallel, k=self.k)
+        else:
+            raise ValueError('pwe type undefined')
+        return kz
+
+    def k_z_grid(self):
+        if self.type == 'upgoing':
+            kz = coord.k_z(k_parallel=self.k_parallel_grid(), k=self.k)
+        elif self.type == 'downgoing':
+            kz = -coord.k_z(k_parallel=self.k_parallel_grid(), k=self.k)
+        else:
+            raise ValueError('pwe type undefined')
+        return kz
+
+    def __add__(self, other):
+        if not (self.k == other.k and self.k_parallel == other.n_effective
+                and self.azimuthal_angles == other.azimuthal_angles and self.type == other.type
+                and self.reference_point == other.reference_point):
+            raise ValueError('Plane wave expansion are inconsistent.')
+        pwe_sum = PlaneWaveExpansion(k=self.k, k_parallel=self.k_parallel, azimuthal_angles=self.azimuthal_angles,
+                                     type=self.type, reference_point=self.reference_point)
+        pwe_sum.valid_between = (max(min(self.valid_between), min(other.valid_between)),
+                                 min(max(self.valid_between), max(other.valid_between)))
+        pwe_sum.coefficients = self.coefficients + other.coefficients
+        return pwe_sum
+
+    def electric_field(self, field_points, reference_point):
+        """
+        .. todo:: implement
+        """
+        pass
+
+
+class PlaneWaveExpansion_old:
     r"""A class to manage plane wave expansions of the form
 
     .. math::
@@ -297,69 +305,89 @@ class PlaneWaveExpansion:
         """
         pass
 
-    def swe_coefficients(self, vacuum_wavelength, particle):
-        """Regular spherical wave expansion of the field represented by this plane wave expansion.
 
-        .. todo:: Speed up by recycling the Bdag values
-        """
-        coeff = np.zeros(blocksize(particle.initial_field.l_max))
-        a = RegularSphericalWaveExpansion(particle_collection)
-        angular_frequency = coord.angular_frequency(vacuum_wavelength)
-        kpvec = self.n_effective * angular_frequency
-        ngrid = self.n_effective_grid()
-        agrid = self.azimuthal_angle_grid()
-        kx = ngrid * np.cos(agrid) * angular_frequency
-        ky = ngrid * np.sin(agrid) * angular_frequency
+def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
 
-        for i, particle in enumerate(particle_collection.particles):
-            lmax = particle.l_max
-            mmax = particle.m_max
-            iS = self.layer_system.layer_number(particle.position[2])
-            k_iS = self.layer_system.refractive_indices[iS] * angular_frequency
-            kz_iS = coord.k_z(k_parallel=self.n_effective_grid() * angular_frequency, k=k_iS)
+    if reference_point[2] < min(pwe.valid_between) or reference_point[2] > max(pwe.valid_between):
+        raise ValueError('reference point not inside domain of pwe validity')
 
-            kz_iS_vec = coord.k_z(k_parallel=self.n_effective * angular_frequency, k=k_iS)
+    swe = SphericalWaveExpansion(k=pwe.k, l_max=l_max, m_max=m_max, type='regular', reference_point=reference_point)
+    kpgrid = pwe.k_parallel_grid()
+    agrid = pwe.azimuthal_angle_grid()
+    kx = kpgrid * np.cos(agrid)
+    ky = kpgrid * np.sin(agrid)
+    kz = pwe.k_z_grid()
+    kzvec = pwe.k_z()
 
-            kvec_pl_iS = np.array([kx, ky, kz_iS])
-            kvec_mn_iS = np.array([kx, ky, -kz_iS])
+    kvec = np.array([kx, ky, kz])
+    rswe_mn_rpwe = np.array(reference_point) - np.array(pwe.reference_point)
 
-            rvec_iS = np.array([0, 0, self.layer_system.reference_z(iS)])
-            rvec_S = np.array(particle.position)
+    # phase factor for the translation of the reference point from rvec_iS to rvec_S
+    ejkriSS = np.exp(1j * np.tensordot(kvec, rswe_mn_rpwe, axes=([0], [0])))
 
-            # phase factors for the translation of the reference point from rvec_iS to rvec_S
-            ejkplriSS = np.exp(1j * np.tensordot(kvec_pl_iS, rvec_S - rvec_iS, axes=([0], [0])))
-            ejkmnriSS = np.exp(1j * np.tensordot(kvec_mn_iS, rvec_S - rvec_iS, axes=([0], [0])))
+    # phase factor times pwe coefficients
+    gejkriSS = pwe.coefficients * ejkriSS[None, :, :]  # indices: pol, jk, ja
 
-            # phase factors times pwe coefficients
-            gejkplriSS = self.coefficients[iS][:, 0, :, :] * ejkplriSS[None, :, :]  # indices: pol, jk, ja
-            gejkmnriSS = self.coefficients[iS][:, 1, :, :] * ejkmnriSS[None, :, :]
+    for tau in range(2):
+        for m in range(-m_max, m_max + 1):
+            emjma = np.exp(-1j * m * pwe.azimuthal_angles)
+            for l in range(max(1, abs(m)), l_max + 1):
+                ak_integrand = np.zeros(kpgrid.shape, dtype=complex)
+                for pol in range(2):
+                    Bdag = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=pwe.k_parallel, kz=kzvec, dagger=True)
+                    ak_integrand += (np.outer(Bdag, emjma) * gejkriSS[pol, :, :])
+                if len(pwe.k_parallel) > 1:
+                    an = np.trapz(np.trapz(ak_integrand, pwe.azimuthal_angles) * pwe.k_parallel, pwe.k_parallel) * 4
+                else:
+                    an = ak_integrand * 4
+                swe.coefficients[multi_to_single_index(tau, l, m, swe.l_max, swe.m_max)] = an[0, 0]
+    return swe
 
-            # indices: n, pol, pl/mn, jk
-            Bdag = np.zeros((blocksize(lmax, mmax), 2, 2, len(self.n_effective)), dtype=complex)
-            # indices: n, ja
-            emjma = np.zeros((blocksize(lmax, mmax),len(self.azimuthal_angle_grid())), dtype=complex)
+
+def swe_to_pwe_conversion(swe, k_parallel, azimuthal_angles, reference_point, valid_between=(-np.inf, np.inf)):
+
+    pwe_up = PlaneWaveExpansion(k=swe.k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, type='upgoing',
+                                reference_point=reference_point, valid_between=(swe.reference_point[2],
+                                                                                max(valid_between)))
+
+    pwe_down = PlaneWaveExpansion(k=swe.k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, type='downgoing',
+                                  reference_point=reference_point, valid_between=(min(valid_between),
+                                                                                  swe.reference_point[2]))
+
+    agrid = pwe_up.azimuthal_angle_grid()
+    kpgrid = pwe_up.k_parallel_grid()
+
+    kx = kpgrid * np.cos(agrid)
+    ky = kpgrid * np.sin(agrid)
+    kz_up = pwe_up.k_z_grid()
+    kz_down = pwe_down.k_z_grid()
+
+    kzvec = pwe_up.k_z()
+
+    kvec_up = np.array([kx, ky, kz_up])
+    kvec_down = np.array([kx, ky, kz_down])
+    rpwe_mn_rswe = np.array(reference_point) - np.array(swe.reference_point)
+
+    # phase factor for the translation of the reference point from rvec_S to rvec_iS
+    ejkrSiS_up = np.exp(1j * np.tensordot(kvec_up, rpwe_mn_rswe, axes=([0], [0])))
+    ejkrSiS_down = np.exp(1j * np.tensordot(kvec_down, rpwe_mn_rswe, axes=([0], [0])))
+
+    for m in range(-swe.mmax, swe.mmax + 1):
+        eima = np.exp(1j * m * azimuthal_angles)  # indices: alpha_idx
+        for l in range(max(1, abs(m)), swe.lmax + 1):
             for tau in range(2):
-                for m in range(-mmax, mmax + 1):
-                    emjma_temp =  np.exp(-1j * m * self.azimuthal_angles)
-                    for l in range(max(1, abs(m)), lmax + 1):
-                        n = multi_to_single_index(tau, l, m, l_max=lmax, m_max=mmax)
-                        an_integrand = np.zeros(ngrid.shape, dtype=complex)
-                        emjma[n, :] = emjma_temp
-                        for pol in range(2):
-                            Bdag[n, pol, 0, :] = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=kpvec,
-                                                                                 kz=kz_iS_vec, dagger=True)
-                            Bdag[n, pol, 1, :] = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=kpvec,
-                                                                                 kz=-kz_iS_vec, dagger=True)
-                            an_integrand += (np.outer(Bdag[n, pol, 0, :], emjma[n, :]) * gejkplriSS[pol, :, :]
-                                             + np.outer(Bdag[n, pol, 1, :], emjma[n, :]) * gejkmnriSS[pol, :, :])
+                for pol in range(2):
+                    b = swe.coefficients_tlm(tau, l, m)
+                    B_up = transformation_coefficients_VWF(tau, l, m, pol, pwe_up.k_parallel, pwe_up.k_z())
+                    pwe_up.coefficients[pol, :, :] += b * B_up * eima
+                    B_down = transformation_coefficients_VWF(tau, l, m, pol, pwe_down.k_parallel, pwe_down.k_z())
+                    pwe_down.coefficients[pol, :, :] += b * B_down * eima
 
-                        if len(self.n_effective) > 1:
-                            an = np.trapz(np.trapz(an_integrand, self.azimuthal_angle_grid()) * self.n_effective,
-                                          self.n_effective) * 4 * angular_frequency**2
-                        else:
-                            an = an_integrand * 4
-                        a.coefficients[a.multi_to_collection_index(i, tau, l, m)] = an[0, 0]
-        return a
+    pwe_up.coefficients = pwe_up.coefficients / (2 * np.pi * kzvec[None, :, None] * swe.k) * ejkrSiS_up[None, :, :]
+    pwe_down.coefficients = (pwe_down.coefficients / (2 * np.pi * kzvec[None, :, None] * swe.k)
+                             * ejkrSiS_down[None, :, :])
+
+    return pwe_up, pwe_down
 
 
 def plane_vector_wave_function(x, y, z, kp, alpha, kz, pol):
@@ -508,8 +536,8 @@ def transformation_coefficients_VWF(tau, l, m, pol, kp=None, kz=None, pilm_list=
         l (int):            l=1,... SVWF multipole degree
         m (int):            m=-l,...,l SVWF multipole order
         pol (int):          PVWF polarization, 0 for TE, 1 for TM
-        kp (array):         PVWF in-plane wavenumbers
-        kz (array):         complex numpy-array: PVWF out-of-plane wavenumbers
+        kp (numpy array):         PVWF in-plane wavenumbers
+        kz (numpy array):         complex numpy-array: PVWF out-of-plane wavenumbers
         pilm_list (list):   2D list numpy-arrays: alternatively to kp and kz, pilm and taulm as generated with
                             legendre_normalized can directly be handed
         taulm_list (list):  2D list numpy-arrays: alternatively to kp and kz, pilm and taulm as generated with
@@ -693,58 +721,3 @@ def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
         a = complex(jfac * fac1 * fac2a * wig1 * wig2a)
         b = complex(jfac * fac1 * fac2b * wig1 * wig2b)
     return a, b
-
-
-def pwe_to_swe_conversion(pwe, swe, vacuum_wavelength, particle_position):
-    coefficients = np.zeros(blocksize(swe.l_max, swe.m_max), dtype=complex)
-    angular_frequency = coord.angular_frequency(vacuum_wavelength)
-    kpvec = pwe.n_effective * angular_frequency
-    ngrid = pwe.n_effective_grid()
-    agrid = pwe.azimuthal_angle_grid()
-    kx = ngrid * np.cos(agrid) * angular_frequency
-    ky = ngrid * np.sin(agrid) * angular_frequency
-
-    iS = pwe.layer_system.layer_number(particle_position[2])
-    k_iS = pwe.layer_system.refractive_indices[iS] * angular_frequency
-    kz_iS = coord.k_z(k_parallel=pwe.n_effective_grid() * angular_frequency, k=k_iS)
-    kz_iS_vec = coord.k_z(k_parallel=pwe.n_effective * angular_frequency, k=k_iS)
-    kvec_pl_iS = np.array([kx, ky, kz_iS])
-    kvec_mn_iS = np.array([kx, ky, -kz_iS])
-
-    rvec_iS = np.array([0, 0, pwe.layer_system.reference_z(iS)])
-    rvec_S = np.array(particle_position)
-
-    # phase factors for the translation of the reference point from rvec_iS to rvec_S
-    ejkplriSS = np.exp(1j * np.tensordot(kvec_pl_iS, rvec_S - rvec_iS, axes=([0], [0])))
-    ejkmnriSS = np.exp(1j * np.tensordot(kvec_mn_iS, rvec_S - rvec_iS, axes=([0], [0])))
-
-    # phase factors times pwe coefficients
-    gejkplriSS = pwe.coefficients[iS][:, 0, :, :] * ejkplriSS[None, :, :]  # indices: pol, jk, ja
-    gejkmnriSS = pwe.coefficients[iS][:, 1, :, :] * ejkmnriSS[None, :, :]
-
-    # indices: n, pol, pl/mn, jk
-    Bdag = np.zeros((blocksize(swe.l_max, swe.m_max), 2, 2, len(pwe.n_effective)), dtype=complex)
-    # indices: n, ja
-    emjma = np.zeros((blocksize(swe.l_max, swe.m_max), len(pwe.azimuthal_angle_grid())), dtype=complex)
-    for tau in range(2):
-        for m in range(-swe.m_max, swe.m_max + 1):
-            emjma_temp = np.exp(-1j * m * pwe.azimuthal_angles)
-            for l in range(max(1, abs(m)), swe.l_max + 1):
-                n = multi_to_single_index(tau, l, m, l_max=swe.l_max, m_max=swe.m_max)
-                an_integrand = np.zeros(ngrid.shape, dtype=complex)
-                emjma[n, :] = emjma_temp
-                for pol in range(2):
-                    Bdag[n, pol, 0, :] = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=kpvec,
-                                                                         kz=kz_iS_vec, dagger=True)
-                    Bdag[n, pol, 1, :] = transformation_coefficients_VWF(tau, l, m, pol=pol, kp=kpvec,
-                                                                         kz=-kz_iS_vec, dagger=True)
-                    an_integrand += (np.outer(Bdag[n, pol, 0, :], emjma[n, :]) * gejkplriSS[pol, :, :]
-                                     + np.outer(Bdag[n, pol, 1, :], emjma[n, :]) * gejkmnriSS[pol, :, :])
-
-                if len(pwe.n_effective) > 1:
-                    an = np.trapz(np.trapz(an_integrand, pwe.azimuthal_angle_grid()) * pwe.n_effective,
-                                  pwe.n_effective) * 4 * angular_frequency ** 2
-                else:
-                    an = an_integrand * 4
-                coefficients[multi_to_single_index(tau, l, m, swe.l_max, swe.m_max)] = an[0, 0]
-    return coefficients
