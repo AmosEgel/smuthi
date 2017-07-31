@@ -8,7 +8,6 @@ import smuthi.layers as lay
 import smuthi.spherical_functions as sf
 import smuthi.field_expansion as fldex
 import matplotlib.pyplot as plt
-import warnings
 
 
 def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emitting_particle, layer_system, neff_contour,
@@ -29,10 +28,10 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
     omega = coord.angular_frequency(vacuum_wavelength)
 
     # index specs
-    lmax1 = receiving_particle.scattered_field.l_max
-    mmax1 = receiving_particle.scattered_field.m_max
-    lmax2 = emitting_particle.scattered_field.l_max
-    mmax2 = emitting_particle.scattered_field.m_max
+    lmax1 = receiving_particle.l_max
+    mmax1 = receiving_particle.m_max
+    lmax2 = emitting_particle.l_max
+    mmax2 = emitting_particle.m_max
     blocksize1 = fldex.blocksize(lmax1, mmax1)
     blocksize2 = fldex.blocksize(lmax2, mmax2)
 
@@ -74,7 +73,6 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
     # list index: particle, np indices: pol, plus/minus, n, kpar_idx
 
     m_vec = [np.zeros(blocksize1, dtype=int), np.zeros(blocksize1, dtype=int)]
-    kz_tup = (kzis1, kzis2)
     plmn_tup = (1, -1)
 
     for tau in range(2):
@@ -142,8 +140,7 @@ def layer_mediated_coupling_matrix(vacuum_wavelength, particle_list, layer_syste
         Ensemble coupling matrix as numpy array.
     """
     # indices
-    blocksizes = [fldex.blocksize(particle.scattered_field.l_max, particle.scattered_field.m_max)
-                  for particle in particle_list]
+    blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in particle_list]
 
     # initialize result
     wr = np.zeros((sum(blocksizes), sum(blocksizes)), dtype=complex)
@@ -152,8 +149,8 @@ def layer_mediated_coupling_matrix(vacuum_wavelength, particle_list, layer_syste
         idx1 = np.array(range(sum(blocksizes[:s1]), sum(blocksizes[:s1]) + blocksizes[s1]))
         for s2, particle2 in enumerate(particle_list):
             idx2 = range(sum(blocksizes[:s2]), sum(blocksizes[:s2]) + blocksizes[s2])
-            wr[idx1[:, None], idx2] = layer_mediated_coupling_block(vacuum_wavelength, particle1, particle2, layer_system,
-                                                          neff_contour)
+            wr[idx1[:, None], idx2] = layer_mediated_coupling_block(vacuum_wavelength, particle1, particle2,
+                                                                    layer_system, neff_contour)
 
     return wr
 
@@ -173,10 +170,10 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
     omega = coord.angular_frequency(vacuum_wavelength)
 
     # index specs
-    lmax1 = receiving_particle.scattered_field.l_max
-    mmax1 = receiving_particle.scattered_field.m_max
-    lmax2 = emitting_particle.scattered_field.l_max
-    mmax2 = emitting_particle.scattered_field.m_max
+    lmax1 = receiving_particle.l_max
+    mmax1 = receiving_particle.m_max
+    lmax2 = emitting_particle.l_max
+    mmax2 = emitting_particle.m_max
     blocksize1 = fldex.blocksize(lmax1, mmax1)
     blocksize2 = fldex.blocksize(lmax2, mmax2)
 
@@ -238,7 +235,7 @@ def direct_coupling_matrix(vacuum_wavelength, particle_list, layer_system):
         Ensemble coupling matrix as numpy array.
     """
     # indices
-    blocksizes = [fldex.blocksize(particle.scattered_field.l_max, particle.scattered_field.m_max)
+    blocksizes = [fldex.blocksize(particle.l_max, particle.m_max)
                   for particle in particle_list]
 
     # initialize result

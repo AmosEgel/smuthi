@@ -2,7 +2,6 @@
 import numpy as np
 import sympy.physics.wigner
 import sympy
-import smuthi.layers as lay
 import smuthi.coordinates as coord
 import smuthi.spherical_functions as sf
 
@@ -90,17 +89,30 @@ class SphericalWaveExpansion:
         n = multi_to_single_index(self.tau, self.l, self.m, self.l_max, self.m_max)
         return self.coefficients[n]
 
+    def __add__(self, other):
+        if not (self.k == other.k and self.l_max == other.l_max and self.m_max == other.m_max
+                and self.type == other.type and self.reference_point == other.reference_point):
+            raise ValueError('SphericalWaveExpansions are inconsistent.')
+        swe_sum = SphericalWaveExpansion(k=self.k, l_max=self.l_max, m_max=self.m_max, type=self.type,
+                                         reference_point=self.reference_point)
+        if self.valid_between:
+            swe_sum.valid_between = (max(min(self.valid_between), min(other.valid_between)),
+                                     min(max(self.valid_between), max(other.valid_between)))
+        else:
+            swe_sum.valid_between = None
+        swe_sum.coefficients = self.coefficients + other.coefficients
+        return swe_sum
+
 
 class PlaneWaveExpansion:
     r"""A class to manage plane wave expansions of the form
 
     .. math::
-        \mathbf{E}(\mathbf{r}) = \sum_{j=1}^2 \iint \mathrm{d}^2\mathbf{k}_\parallel \,
-        (g_{ij}^+(\kappa, \alpha) \mathbf{\Phi}^+_j(\kappa, \alpha; \mathbf{r} - \mathbf{r}_i) +
-        g_{ij}^-(\kappa, \alpha) \mathbf{\Phi}^-_j(\kappa, \alpha; \mathbf{r} - \mathbf{r}_i) )
+        \mathbf{E}(\mathbf{r}) = \sum_{j=1}^2 \iint \mathrm{d}^2\mathbf{k}_\parallel \, g_{j}(\kappa, \alpha)
+        \mathbf{\Phi}^\pm_j(\kappa, \alpha; \mathbf{r} - \mathbf{r}_i)
 
-    for :math:`\mathbf{r}` located in the :math:`i`-th layer of a layered medium and
-    :math:`\mathrm{d}^2\mathbf{k}_\parallel = \kappa\,\mathrm{d}\alpha\,\mathrm{d}\kappa` and the double integral
+    for :math:`\mathbf{r}` located in a layer defined by :math:`z\in [z_{min}, z_{max}]`
+    and :math:`\mathrm{d}^2\mathbf{k}_\parallel = \kappa\,\mathrm{d}\alpha\,\mathrm{d}\kappa` and the double integral
     runs over :math:`\alpha\in[0, 2\pi]` and :math:`\kappa\in[0,\kappa_\mathrm{max}]`. Further,
     :math:`\mathbf{\Phi}^\pm_j` are the PVWFs, see :meth:`plane_vector_wave_function`.
 
@@ -112,6 +124,8 @@ class PlaneWaveExpansion:
     .. math::
         g_{ij}^-(\kappa, \alpha) \sim \delta^2(\mathbf{k}_\parallel - \mathbf{k}_{\parallel, 0})
 
+    .. todo: update attributes doc
+
     Args:
         n_effective (ndarray):                      :math:`n_\mathrm{eff} = \kappa / \omega`, can be float or complex
                                                     numpy.array
@@ -119,8 +133,7 @@ class PlaneWaveExpansion:
         layer_system (smuthi.layers.LayerSystem):   Layer system in which the field is expanded
 
     Attributes:
-        n_effective (array): Effective refractive index values of plane waves. Can for example be generated with
-            smuthi.coordinates.ComplexContour
+        k_parallel (array): Array of in-plane wavenumbers
         azimuthal_angles (array): Azimuthal propagation angles of partial plane waves
         layer_system (smuthi.layers.LayerSystem): Layer system object to which the plane wave expansion refers.
         coefficients (list of numpy arrays): coefficients[i][j, pm, k, l] contains
@@ -128,8 +141,7 @@ class PlaneWaveExpansion:
             pm = 1, and the coordinates :math:`\kappa_{k}` and :math:`\alpha_{l}` correspond to n_effective[k] times the
             angular frequency and azimuthal_angles[l], respectively.
     """
-    def __init__(self, k, k_parallel=None, azimuthal_angles=None, type=None, reference_point=None,
-                 valid_between=None):
+    def __init__(self, k, k_parallel=None, azimuthal_angles=None, type=None, reference_point=None, valid_between=None):
 
         self.k = k
         self.k_parallel = k_parallel
@@ -174,7 +186,7 @@ class PlaneWaveExpansion:
         return kz
 
     def __add__(self, other):
-        if not (self.k == other.k and self.k_parallel == other.n_effective
+        if not (self.k == other.k and self.k_parallel == other.k_parallel
                 and self.azimuthal_angles == other.azimuthal_angles and self.type == other.type
                 and self.reference_point == other.reference_point):
             raise ValueError('Plane wave expansion are inconsistent.')

@@ -77,8 +77,7 @@ def t_matrix(vacuum_wavelength, n_medium, particle):
         k_medium = 2 * np.pi / vacuum_wavelength * n_medium
         k_particle = 2 * np.pi / vacuum_wavelength * particle.refractive_index
         radius = particle.radius
-        t = t_matrix_sphere(k_medium, k_particle, radius, particle.scattered_field.l_max,
-                            particle.scattered_field.m_max)
+        t = t_matrix_sphere(k_medium, k_particle, radius, particle.l_max, particle.m_max)
     elif type(particle).__name__ == 'Spheroid':
         if not particle.euler_angles == [0, 0, 0]:
             raise ValueError('T-matrix for rotated particles currently not implemented.')

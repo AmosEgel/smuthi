@@ -16,7 +16,7 @@ particle2 = smuthi.particles.Sphere(position=rS2, l_max=3, m_max=3)
 particle_list = [particle, particle2]
 plane_wave = init.PlaneWave(vacuum_wavelength=ld, polar_angle=beta, azimuthal_angle=alpha, polarization=pol,
                             amplitude=A, reference_point=[0, 0, 500])
-plane_wave.evaluate_swe_coefficients(particle, laysys)
+particle.initial_field = plane_wave.spherical_wave_expansion(particle, laysys)
 
 
 def test_SWE_coefficients_against_prototype():

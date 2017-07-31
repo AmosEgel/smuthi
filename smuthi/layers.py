@@ -5,6 +5,7 @@ import numpy as np
 import sympy
 from functools import lru_cache
 import smuthi.memoizing as memo
+import smuthi.field_expansion as fldex
 
 
 # global variables
@@ -96,6 +97,35 @@ class LayerSystem:
             else:
                 break
         return laynum
+
+    def response(self, pwe, from_layer, to_layer):
+
+        # to do: check validity of pwe in from_layer, testing, docstring, check if reference point of pwe coincides with
+        #        reference point of from_layer
+        omega = pwe.k / self.refractive_indices[from_layer]
+        k_to_layer = omega * self.refractive_indices[to_layer]
+        reference_point = [0, 0, self.reference_z(to_layer)]
+        valid_between = (self.lower_zlimit(to_layer), self.upper_zlimit(to_layer))
+        pwe_up = fldex.PlaneWaveExpansion(k=k_to_layer, k_parallel=pwe.k_parallel,
+                                          azimuthal_angles=pwe.azimuthal_angles,
+                                          type='upgoing', reference_point=reference_point, valid_between=valid_between)
+        pwe_down = fldex.PlaneWaveExpansion(k=k_to_layer, k_parallel=pwe.k_parallel,
+                                            azimuthal_angles=pwe.azimuthal_angles,
+                                            type='downgoing', reference_point=reference_point,
+                                            valid_between=valid_between)
+        for pol in range(2):
+            L = layersystem_response_matrix(pol, self.thicknesses, self.refractive_indices, pwe.k_parallel, omega,
+                                            from_layer, to_layer)
+            if pwe.type == 'upgoing':
+                pwe_up.coefficients[pol, :, :] = L[0, 0, :] * pwe.coefficients[pol, :, :]
+                pwe_down.coefficients[pol, :, :] = L[1, 0, :] * pwe.coefficients[pol, :, :]
+            elif pwe.type == 'downgoing':
+                pwe_up.coefficients[pol, :, :] = L[0, 1, :] * pwe.coefficients[pol, :, :]
+                pwe_down.coefficients[pol, :, :] = L[1, 1, :] * pwe.coefficients[pol, :, :]
+            else:
+                raise ValueError('pwe type undefined')
+
+        return pwe_up, pwe_down
 
 
 def fresnel_r(pol, kz1, kz2, n1, n2):

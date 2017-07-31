@@ -31,8 +31,10 @@ class Particle:
 
         self.euler_angles=euler_angles
         self.refractive_index = refractive_index
-        self.initial_field = fldex.RegularSphericalWaveExpansion(l_max=l_max, m_max=m_max)
-        self.scattered_field = fldex.OutgoingSphericalWaveExpansion(l_max=l_max, m_max=m_max)
+        self.l_max = l_max
+        self.m_max = m_max
+        self.initial_field = None
+        self.scattered_field = None
         self.t_matrix = None
 
 

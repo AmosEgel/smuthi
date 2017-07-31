@@ -4,6 +4,7 @@
 import smuthi.t_matrix as tmt
 import smuthi.particle_coupling as coup
 import smuthi.field_expansion as fldex
+import smuthi.coordinates as coord
 import sys
 import os
 import matplotlib.pyplot as plt
@@ -75,7 +76,7 @@ class Simulation:
         sys.stdout.write("Compute initial field coefficients ... ")
         sys.stdout.flush()
         for particle in self.particle_list:
-            self.initial_field.evaluate_swe_coefficients(particle, self.layer_system)
+            particle.initial_field = self.initial_field.spherical_wave_expansion(particle, self.layer_system)
         sys.stdout.write("done. \n")
 
         # compute T-matrix
@@ -101,13 +102,11 @@ class Simulation:
         sys.stdout.write("done. \n")
 
     def number_of_unknowns(self):
-        blocksizes = [fldex.blocksize(particle.scattered_field.l_max, particle.scattered_field.m_max)
-                      for particle in self.particle_list]
+        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list]
         return sum(blocksizes)
 
     def index_block(self, iS):
-        blocksizes = [fldex.blocksize(particle.scattered_field.l_max, particle.scattered_field.m_max)
-                      for particle in self.particle_list]
+        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list]
         return range(sum(blocksizes[:iS]), sum(blocksizes[:(iS + 1)]))
 
     def right_hand_side(self):
@@ -137,6 +136,10 @@ class Simulation:
             raise ValueError('This solver type is currently not implemented.')
 
         for iS, particle in enumerate(self.particle_list):
+            n_iS = self.layer_system.refractive_indices[self.layer_system.layer_number(particle.position[2])]
+            k = coord.angular_frequency(self.initial_field.vacuum_wavelength) * n_iS
+            particle.scattered_field = fldex.SphericalWaveExpansion(k=k, l_max=particle.l_max, m_max=particle.m_max,
+                                                                    type='outgoing', reference_point=particle.position)
             particle.scattered_field.coefficients = b[self.index_block(iS)]
 
         sys.stdout.write("done. \n")
