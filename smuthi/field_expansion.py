@@ -86,8 +86,28 @@ class SphericalWaveExpansion:
         self.valid_between = valid_between
 
     def coefficients_tlm(self, tau, l, m):
-        n = multi_to_single_index(self.tau, self.l, self.m, self.l_max, self.m_max)
+        n = multi_to_single_index(tau, l, m, self.l_max, self.m_max)
         return self.coefficients[n]
+
+    def electric_field(self, x, y, z):
+        xr = x - self.reference_point[0]
+        yr = y - self.reference_point[1]
+        zr = z - self.reference_point[2]
+        ex = np.zeros(len(x), dtype=complex)
+        ey = np.zeros(len(x), dtype=complex)
+        ez = np.zeros(len(x), dtype=complex)
+        for tau in range(2):
+            for m in range(-self.m_max, self.m_max + 1):
+                for l in range(max(1, abs(m)), self.l_max + 1):
+                    b = self.coefficients_tlm(tau, l, m)
+                    if self.type == 'regular':
+                        Nx, Ny, Nz = spherical_vector_wave_function(xr, yr, zr, self.k, 1, tau, l, m)
+                    elif self.type == 'outgoing':
+                        Nx, Ny, Nz = spherical_vector_wave_function(xr, yr, zr, self.k, 3, tau, l, m)
+                    ex += b * Nx
+                    ey += b * Ny
+                    ez += b * Nz
+        return ex, ey, ez
 
     def __add__(self, other):
         if not (self.k == other.k and self.l_max == other.l_max and self.m_max == other.m_max
@@ -118,7 +138,7 @@ class PlaneWaveExpansion:
 
     Internally, the expansion coefficients :math:`g_{ij}^\pm(\kappa, \alpha)` are stored as a list of 4-dimensional
     arrays.
-    If the attributes n_effective and azimuthal_angles have only a single entry, a discrete distribution is
+    If the attributes k_parallel and azimuthal_angles have only a single entry, a discrete distribution is
     assumed:
 
     .. math::
@@ -186,8 +206,8 @@ class PlaneWaveExpansion:
         return kz
 
     def __add__(self, other):
-        if not (self.k == other.k and self.k_parallel == other.k_parallel
-                and self.azimuthal_angles == other.azimuthal_angles and self.type == other.type
+        if not (self.k == other.k and all(self.k_parallel == other.k_parallel)
+                and all(self.azimuthal_angles == other.azimuthal_angles) and self.type == other.type
                 and self.reference_point == other.reference_point):
             raise ValueError('Plane wave expansion are inconsistent.')
         pwe_sum = PlaneWaveExpansion(k=self.k, k_parallel=self.k_parallel, azimuthal_angles=self.azimuthal_angles,
@@ -197,125 +217,47 @@ class PlaneWaveExpansion:
         pwe_sum.coefficients = self.coefficients + other.coefficients
         return pwe_sum
 
-    def electric_field(self, field_points, reference_point):
-        """
-        .. todo:: implement
-        """
-        pass
+    def electric_field(self, x, y, z):
+        """To do: doc, check if z inside domain of validity"""
+        xr = x - self.reference_point[0]
+        yr = y - self.reference_point[1]
+        zr = z - self.reference_point[2]
 
+        kpgrid = self.k_parallel_grid()
+        agrid = self.azimuthal_angle_grid()
+        kx = kpgrid * np.cos(agrid)
+        ky = kpgrid * np.sin(agrid)
+        kz = self.k_z_grid()
 
-class PlaneWaveExpansion_old:
-    r"""A class to manage plane wave expansions of the form
+        kr = np.zeros((len(x), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
+        kr += np.tensordot(xr, kx, axes=0)
+        kr += np.tensordot(yr, ky, axes=0)
+        kr += np.tensordot(zr, kz, axes=0)
+        eikr = np.exp(1j * kr)
 
-    .. math::
-        \mathbf{E}(\mathbf{r}) = \sum_{j=1}^2 \iint \mathrm{d}^2\mathbf{k}_\parallel \,
-        (g_{ij}^+(\kappa, \alpha) \mathbf{\Phi}^+_j(\kappa, \alpha; \mathbf{r} - \mathbf{r}_i) +
-        g_{ij}^-(\kappa, \alpha) \mathbf{\Phi}^-_j(\kappa, \alpha; \mathbf{r} - \mathbf{r}_i) )
+        integrand_x = np.zeros((len(x), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
+        integrand_y = np.zeros((len(x), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
+        integrand_z = np.zeros((len(x), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
 
-    for :math:`\mathbf{r}` located in the :math:`i`-th layer of a layered medium and
-    :math:`\mathrm{d}^2\mathbf{k}_\parallel = \kappa\,\mathrm{d}\alpha\,\mathrm{d}\kappa` and the double integral
-    runs over :math:`\alpha\in[0, 2\pi]` and :math:`\kappa\in[0,\kappa_\mathrm{max}]`. Further,
-    :math:`\mathbf{\Phi}^\pm_j` are the PVWFs, see :meth:`plane_vector_wave_function`.
+        # pol=0
+        integrand_x += (-np.sin(agrid) * self.coefficients[0, :, :])[None, :, :] * eikr
+        integrand_y += (np.cos(agrid) * self.coefficients[0, :, :])[None, :, :] * eikr
 
-    Internally, the expansion coefficients :math:`g_{ij}^\pm(\kappa, \alpha)` are stored as a list of 4-dimensional
-    arrays.
-    If the attributes n_effective and azimuthal_angles have only a single entry, a discrete distribution is
-    assumed:
+        # pol=1
+        integrand_x += (np.cos(agrid) * kz / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
+        integrand_y += (np.sin(agrid) * kz / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
+        integrand_z += (-kpgrid / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
 
-    .. math::
-        g_{ij}^-(\kappa, \alpha) \sim \delta^2(\mathbf{k}_\parallel - \mathbf{k}_{\parallel, 0})
+        if len(self.k_parallel) > 1:
+            ex = np.trapz(np.trapz(integrand_x, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
+            ey = np.trapz(np.trapz(integrand_y, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
+            ez = np.trapz(np.trapz(integrand_z, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
+        else:
+            ex = np.squeeze(integrand_x)
+            ey = np.squeeze(integrand_y)
+            ez = np.squeeze(integrand_z)
 
-    Args:
-        n_effective (ndarray):                      :math:`n_\mathrm{eff} = \kappa / \omega`, can be float or complex
-                                                    numpy.array
-        azimuthal_angles (ndarray):                 :math:`\alpha`, from 0 to :math:`2\pi`
-        layer_system (smuthi.layers.LayerSystem):   Layer system in which the field is expanded
-
-    Attributes:
-        n_effective (array): Effective refractive index values of plane waves. Can for example be generated with
-            smuthi.coordinates.ComplexContour
-        azimuthal_angles (array): Azimuthal propagation angles of partial plane waves
-        layer_system (smuthi.layers.LayerSystem): Layer system object to which the plane wave expansion refers.
-        coefficients (list of numpy arrays): coefficients[i][j, pm, k, l] contains
-            :math:`g^\pm_{ij}(\kappa_{k}, \alpha_{l})`, where :math:`\pm` is + for pm = 0 and :math:`\pm` is - for
-            pm = 1, and the coordinates :math:`\kappa_{k}` and :math:`\alpha_{l}` correspond to n_effective[k] times the
-            angular frequency and azimuthal_angles[l], respectively.
-    """
-    def __init__(self, n_effective=None, azimuthal_angles=None, layer_system=None):
-
-        self.n_effective = n_effective
-        self.azimuthal_angles = azimuthal_angles
-        self.layer_system = layer_system
-
-        # The coefficients :math:`g^\pm_{ij}(\kappa,\alpha) are represented as a list of 4-dimensional numpy.ndarrays.
-        # The i-th entry of the list corresponds to the plane wave expansion in layer i.
-        # In each of the ndarrays, the indices are:
-        # -  polarization (0=TE, 1=TM)
-        # -  pl/mn: (0=forward propagation, 1=backward propagation)
-        # - index of the kappa dimension
-        # - index of the alpha dimension
-        self.coefficients = [np.zeros((2, 2, len(n_effective), len(azimuthal_angles)), dtype=complex)
-                             for i in range(layer_system.number_of_layers())]
-
-    def n_effective_grid(self):
-        """Meshgrid of n_effective with respect to azimuthal_angles"""
-        neff_grid, _ = np.meshgrid(self.n_effective, self.azimuthal_angles, indexing='ij')
-        return neff_grid
-
-    def azimuthal_angle_grid(self):
-        """Meshgrid of azimuthal_angles with respect to n_effective"""
-        _, a_grid = np.meshgrid(self.n_effective, self.azimuthal_angles, indexing='ij')
-        return a_grid
-
-    def response(self, vacuum_wavelength, excitation_layer_number, layer_numbers='all'):
-        """Construct the plane wave expansion of the layer system response to this plane wave expansion.
-
-        Args:
-            vacuum_wavelength (float)
-            excitation_layer_number (int):  The coefficients of this layer are interpreted as an excitation PWE
-            layer_numbers (list or str):    If 'all', propagate field to all layers. Otherwise, only to the layers the
-                                            numbers of which are part of that list
-
-        Returns:
-            :class:`PlaneWaveExpansion` object containing the layer system response in the layers
-            specified in the layer_numbers argument.
-        """
-        if layer_numbers == 'all':
-            layer_numbers = range(self.layer_system.number_of_layers())
-        omega = coord.angular_frequency(vacuum_wavelength)
-        kpar = self.n_effective * omega
-        response_pwe = PlaneWaveExpansion(n_effective=self.n_effective, azimuthal_angles=self.azimuthal_angles,
-                                          layer_system=self.layer_system)
-        gex = self.coefficients[excitation_layer_number]
-        for iL in layer_numbers:
-            gij = np.zeros((2, 2, len(self.n_effective), len(self.azimuthal_angles)), dtype=complex)
-            l_matrix = np.zeros((2, 2, 2, len(self.n_effective)), dtype=complex)
-            for pol in range(2):
-                l_matrix[pol, :, :, :] = lay. layersystem_response_matrix(pol, self.layer_system.thicknesses,
-                                                                          self.layer_system.refractive_indices, kpar,
-                                                                          omega, excitation_layer_number, iL)
-            for pol in [0, 1]:
-                for ud_excite in [0, 1]:
-                    for ud_receive in [0, 1]:
-                     gij[pol, ud_receive, :, :] += l_matrix[pol, ud_receive, ud_excite, :] * gex[pol, ud_excite, :, :]
-            response_pwe.coefficients[iL] = gij
-
-        return response_pwe
-
-    def __add__(self, other):
-        if not (self.n_effective == other.n_effective and self.azimuthal_angles == other.azimuthal_angles
-                and self.layer_system == other.layer_system):
-            raise ValueError('Plane wave expansion are inconsistent.')
-        pwe_sum = PlaneWaveExpansion(n_effective=self.n_effective, azimuthal_angles=self.azimuthal_angles,
-                                     layer_system=self.layer_system)
-        pwe_sum.coefficients = [self.coefficients[i] + other.coefficients[i] for i in range(len(self.coefficients))]
-        return pwe_sum
-
-    def electric_field(self, field_points, reference_point):
-        """
-        .. todo:: implement
-        """
-        pass
+        return ex, ey, ez
 
 
 def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
@@ -352,7 +294,7 @@ def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
                     an = np.trapz(np.trapz(ak_integrand, pwe.azimuthal_angles) * pwe.k_parallel, pwe.k_parallel) * 4
                 else:
                     an = ak_integrand * 4
-                swe.coefficients[multi_to_single_index(tau, l, m, swe.l_max, swe.m_max)] = an[0, 0]
+                swe.coefficients[multi_to_single_index(tau, l, m, swe.l_max, swe.m_max)] = np.squeeze(an)
     return swe
 
 
@@ -384,16 +326,16 @@ def swe_to_pwe_conversion(swe, k_parallel, azimuthal_angles, reference_point, va
     ejkrSiS_up = np.exp(1j * np.tensordot(kvec_up, rpwe_mn_rswe, axes=([0], [0])))
     ejkrSiS_down = np.exp(1j * np.tensordot(kvec_down, rpwe_mn_rswe, axes=([0], [0])))
 
-    for m in range(-swe.mmax, swe.mmax + 1):
+    for m in range(-swe.m_max, swe.m_max + 1):
         eima = np.exp(1j * m * azimuthal_angles)  # indices: alpha_idx
-        for l in range(max(1, abs(m)), swe.lmax + 1):
+        for l in range(max(1, abs(m)), swe.l_max + 1):
             for tau in range(2):
                 for pol in range(2):
                     b = swe.coefficients_tlm(tau, l, m)
                     B_up = transformation_coefficients_VWF(tau, l, m, pol, pwe_up.k_parallel, pwe_up.k_z())
-                    pwe_up.coefficients[pol, :, :] += b * B_up * eima
+                    pwe_up.coefficients[pol, :, :] += b * B_up[:, None] * eima[None, :]
                     B_down = transformation_coefficients_VWF(tau, l, m, pol, pwe_down.k_parallel, pwe_down.k_z())
-                    pwe_down.coefficients[pol, :, :] += b * B_down * eima
+                    pwe_down.coefficients[pol, :, :] += b * B_down[:, None] * eima[None, :]
 
     pwe_up.coefficients = pwe_up.coefficients / (2 * np.pi * kzvec[None, :, None] * swe.k) * ejkrSiS_up[None, :, :]
     pwe_down.coefficients = (pwe_down.coefficients / (2 * np.pi * kzvec[None, :, None] * swe.k)

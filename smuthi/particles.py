@@ -32,7 +32,10 @@ class Particle:
         self.euler_angles=euler_angles
         self.refractive_index = refractive_index
         self.l_max = l_max
-        self.m_max = m_max
+        if m_max is not None:
+            self.m_max = m_max
+        else:
+            self.m_max = l_max
         self.initial_field = None
         self.scattered_field = None
         self.t_matrix = None
