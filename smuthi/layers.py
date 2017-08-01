@@ -100,18 +100,16 @@ class LayerSystem:
 
     def response(self, pwe, from_layer, to_layer):
 
-        # to do: check validity of pwe in from_layer, testing, docstring, check if reference point of pwe coincides with
-        #        reference point of from_layer
+        # todo: check validity of pwe in from_layer, testing, docstring, check if reference point of pwe coincides with
+        #       reference point of from_layer
 
-        if hasattr(pwe, '__len__'):
-            pwe_up_list = []
-            pwe_down_list = []
-            for pwe_i in pwe:
-                pwe_up_i, pwe_down_i = self.response(pwe_i, from_layer, to_layer)
-                pwe_up_list.append(pwe_up_i)
-                pwe_down_list.append(pwe_down_i)
-            pwe_up = sum(pwe_up_list[0:], pwe_up_list[0])
-            pwe_down = sum(pwe_down_list[0:], pwe_down_list[0])
+        if hasattr(pwe, '__len__') and len(pwe) == 2:
+            pwe_up_0, pwe_down_0 = self.response(pwe[0], from_layer, to_layer)
+            pwe_up_1, pwe_down_1 = self.response(pwe[1], from_layer, to_layer)
+            pwe_up = pwe_up_0 + pwe_up_1
+            pwe_down = pwe_down_0 + pwe_down_1
+        elif hasattr(pwe, '__len__'):
+            raise ValueError('pwe argument must be either PlaneWaveExpansion or tuple of length two')
         else:
             omega = pwe.k / self.refractive_indices[from_layer]
             k_to_layer = omega * self.refractive_indices[to_layer]
