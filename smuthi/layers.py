@@ -102,28 +102,40 @@ class LayerSystem:
 
         # to do: check validity of pwe in from_layer, testing, docstring, check if reference point of pwe coincides with
         #        reference point of from_layer
-        omega = pwe.k / self.refractive_indices[from_layer]
-        k_to_layer = omega * self.refractive_indices[to_layer]
-        reference_point = [0, 0, self.reference_z(to_layer)]
-        valid_between = (self.lower_zlimit(to_layer), self.upper_zlimit(to_layer))
-        pwe_up = fldex.PlaneWaveExpansion(k=k_to_layer, k_parallel=pwe.k_parallel,
-                                          azimuthal_angles=pwe.azimuthal_angles,
-                                          type='upgoing', reference_point=reference_point, valid_between=valid_between)
-        pwe_down = fldex.PlaneWaveExpansion(k=k_to_layer, k_parallel=pwe.k_parallel,
-                                            azimuthal_angles=pwe.azimuthal_angles,
-                                            type='downgoing', reference_point=reference_point,
-                                            valid_between=valid_between)
-        for pol in range(2):
-            L = layersystem_response_matrix(pol, self.thicknesses, self.refractive_indices, pwe.k_parallel, omega,
-                                            from_layer, to_layer)
-            if pwe.type == 'upgoing':
-                pwe_up.coefficients[pol, :, :] = L[0, 0, :] * pwe.coefficients[pol, :, :]
-                pwe_down.coefficients[pol, :, :] = L[1, 0, :] * pwe.coefficients[pol, :, :]
-            elif pwe.type == 'downgoing':
-                pwe_up.coefficients[pol, :, :] = L[0, 1, :] * pwe.coefficients[pol, :, :]
-                pwe_down.coefficients[pol, :, :] = L[1, 1, :] * pwe.coefficients[pol, :, :]
-            else:
-                raise ValueError('pwe type undefined')
+
+        if hasattr(pwe, '__len__'):
+            pwe_up_list = []
+            pwe_down_list = []
+            for pwe_i in pwe:
+                pwe_up_i, pwe_down_i = self.response(pwe_i, from_layer, to_layer)
+                pwe_up_list.append(pwe_up_i)
+                pwe_down_list.append(pwe_down_i)
+            pwe_up = sum(pwe_up_list[0:], pwe_up_list[0])
+            pwe_down = sum(pwe_down_list[0:], pwe_down_list[0])
+        else:
+            omega = pwe.k / self.refractive_indices[from_layer]
+            k_to_layer = omega * self.refractive_indices[to_layer]
+            reference_point = [0, 0, self.reference_z(to_layer)]
+            valid_between = (self.lower_zlimit(to_layer), self.upper_zlimit(to_layer))
+            pwe_up = fldex.PlaneWaveExpansion(k=k_to_layer, k_parallel=pwe.k_parallel,
+                                              azimuthal_angles=pwe.azimuthal_angles,
+                                              type='upgoing', reference_point=reference_point,
+                                              valid_between=valid_between)
+            pwe_down = fldex.PlaneWaveExpansion(k=k_to_layer, k_parallel=pwe.k_parallel,
+                                                azimuthal_angles=pwe.azimuthal_angles,
+                                                type='downgoing', reference_point=reference_point,
+                                                valid_between=valid_between)
+            for pol in range(2):
+                L = layersystem_response_matrix(pol, self.thicknesses, self.refractive_indices, pwe.k_parallel, omega,
+                                                from_layer, to_layer)
+                if pwe.type == 'upgoing':
+                    pwe_up.coefficients[pol, :, :] = L[0, 0, :][:, None] * pwe.coefficients[pol, :, :]
+                    pwe_down.coefficients[pol, :, :] = L[1, 0, :][:, None] * pwe.coefficients[pol, :, :]
+                elif pwe.type == 'downgoing':
+                    pwe_up.coefficients[pol, :, :] = L[0, 1, :][:, None] * pwe.coefficients[pol, :, :]
+                    pwe_down.coefficients[pol, :, :] = L[1, 1, :][:, None] * pwe.coefficients[pol, :, :]
+                else:
+                    raise ValueError('pwe type undefined')
 
         return pwe_up, pwe_down
 
