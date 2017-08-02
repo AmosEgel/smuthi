@@ -164,8 +164,14 @@ class PlaneWaveExpansion:
     def __init__(self, k, k_parallel=None, azimuthal_angles=None, type=None, reference_point=None, valid_between=None):
 
         self.k = k
-        self.k_parallel = k_parallel
-        self.azimuthal_angles = azimuthal_angles
+        if hasattr(k_parallel, '__len__'):
+            self.k_parallel = np.array(k_parallel)
+        else:
+            self.k_parallel = np.array([k_parallel])
+        if hasattr(azimuthal_angles, '__len__'):
+            self.azimuthal_angles = np.array(azimuthal_angles)
+        else:
+            self.azimuthal_angles = np.array([azimuthal_angles])
         self.type = type  # 'upgoing' or 'downgoing'
         self.reference_point = reference_point
         self.valid_between = valid_between
@@ -175,7 +181,7 @@ class PlaneWaveExpansion:
         # -  polarization (0=TE, 1=TM)
         # - index of the kappa dimension
         # - index of the alpha dimension
-        self.coefficients = np.zeros((2, len(k_parallel), len(azimuthal_angles)), dtype=complex)
+        self.coefficients = np.zeros((2, len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
 
     def k_parallel_grid(self):
         """Meshgrid of n_effective with respect to azimuthal_angles"""
@@ -327,7 +333,7 @@ def swe_to_pwe_conversion(swe, k_parallel, azimuthal_angles, reference_point, va
     ejkrSiS_down = np.exp(1j * np.tensordot(kvec_down, rpwe_mn_rswe, axes=([0], [0])))
 
     for m in range(-swe.m_max, swe.m_max + 1):
-        eima = np.exp(1j * m * azimuthal_angles)  # indices: alpha_idx
+        eima = np.exp(1j * m * pwe_up.azimuthal_angles)  # indices: alpha_idx
         for l in range(max(1, abs(m)), swe.l_max + 1):
             for tau in range(2):
                 for pol in range(2):

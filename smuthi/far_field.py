@@ -4,9 +4,8 @@ import smuthi.layers as lay
 import smuthi.field_expansion as fldex
 
 
-def scattering_cross_section(initial_field=None, polar_angles=None, azimuthal_angles=None,
-                             particle_collection=None, linear_system=None, layer_system=None,
-                             layerresponse_precision=None):
+def scattering_cross_section(initial_field=None, polar_angles=None, azimuthal_angles=None, particle_list=None,
+                             layer_system=None):
     """Evaluate and display the differential scattering cross section as a function of solid angle.
 
     Args:
@@ -17,16 +16,14 @@ def scattering_cross_section(initial_field=None, polar_angles=None, azimuthal_an
         layer_system (smuthi.layers.LayerSystem): stratified medium
 
     Returns:
-        A dictionary with the following entries:
-
-        - 'differential':     Differential cross section as an np.array of dimension 2 x nb x na where nb is the number of polar angles and na is the number of azimuthal angles. The first index refers to polarization.
-        - 'total':            Total cross section as list with two entries (for two polarizations)
-        - 'polar':            Polar differential cross section (that is scattered power per polar angle, divided by incoming
-                              intensity)
-        - 'polar angles':     Polar angles for which the differential cross section was evaluated
-        - 'azimuthal angles': Azimuthal angles for which the differential cross section was evaluated
-        - 'forward indices':  The indices of polar angles that correspond to directions in the top hemisphere
-        - 'backward indices': The indices of polar angles that correspond to directions in the bottom hemisphere
+        A dictionary with the following entries
+            - 'differential':     Differential cross section as an np.array of dimension 2 x nb x na where nb is the number of polar angles and na is the number of azimuthal angles. The first index refers to polarization.
+            - 'total':            Total cross section as list with two entries (for two polarizations)
+            - 'polar':            Polar differential cross section (that is scattered power per polar angle, divided by incoming intensity)
+            - 'polar angles':     Polar angles for which the differential cross section was evaluated
+            - 'azimuthal angles': Azimuthal angles for which the differential cross section was evaluated
+            - 'forward indices':  The indices of polar angles that correspond to directions in the top hemisphere
+            - 'backward indices': The indices of polar angles that correspond to directions in the bottom hemisphere
     """
     if not type(initial_field).__name__ == 'PlaneWave':
         raise ValueError('Cross section only defined for single plane wave excitation.')
@@ -60,8 +57,8 @@ def scattering_cross_section(initial_field=None, polar_angles=None, azimuthal_an
     initial_intensity = abs(A_P) ** 2 * abs(np.cos(beta_P)) * n_P / 2
 
     # differential scattering cross section
-    dscs = scattered_far_field(polar_angles, vacuum_wavelength, azimuthal_angles, particle_collection, linear_system,
-                               layer_system, layerresponse_precision)['intensity'] / initial_intensity
+    dscs = scattered_far_field(polar_angles, vacuum_wavelength, azimuthal_angles, particle_list,
+                               layer_system)['intensity'] / initial_intensity
 
     top_idcs = polar_angles <= (np.pi / 2)
     bottom_idcs = polar_angles > (np.pi / 2)
@@ -92,36 +89,33 @@ def scattering_cross_section(initial_field=None, polar_angles=None, azimuthal_an
     return scs
 
 
-def extinction_cross_section(initial_field_collection=None, particle_collection=None, linear_system=None,
-                             layer_system=None, layerresponse_precision=None):
-    """Evaluate and display the differential scattering cross section as a function of solid angle. Return dictionary
-    with entries
-    'forward':      Extinction in the positinve z-direction (top layer)
-    'backward':     Extinction in the negative z-direction (bottom layer)
+def extinction_cross_section(initial_field, particle_list, layer_system):
+    """Evaluate and display the differential scattering cross section as a function of solid angle.
 
-    polar_angles:               (float) array of polar angles (radian), default: from 1 to 180 degree in steps of 1
-    initial_field_collection:   smuthi.initial_field.InitialFieldCollection object
-    azimuthal_angles:           (float) array of azimuthal angles (radian), default: from 1 to 360 degree in steps of 1
-    particle_collection:        smuthi.particles.ParticleCollection object
-    linear_system:              smuthi.linear_system.LinearSystem object
-    layer_system:               smuthi.layers.LayerSystem object
-    layerresponse_precision:    If None, standard numpy is used for the layer response. If int>0, that many decimal
-                                digits are considered in multiple precision. (default=None)
+    Args:
+        initial_field (smuthi.initial_field.PlaneWave): Plane wave object
+        particle_list (list): List of smuthi.particles.Particle objects
+        layer_system (smuthi.layers.LayerSystem): Representing the stratified medium
+
+    Returns:
+        Dictionary with following entries
+            - 'forward':      Extinction in the positinve z-direction (top layer)
+            - 'backward':     Extinction in the negative z-direction (bottom layer)
     """
-    if (len(initial_field_collection.specs_list) > 1
-         or not initial_field_collection.specs_list[0]['type'] == 'plane wave'):
-        raise ValueError('Cross section only defined for single plane wave excitation.')
+    if not type(initial_field).__name__ == 'PlaneWave':
+        raise ValueError('Cross section only defined for plane wave excitation.')
 
     i_top = layer_system.number_of_layers() - 1
-    vacuum_wavelength = initial_field_collection.vacuum_wavelength
+    z_top = layer_system.reference_z(i_top)
+    vacuum_wavelength = initial_field.vacuum_wavelength
     omega = coord.angular_frequency(vacuum_wavelength)
     k_bot = omega * layer_system.refractive_indices[0]
     k_top = omega * layer_system.refractive_indices[-1]
 
     # read plane wave parameters
-    pol_P = initial_field_collection.specs_list[0]['polarization']
-    beta_P = initial_field_collection.specs_list[0]['polar angle']
-    alpha_P = initial_field_collection.specs_list[0]['azimuthal angle']
+    pol_P = initial_field.polarization
+    beta_P = initial_field.polar_angle
+    alpha_P = initial_field.azimuthal_angle
 
     if beta_P < np.pi / 2:
         i_P = 0
@@ -143,45 +137,47 @@ def extinction_cross_section(initial_field_collection=None, particle_collection=
     pm_kz_P = k_P * np.cos(beta_P)
     kvec_P = np.array([kx, ky, pm_kz_P])
     rvec_iP = np.array([0, 0, layer_system.reference_z(i_P)])
-    rvec_0 = np.array(initial_field_collection.specs_list[0]['reference point'])
+    rvec_0 = np.array(initial_field.reference_point)
     ejkriP = np.exp(1j * np.dot(kvec_P, rvec_iP - rvec_0))
-    A_P = initial_field_collection.specs_list[0]['amplitude'] * ejkriP
+    A_P = initial_field.amplitude * ejkriP
 
     initial_intensity = abs(A_P) ** 2 * abs(np.cos(beta_P)) * n_P / 2
 
-    # bottom extinction
-    Lbot = lay.layersystem_response_matrix(pol_P, layer_system.thicknesses, layer_system.refractive_indices, kappa_P,
-                                           omega, i_P, 0, layerresponse_precision)
-    gRPbot = (Lbot[1, 0] + Lbot[1, 1]) * A_P
+    pwe_scat_top = fldex.PlaneWaveExpansion(k=k_top, k_parallel=kappa_P, azimuthal_angles=alpha_P, type='upgoing',
+                                            reference_point=[0, 0, z_top], valid_between=(z_top, np.inf))
+    pwe_scat_bottom = fldex.PlaneWaveExpansion(k=k_bot, k_parallel=kappa_P, azimuthal_angles=alpha_P, type='downgoing',
+                                               reference_point=[0, 0, 0], valid_between=(-np.inf, 0))
 
-    gr_scat_bottom_list = pwp.plane_wave_pattern_rs(
-        n_effective=np.array([kappa_P/omega]), azimuthal_angles=np.array([alpha_P]),
-        vacuum_wavelength=vacuum_wavelength, particle_collection=particle_collection, linear_system=linear_system,
-        layer_system=layer_system, layer_numbers=[0])
-    g_scat_bottom_list = pwp.plane_wave_pattern_s(
-        n_effective=np.array([kappa_P/omega]), azimuthal_angles=np.array([alpha_P]),
-        vacuum_wavelength=vacuum_wavelength, particle_collection=particle_collection, linear_system=linear_system,
-        layer_system=layer_system, layer_numbers=[0])
+    for iS, particle in enumerate(particle_list):
+        i_iS = layer_system.layer_number(particle.position[2])
+        z_i_iS = layer_system.reference_z(i_iS)
+        valid_between = (layer_system.lower_zlimit(i_iS), layer_system.upper_zlimit(i_iS))
+        pwe_up, pwe_down = fldex.swe_to_pwe_conversion(particle.scattered_field, kappa_P, alpha_P,
+                                                       reference_point=[0, 0, z_i_iS], valid_between=valid_between)
+
+        top_pwe_up, _ = layer_system.response([pwe_up, pwe_down], from_layer=i_iS, to_layer=i_top)
+        pwe_scat_top = pwe_scat_top + top_pwe_up
+        if i_iS == i_top:
+            pwe_scat_top = pwe_scat_top + pwe_up  # direct scattered field
+
+        _, bot_pwe_down = layer_system.response([pwe_up, pwe_down], from_layer=i_iS, to_layer=0)
+        pwe_scat_bottom = pwe_scat_bottom + bot_pwe_down
+        if i_iS == 0:
+            pwe_scat_bottom = pwe_scat_bottom + pwe_down
+
+    # bottom extinction
+    _, pwe_init_bottom = initial_field.plane_wave_expansion(layer_system, 0)
     kz_bot = coord.k_z(k_parallel=kappa_P, k=k_bot)
-    g_scat_bottom = gr_scat_bottom_list[0][pol_P, 1, 0, 0] + g_scat_bottom_list[0][pol_P, 1, 0, 0]
+    gRPbot =  np.squeeze(pwe_init_bottom.coefficients[pol_P])
+    g_scat_bottom = np.squeeze(pwe_scat_bottom.coefficients[pol_P])
     P_bot_ext = 4 * np.pi ** 2 * kz_bot / omega * (gRPbot * np.conj(g_scat_bottom)).real
     bottom_extinction_cs = - P_bot_ext / initial_intensity
 
-    # bottom extinction
-    Ltop = lay.layersystem_response_matrix(pol_P, layer_system.thicknesses, layer_system.refractive_indices, kappa_P,
-                                           omega, i_P, i_top, layerresponse_precision)
-    gRPtop = (Ltop[0, 0] + Ltop[0, 1]) * A_P
-
-    gr_scat_top_list = pwp.plane_wave_pattern_rs(
-        n_effective=np.array([kappa_P/omega]), azimuthal_angles=np.array([alpha_P]),
-        vacuum_wavelength=vacuum_wavelength, particle_collection=particle_collection, linear_system=linear_system,
-        layer_system=layer_system, layer_numbers=[i_top])
-    g_scat_top_list = pwp.plane_wave_pattern_s(
-        n_effective=np.array([kappa_P/omega]), azimuthal_angles=np.array([alpha_P]),
-        vacuum_wavelength=vacuum_wavelength, particle_collection=particle_collection, linear_system=linear_system,
-        layer_system=layer_system, layer_numbers=[i_top])
+    # top extinction
+    pwe_init_top, _ = initial_field.plane_wave_expansion(layer_system, i_top)
+    gRPtop = np.squeeze(pwe_init_top.coefficients[pol_P])
     kz_top = coord.k_z(k_parallel=kappa_P, k=k_top)
-    g_scat_top = gr_scat_top_list[0][pol_P, 0, 0, 0] + g_scat_top_list[0][pol_P, 0, 0, 0]
+    g_scat_top = np.squeeze(pwe_scat_top.coefficients[pol_P])
     P_top_ext = 4 * np.pi ** 2 * kz_top / omega * (gRPtop * np.conj(g_scat_top)).real
     top_extinction_cs = - P_top_ext / initial_intensity
 
@@ -193,31 +189,23 @@ def extinction_cross_section(initial_field_collection=None, particle_collection=
 def scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_angles=None, particle_list=None,
                         layer_system=None):
     """
+    Evaluate the scattered far field.
 
-    TODO: update doc
+    Args:
+        polar_angles (np array):        polar angles values (radian)
+        vacuum_wavelength (float):      in length units
+        azimuthal_angles (np array):    azimuthal angle values (radian)
+        particle_list (list):           list of smuthi.Particle objects
+        layer_system (smuthi.layers.LayerSystem): represents the stratified medium
 
-    Return a far_field dictionary with the following entries:
-    'intensity':        Radiant far field intensity as ndarray of shape 2 x nb x na where nb =len(polar_angles) and
-                        na = len(azimuthal_angles).
-                        The indices are:
-                        - polarization (0=TE, 1=TM)
-                        - polar angle index
-                        - azimuthal angle index
-    'polar intensity':  Polar far field, that is the power per polar angle as ndarray of shape 2 x nb
-    'top power':        Total scattered power into top layer (positive z direction)
-    'bottom power':     Total scattered power into bottom layer (negative z direction)
-    'polar angles':     Polar angles
-    'azimuthal angles': Azimuthal angles
-
-    input:
-    polar_angles:           (float) array of polar angles values (radian)
-    vacuum_wavelength:      (float, length unit)
-    azimuthal_angles:       (float) array of azimuthal angle values (radian)
-    particle_collection:    smuthi.particles.ParticleCollection object
-    linear_system:          smuthi.linear_system.LinearSystem object
-    layer_system:           smuthi.layers.LayerSystem object
-    layerresponse_precision:    If None, standard numpy is used for the layer response. If int>0, that many decimal
-                                digits are considered in multiple precision. (default=None)
+    Returns:
+        A dictionary with the following entries.
+            - 'intensity':          Radiant far field intensity as ndarray of shape 2 x nb x na where nb =len(polar_angles) and na = len(azimuthal_angles). The indices are: polarization (0=TE, 1=TM), polar angle index, azimuthal angle index.
+            - 'polar intensity':    Polar far field, that is the power per polar angle as ndarray of shape 2 x nb
+            - 'top power':          Total scattered power into top layer (positive z direction)
+            - 'bottom power':       Total scattered power into bottom layer (negative z direction)
+            - 'polar angles':       Polar angles
+            - 'azimuthal angles':   Azimuthal angles
     """
     omega = coord.angular_frequency(vacuum_wavelength)
     if polar_angles is None:

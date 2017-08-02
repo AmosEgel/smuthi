@@ -43,14 +43,14 @@ class PlaneWave(InitialField):
         else:
             self.reference_point = [0, 0, 0]
 
-    def plane_wave_expansion(self, layer_system, z):
+    def plane_wave_expansion(self, layer_system, i):
         """Plane wave expansion for the plane wave including its layer system response. As it already is a plane wave,
         the plane wave expansion is somehow trivial (containing only one partial wave, i.e., a discrete plane wave
         expansion).
 
         Args:
             layer_system (smuthi.layers.LayerSystem): Layer system object
-            z (float): position at which the PWE should be valid
+            i (int): layer number in which the plane wave expansion is valid
 
         Returns:
             Tuple of smuthi.field_expansion.PlaneWaveExpansion objects. The first element is an upgoing PWE, whereas the
@@ -58,11 +58,9 @@ class PlaneWave(InitialField):
         """
         if np.cos(self.polar_angle) > 0:
             iP = 0
-            ud_P = 0  # 0 for upwards
             type = 'upgoing'
         else:
             iP = layer_system.number_of_layers() - 1
-            ud_P = 1  # 1 for downwards
             type = 'downgoing'
 
         niP = layer_system.refractive_indices[iP]
@@ -81,9 +79,8 @@ class PlaneWave(InitialField):
         pwe_exc = fldex.PlaneWaveExpansion(k=k_iP, k_parallel=neff*angular_frequency, azimuthal_angles=alpha, type=type,
                                            reference_point=[0, 0, z_iP], valid_between=iP_between)
         pwe_exc.coefficients[self.polarization, 0, 0] = amplitude_iP
-        iz = layer_system.layer_number(z)
-        pwe_up, pwe_down = layer_system.response(pwe_exc, from_layer=iP, to_layer=iz)
-        if iP == iz:
+        pwe_up, pwe_down = layer_system.response(pwe_exc, from_layer=iP, to_layer=i)
+        if iP == i:
             if type == 'upgoing':
                 pwe_up = pwe_up + pwe_exc
             elif type == 'downgoing':
@@ -95,6 +92,7 @@ class PlaneWave(InitialField):
         """Regular spherical wave expansion of the plane wave including layer system response, at the locations of the
         particles
         """
-        pwe_up, pwe_down = self.plane_wave_expansion(layer_system, particle.position[2])
+        i = layer_system.layer_number(particle.position[2])
+        pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
         return (fldex.pwe_to_swe_conversion(pwe_up, particle.l_max, particle.m_max, particle.position)
                 + fldex.pwe_to_swe_conversion(pwe_down, particle.l_max, particle.m_max, particle.position))
