@@ -6,7 +6,6 @@ import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
 import smuthi.simulation as sim
-import smuthi.particle_coupling as coup
 import smuthi.coordinates as coord
 
 

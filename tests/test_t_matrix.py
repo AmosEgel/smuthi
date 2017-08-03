@@ -2,8 +2,8 @@
 """Test the functions defined in t_matrix.py."""
 
 import smuthi.t_matrix
-import smuthi.index_conversion
 import smuthi.particles
+import smuthi.field_expansion
 import numpy as np
 
 tau = 0
@@ -13,9 +13,8 @@ omega = 2 * 3.15 / 550
 n_medium = 1.6 + 0.1j
 n_particle = 2.6 + 0.4j
 radius = 260
-smuthi.index_conversion.l_max = 5
-smuthi.index_conversion.m_max = 5
-
+lmax = 10
+mmax = 10
 
 def test_Mie_against_prototype():
     q = smuthi.t_matrix.mie_coefficient(0, l, omega * n_medium, omega * n_particle, radius)
@@ -25,18 +24,18 @@ def test_Mie_against_prototype():
 
 
 def test_tmatrix():
-    t = smuthi.t_matrix.t_matrix_sphere(omega * n_medium, omega * n_particle, radius)
-    n = smuthi.index_conversion.multi_to_single_index(tau, l, m)
+    t = smuthi.t_matrix.t_matrix_sphere(omega * n_medium, omega * n_particle, radius, lmax, mmax)
+    n = smuthi.field_expansion.multi_to_single_index(tau, l, m, lmax, mmax)
     mie = smuthi.t_matrix.mie_coefficient(tau, l, omega * n_medium, omega * n_particle, radius)
     assert t[n, n] == mie
 
-    prtcl = smuthi.particles.ParticleCollection()
-    prtcl.add_sphere(100, 3, [100, 200, 300])
-    prtcl.add_sphere(100, 3, [200, -200, 200])
-    prtcl.add_sphere(200, 2 + 0.2j, [200, -200, 200])
+    sphere1 = smuthi.particles.Sphere(radius=100, refractive_index=3, position=[100, 200, 300], l_max=lmax, m_max=mmax)
+    sphere2 = smuthi.particles.Sphere(radius=100, refractive_index=3, position=[200, -200, 200], l_max=lmax, m_max=mmax)
+    sphere3 = smuthi.particles.Sphere(radius=200, refractive_index=2+0.2j, position=[200,-200,200], l_max=lmax,
+                                      m_max=mmax)
 
-    t2 = smuthi.t_matrix.t_matrix(vacuum_wavelength=550, n_medium=n_medium, particle=prtcl.particles[0])
-    t3 = smuthi.t_matrix.t_matrix_sphere(2*np.pi/550 * n_medium, 2*np.pi/550 * 3, 100)
+    t2 = smuthi.t_matrix.t_matrix(vacuum_wavelength=550, n_medium=n_medium, particle=sphere1)
+    t3 = smuthi.t_matrix.t_matrix_sphere(2*np.pi/550 * n_medium, 2*np.pi/550 * 3, 100, lmax, mmax)
     np.testing.assert_allclose(t2, t3)
 
 

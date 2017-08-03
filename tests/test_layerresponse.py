@@ -84,8 +84,8 @@ def test_layerresponse_method():
     pwe_r_up2, pwe_r_down2 = layer_system.response(pwe_down, fromlayer, tolayer)
     pwe_r_up3, pwe_r_down3 = layer_system.response((pwe_up, pwe_down), fromlayer, tolayer)
 
-    print(pwe_r_up.coefficients[0, 0, 0] + pwe_r_up2.coefficients[0, 0, 0])
-    print(pwe_r_up3.coefficients[0, 0, 0])
+    # print(pwe_r_up.coefficients[0, 0, 0] + pwe_r_up2.coefficients[0, 0, 0])
+    # print(pwe_r_up3.coefficients[0, 0, 0])
 
 
 
