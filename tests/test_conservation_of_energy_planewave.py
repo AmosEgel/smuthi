@@ -16,16 +16,15 @@ plane_wave_polar_angle = np.pi * 7/8
 plane_wave_azimuthal_angle = np.pi * 1/3
 plane_wave_polarization = 0
 plane_wave_amplitude = 1
-lmax = 3
 neff_waypoints = [0, 0.5, 0.8-0.01j, 2-0.01j, 2.5, 5]
 neff_discr = 5e-3
 
 # --------------------------------------------
 
 # initialize particle object
-sphere1 = part.Sphere(position=[100, 100, 150], refractive_index=2.4 + 0.0j, radius=110, l_max=lmax, m_max=lmax)
-sphere2 = part.Sphere(position=[-100, -100, 250], refractive_index=1.9 + 0.0j, radius=120, l_max=lmax, m_max=lmax)
-sphere3 = part.Sphere(position=[-200, 100, 300], refractive_index=1.7 + 0.0j, radius=90, l_max=lmax, m_max=lmax)
+sphere1 = part.Sphere(position=[100, 100, 150], refractive_index=2.4 + 0.0j, radius=110, l_max=4, m_max=4)
+sphere2 = part.Sphere(position=[-100, -100, 250], refractive_index=1.9 + 0.0j, radius=120, l_max=3, m_max=3)
+sphere3 = part.Sphere(position=[-200, 100, 300], refractive_index=1.7 + 0.0j, radius=90, l_max=3, m_max=3)
 particle_list = [sphere1, sphere2, sphere3]
 
 # initialize layer system object

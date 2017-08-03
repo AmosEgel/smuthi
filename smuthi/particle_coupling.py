@@ -72,7 +72,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
     B = [np.zeros((2, 2, blocksize1, len(neff)), dtype=complex), np.zeros((2, 2, blocksize2, len(neff)), dtype=complex)]
     # list index: particle, np indices: pol, plus/minus, n, kpar_idx
 
-    m_vec = [np.zeros(blocksize1, dtype=int), np.zeros(blocksize1, dtype=int)]
+    m_vec = [np.zeros(blocksize1, dtype=int), np.zeros(blocksize2, dtype=int)]
     plmn_tup = (1, -1)
 
     for tau in range(2):
@@ -109,7 +109,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
     for dm in range(lmax1 + lmax2 + 1):
         bessel_list.append(scipy.special.jv(dm, kpar * rhos2s1))
     bessel_full = np.array([[bessel_list[abs(m_vec[0][n1] - m_vec[1][n2])]
-                             for n1 in range(blocksize1)] for n2 in range(blocksize2)])
+                             for n2 in range(blocksize2)] for n1 in range(blocksize1)])
     jacobi_vector = kpar / (kzis2 * kis2)
     integrand = bessel_full * jacobi_vector * BeLBe
     integral = np.trapz(integrand, x=kpar, axis=-1)
@@ -201,12 +201,12 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
 
         for m1 in range(-mmax1, mmax1 + 1):
             for m2 in range(-mmax2, mmax2 + 1):
-                eimph = np.exp(1j * (m1 - m2) * phi)
+                eimph = np.exp(1j * (m2 - m1) * phi)
                 for l1 in range(max(1, abs(m1)), lmax1 + 1):
                     for l2 in range(max(1, abs(m2)), lmax2 + 1):
                         A, B = complex(0), complex(0)
                         for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
-                            a5, b5 = fldex.ab5_coefficients(l1, m1, l2, m2, ld)
+                            a5, b5 = fldex.ab5_coefficients(l2, m2, l1, m1, ld)
                             A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                             B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                         A, B = eimph * A, eimph * B
@@ -215,9 +215,9 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
                             for tau2 in range(2):
                                 n2 = fldex.multi_to_single_index(tau2, l2, m2, lmax2, mmax2)
                                 if tau1 == tau2:
-                                    w[n2, n1] = A  # remember that w = A.T
+                                    w[n1, n2] = A  # remember that w = A.T
                                 else:
-                                    w[n2, n1] = B
+                                    w[n1, n2] = B
 
     return w
 
