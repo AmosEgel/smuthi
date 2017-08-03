@@ -24,7 +24,7 @@ vacuum wavelength: 550
 # ----------------------------------------------------------------------------------------------------------------------
 
 layer system:
-- thicknesses: [0, 500, 0]
+  thicknesses: [0, 500, 0]
   refractive indices: [1.5, 1.9, 1]
   extinction coefficients: [0, 0, 0]
 
@@ -42,6 +42,8 @@ scattering particles:
   refractive index: 2.4
   extinction coefficient: 0.05
   position: [0, 100, 150]
+  l_max: 3
+  m_max: 3
 - shape: finite cylinder
   cylinder radius: 120
   cylinder height: 150
@@ -49,6 +51,11 @@ scattering particles:
   extinction coefficient: 0
   position: [350, -100, 250]
   euler angles: [0, 0, 0]
+  l_max: 4
+  m_max: 4
+  use discrete sources: true
+  nint: 200
+  nrank: 8
 - shape: spheroid
   semi axis c: 80
   semi axis a: 140
@@ -56,7 +63,23 @@ scattering particles:
   extinction coefficient: 0.05
   position: [-350, 50, 350]
   euler angles: [0, 0, 0]
+  l_max: 3
+  m_max: 3
+  use discrete sources: true
+  nint: 200
+  nrank: 8
 
+# The multipole truncation degree l_max and order m_max should be chosen with reference to the desired
+# accuracy and to the particle size parameter and refractive index contrast, see for example
+# https://arxiv.org/ftp/arxiv/papers/1202/1202.5904.pdf
+# A larger value leads to higher accuracy, but also to longer computation time. lmax is a positive integer and mmax is a
+# non-negative integer not greater than lmax.
+
+# The parameters 'use discrete sources', 'nint' and 'nrank' can be used to set the behavior of the NFM-DS algorithm that
+# computes the T-matrix of the non-spherical particles. 'use discrete sources' = true is in general a good choice.
+# 'nrank' is equivalent to l_max and can be set to a slightly larger value than l_max to ensure the accuracy of the
+# T-matrix (default: l_max + 2). 'nint' determines how fine the resolution in the numerical evaluation of certain
+# integrals is set (default = 200). See the NFM-DS manual for further information on the meaning of these parameters.
 
 # Alternatively, the scattering particles can be specified in a separate file, which needs to be located in the SMUTHI
 # project folder. This is more convenient for large particle numbers. In that case, specify the filename of the
@@ -71,7 +94,7 @@ scattering particles:
 # ----------------------------------------------------------------------------------------------------------------------
 
 initial field:
-- type: plane wave
+  type: plane wave
   angle units: degree
   polar angle: 0
   azimuthal angle: 0
@@ -85,19 +108,6 @@ initial field:
 # 90 and 180 degree, then the plane wave is incident from the top. For polarization, select either TE or TM. The
 # reference point specifies the location where the incident wave would have zero phase, i.e., the electric field of the
 # incident wave is proportional to E(r) = A * exp(j k.(r-r0)) where A is the amplitude and r0 is the reference point.
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# Specify the multipole truncation degree lmax and order mmax. They should be chosen with reference to the desired
-# accuracy and to the particle size parameter and refractive index contrast, see for example
-# https://arxiv.org/ftp/arxiv/papers/1202/1202.5904.pdf
-# A larger value leads to higher accuracy, but also to longer computation time. lmax is a positive integer and mmax is a
-# non-negative integer not greater than lmax.
-# ----------------------------------------------------------------------------------------------------------------------
-
-lmax: 3
-
-mmax: 3
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -118,42 +128,29 @@ neff discretization: 1e-3
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Specify the method to compute the non-spherical particles' T-matrices (for spheres, the Mie formula is used).
-# Provide: algorithm (only 'nfm-ds' possible), use discrete sources (default: 'true'), nrank (default: l_max + 2),
-#          nint (default: 200)
-# ----------------------------------------------------------------------------------------------------------------------
-
-tmatrix method:
-- algorithm: nfm-ds
-  use discrete sources: true
-  nint: 200
-  nrank: 8
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 # Define here, what output you want to generate. Currently only the evaluation of scattering and extinction cross
 # sections is implemented.
 # If 'show plots' is not set to 'false' (default), the differential scattering cross section is plotted.
 # ----------------------------------------------------------------------------------------------------------------------
 
 post processing:
-- task: evaluate cross sections
-  show plots: false
-  save plots: true
-  save data: false
-- task: evaluate near field
-  show plots: false
-  save plots: true
-  save animations: true
-  save data: false
-  quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
-  xmin: -800
-  xmax: 800
-  zmin: -400
-  zmax: 900
-  spatial resolution: 50
-  interpolation spatial resolution: 5
-  maximal field strength: 1.2
+#- task: evaluate cross sections
+#  show plots: false
+#  save plots: true
+#  save data: false
+#- task: evaluate near field
+#  show plots: false
+#  save plots: true
+#  save animations: true
+#  save data: false
+#  quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
+#  xmin: -800
+#  xmax: 800
+#  zmin: -400
+#  zmax: 900
+#  spatial resolution: 50
+#  interpolation spatial resolution: 5
+#  maximal field strength: 1.2
 
 
 # ----------------------------------------------------------------------------------------------------------------------

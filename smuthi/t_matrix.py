@@ -86,7 +86,8 @@ def t_matrix(vacuum_wavelength, n_medium, particle):
                                     semi_axis_c=particle.semi_axis_c, semi_axis_a=particle.semi_axis_a,
                                     use_ds=particle.t_matrix_method.get('use discrete sources', True),
                                     nint=particle.t_matrix_method.get('nint', 200),
-                                    nrank=particle.t_matrix_method.get('nrank', particle.l_max + 2))
+                                    nrank=particle.t_matrix_method.get('nrank', particle.l_max + 2),
+                                    l_max=particle.l_max, m_max=particle.m_max)
     elif type(particle).__name__ == 'FiniteCylinder':
         if not particle.euler_angles == [0, 0, 0]:
             raise ValueError('T-matrix for rotated particles currently not implemented.')
@@ -96,7 +97,8 @@ def t_matrix(vacuum_wavelength, n_medium, particle):
                                     cylinder_radius=particle.cylinder_radius,
                                     use_ds=particle.t_matrix_method.get('use discrete sources', True),
                                     nint=particle.t_matrix_method.get('nint', 200),
-                                    nrank=particle.t_matrix_method.get('nrank', particle.l_max + 2))
+                                    nrank=particle.t_matrix_method.get('nrank', particle.l_max + 2),
+                                    l_max=particle.l_max, m_max=particle.m_max)
     else:
         raise ValueError('T-matrix for ' + type(particle).__name__ + ' currently not implemented.')
 

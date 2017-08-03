@@ -12,7 +12,7 @@ def main():
     parser.add_argument('inputfile', nargs='?', default=None, type=str,
                         help='Input file containing the parameters of the simulations.'
                              'See https://gitlab.com/AmosEgel/smuthi for further information. '
-                             'Default is input.dat')
+                             'Default is the shipped example_input.dat')
     args = parser.parse_args()
 
     if args.inputfile is None:
