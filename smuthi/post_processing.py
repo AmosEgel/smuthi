@@ -14,38 +14,17 @@ class PostProcessing:
         self.extinction_cross_section = None
 
     def run(self, simulation):
-        particle_collection = simulation.particle_collection
-        linear_system = simulation.linear_system
+        particle_list = simulation.particle_list
         layer_system = simulation.layer_system
-        initial_field_collection = simulation.initial_field_collection
+        initial_field = simulation.initial_field
         for item in self.tasks:
             if item['task'] == 'evaluate cross sections':
                 polar_angles = item.get('polar angles')
                 azimuthal_angles = item.get('azimuthal angles')
-                layerresponse_precision = item.get('layerresponse precision')
-
-                if (len(initial_field_collection.specs_list) > 1
-                    or not initial_field_collection.specs_list[0]['type'] == 'plane wave'):
-                    raise ValueError('Cross section only defined for single plane wave excitation.')
-
-                i_top = layer_system.number_of_layers() - 1
-                beta_P = initial_field_collection.specs_list[0]['polar angle']
-                if beta_P < np.pi / 2:
-                    i_P = 0
-                    n_P = layer_system.refractive_indices[i_P]
-                    n_transm = layer_system.refractive_indices[i_top]
-                else:
-                    i_P = i_top
-                    n_P = layer_system.refractive_indices[i_P]
-                    n_transm = layer_system.refractive_indices[0]
-                if n_P.imag:
-                    raise ValueError('plane wave from absorbing layer: cross section undefined')
 
                 self.scattering_cross_section = ff.scattering_cross_section(
-                    polar_angles=polar_angles, initial_field_collection=initial_field_collection,
-                    azimuthal_angles=azimuthal_angles, particle_collection=particle_collection,
-                    linear_system=linear_system, layer_system=layer_system,
-                    layerresponse_precision=layerresponse_precision)
+                    initial_field=initial_field, polar_angles=polar_angles, azimuthal_angles=azimuthal_angles,
+                    particle_list=particle_list, layer_system=layer_system)
 
                 outputdir = simulation.output_dir + '/far_field'
                 if (not os.path.exists(outputdir)) and (item.get('save data', False) or item.get('save plots', False)):
@@ -78,12 +57,23 @@ class PostProcessing:
                     header = 'Azimuthal angles of the far field in radians.'
                     np.savetxt(outputdir + '/azimuthal_angles.dat', aa, header=header)
 
-                self.extinction_cross_section = ff.extinction_cross_section(
-                    initial_field_collection=initial_field_collection, particle_collection=particle_collection,
-                    linear_system=linear_system, layer_system=layer_system,
-                    layerresponse_precision=layerresponse_precision)
+                # extinction_cross_section(initial_field, particle_list, layer_system)
+                self.extinction_cross_section = ff.extinction_cross_section(initial_field, particle_list, layer_system)
 
                 # distinguish the cases of top/bottom illumination
+                i_top = layer_system.number_of_layers() - 1
+                beta_P = initial_field.polar_angle
+                if beta_P < np.pi / 2:
+                    i_P = 0
+                    n_P = layer_system.refractive_indices[i_P]
+                    n_transm = layer_system.refractive_indices[i_top]
+                else:
+                    i_P = i_top
+                    n_P = layer_system.refractive_indices[i_P]
+                    n_transm = layer_system.refractive_indices[0]
+                if n_P.imag:
+                    raise ValueError('plane wave from absorbing layer: cross section undefined')
+
                 print()
                 print('-------------------------------------------------------------------------')
                 print('Cross sections:')
@@ -253,6 +243,7 @@ class PostProcessing:
                                     max([n.real for n in simulation.layer_system.refractive_indices]) + 0.5)
                 neff_resol = item.get('n_effective resolution', 1e-2)
                 n_effective = np.linspace(0, neff_max, neff_max / neff_resol + 2, endpoint=True)
+                k_parallel = n_effective * simulation.initial_field.angular_frequency()
                 azimuthal_angles_resol = item.get('azimuthal angles resolution', np.pi / 100)
                 azimuthal_angles = np.linspace(0, 2 * np.pi, 2 * np.pi / azimuthal_angles_resol + 1)
                 max_field = item.get('maximal field strength')
@@ -262,7 +253,7 @@ class PostProcessing:
                 nf.show_near_field(quantities_to_plot=quantities_to_plot, show_plots=show_plots, save_plots=save_plots,
                                    save_animations=save_animations, save_data=save_data, outputdir=outputdir,
                                    xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax,
-                                   n_effective=n_effective, azimuthal_angles=azimuthal_angles, simulation=simulation,
+                                   k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, simulation=simulation,
                                    max_field=max_field, resolution=resolution,
                                    max_particle_distance=max_particle_distance, interpolate=interpolate)
 

@@ -96,3 +96,45 @@ class PlaneWave(InitialField):
         pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
         return (fldex.pwe_to_swe_conversion(pwe_up, particle.l_max, particle.m_max, particle.position)
                 + fldex.pwe_to_swe_conversion(pwe_down, particle.l_max, particle.m_max, particle.position))
+
+    def electric_field(self, x, y, z, layer_system):
+        """Evaluate the complex electric field corresponding to the plane wave.
+
+        Args:
+            x (array like):     Array of x-values where to evaluate the field (length unit)
+            y (array like):     Array of y-values where to evaluate the field (length unit)
+            z (array like):     Array of z-values where to evaluate the field (length unit)
+
+        Returns
+            Tuple (E_x, E_y, E_z) of electric field values
+        """
+        # todo: update doc
+        old_shp = x.shape
+        x = x.reshape(-1)
+        y = y.reshape(-1)
+        z = z.reshape(-1)
+
+        electric_field_x = np.zeros(x.shape, dtype=complex)
+        electric_field_y = np.zeros(x.shape, dtype=complex)
+        electric_field_z = np.zeros(x.shape, dtype=complex)
+
+        # which field point is in which layer?
+        layer_numbers = []
+        for zi in z:
+            layer_numbers.append(layer_system.layer_number(zi))
+
+        for i in range(layer_system.number_of_layers()):
+            layer_indices = [ii for ii, laynum in enumerate(layer_numbers) if laynum == i]
+            if layer_indices:
+                pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
+                ex_up, ey_up, ez_up = pwe_up.electric_field(x[layer_indices], y[layer_indices], z[layer_indices])
+                ex_down, ey_down, ez_down = pwe_down.electric_field(x[layer_indices], y[layer_indices],
+                                                                    z[layer_indices])
+                electric_field_x[layer_indices] = ex_up + ex_down
+                electric_field_y[layer_indices] = ey_up + ey_down
+                electric_field_z[layer_indices] = ez_up + ez_down
+
+        return electric_field_x.reshape(old_shp), electric_field_y.reshape(old_shp), electric_field_z.reshape(old_shp)
+
+    def angular_frequency(self):
+        return coord.angular_frequency(self.vacuum_wavelength)

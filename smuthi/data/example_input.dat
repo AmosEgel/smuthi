@@ -134,23 +134,23 @@ neff discretization: 1e-3
 # ----------------------------------------------------------------------------------------------------------------------
 
 post processing:
-#- task: evaluate cross sections
-#  show plots: false
-#  save plots: true
-#  save data: false
-#- task: evaluate near field
-#  show plots: false
-#  save plots: true
-#  save animations: true
-#  save data: false
-#  quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
-#  xmin: -800
-#  xmax: 800
-#  zmin: -400
-#  zmax: 900
-#  spatial resolution: 50
-#  interpolation spatial resolution: 5
-#  maximal field strength: 1.2
+- task: evaluate cross sections
+  show plots: false
+  save plots: true
+  save data: false
+- task: evaluate near field
+  show plots: false
+  save plots: true
+  save animations: true
+  save data: false
+  quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
+  xmin: -800
+  xmax: 800
+  zmin: -400
+  zmax: 900
+  spatial resolution: 50
+  interpolation spatial resolution: 5
+  maximal field strength: 1.2
 
 
 # ----------------------------------------------------------------------------------------------------------------------

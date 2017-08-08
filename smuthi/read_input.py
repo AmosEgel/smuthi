@@ -6,6 +6,7 @@ import smuthi.coordinates as coord
 import smuthi.particles as part
 import smuthi.initial_field as init
 import smuthi.layers as lay
+import smuthi.post_processing as pp
 import os
 
 
@@ -136,6 +137,7 @@ def read_input_yaml(filename):
                                                       neff_discretization=neff_discretization)
 
     # post processing
+    simulation.post_processing = pp.PostProcessing()
     if input_data.get('post processing'):
         for item in input_data['post processing']:
             if item['task'] == 'evaluate cross sections':
