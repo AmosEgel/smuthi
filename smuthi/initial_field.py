@@ -2,7 +2,6 @@
 
 import numpy as np
 import smuthi.coordinates as coord
-import smuthi.layers as lay
 import smuthi.field_expansion as fldex
 
 

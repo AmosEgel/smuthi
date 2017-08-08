@@ -1,8 +1,5 @@
 # This is an exemplary script to run SMUTHI from within python.
 
-import smuthi.simulation
-import smuthi.coordinates
-import smuthi.post_processing
 import smuthi.index_conversion
 import numpy as np
 
