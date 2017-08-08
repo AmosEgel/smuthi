@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Test the functions defined in vector_wave_functions.py."""
 
 import numpy as np
 import smuthi.field_expansion as fldex
+import smuthi.layers as lay
 
 omega = 2 * 3.15 / 550
 refractive_index = 1
@@ -21,6 +21,8 @@ swe_ref = [-400, 200, 500]
 fieldpoint = [-500, 310, 620]
 vb = [0, 800]
 
+layer_system = lay.LayerSystem([0, 0], [1, 1])
+
 x = np.array([fieldpoint[0]])
 y = np.array([fieldpoint[1]])
 z = np.array([fieldpoint[2]])
@@ -32,14 +34,15 @@ swe.coefficients[16] = 1
 swe.coefficients[18] = 0.5
 
 kp2 = np.linspace(0, 2, num=1000) * k
-pwe = fldex.PlaneWaveExpansion(k=k, k_parallel=kp2, azimuthal_angles=a, type='upgoing', reference_point=pwe_ref, valid_between=vb)
+pwe = fldex.PlaneWaveExpansion(k=k, k_parallel=kp2, azimuthal_angles=a, type='upgoing', reference_point=pwe_ref,
+                               valid_between=vb)
 pwe.coefficients[0, :, :] = 100000 * np.exp(- pwe.k_parallel_grid() / k / 20)
 pwe.coefficients[1, :, :] = -100000 * np.exp(- pwe.k_parallel_grid() / k / 10)
 
 
 def test_swe2pwe():
     ex, ey, ez = swe.electric_field(x, y, z)
-    pwe_up, pwe_down = fldex.swe_to_pwe_conversion(swe, k_parallel=kp, azimuthal_angles=a, reference_point=pwe_ref, valid_between=vb)
+    pwe_up, pwe_down = fldex.swe_to_pwe_conversion(swe, k_parallel=kp, azimuthal_angles=a, layer_system=layer_system)
     ex2, ey2, ez2 = pwe_up.electric_field(x, y, z)
     err2 = abs(ex - ex2) ** 2 + abs(ey - ey2) ** 2 + abs(ez - ez2) ** 2
     norme2 = abs(ex) ** 2 + abs(ey) ** 2 + abs(ez) ** 2

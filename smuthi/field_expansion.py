@@ -224,7 +224,7 @@ class PlaneWaveExpansion:
         return pwe_sum
 
     def electric_field(self, x, y, z):
-        """To do: doc, check if z inside domain of validity"""
+        # todo: doc, check if z inside domain of validity
         xr = x - self.reference_point[0]
         yr = y - self.reference_point[1]
         zr = z - self.reference_point[2]
@@ -267,6 +267,7 @@ class PlaneWaveExpansion:
 
 
 def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
+    # todo: doc
 
     if reference_point[2] < min(pwe.valid_between) or reference_point[2] > max(pwe.valid_between):
         raise ValueError('reference point not inside domain of pwe validity')
@@ -304,15 +305,20 @@ def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
     return swe
 
 
-def swe_to_pwe_conversion(swe, k_parallel, azimuthal_angles, reference_point, valid_between=(-np.inf, np.inf)):
+def swe_to_pwe_conversion(swe, k_parallel=None, azimuthal_angles=None, layer_system=None, layer_number=None,
+                          layer_system_mediated=False):
+    # todo: doc
 
+    i_swe = layer_system.layer_number(swe.reference_point[2])
+    if layer_number is None and not layer_system_mediated:
+        layer_number = i_swe
+    reference_point = [0, 0, layer_system.reference_z(i_swe)]
+    valid_between_up = (swe.reference_point[2], layer_system.upper_zlimit(layer_number))
     pwe_up = PlaneWaveExpansion(k=swe.k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, type='upgoing',
-                                reference_point=reference_point, valid_between=(swe.reference_point[2],
-                                                                                max(valid_between)))
-
+                                reference_point=reference_point, valid_between=valid_between_up)
+    valid_between_down = (layer_system.lower_zlimit(layer_number), swe.reference_point[2])
     pwe_down = PlaneWaveExpansion(k=swe.k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, type='downgoing',
-                                  reference_point=reference_point, valid_between=(min(valid_between),
-                                                                                  swe.reference_point[2]))
+                                  reference_point=reference_point, valid_between=valid_between_down)
 
     agrid = pwe_up.azimuthal_angle_grid()
     kpgrid = pwe_up.k_parallel_grid()
@@ -346,6 +352,9 @@ def swe_to_pwe_conversion(swe, k_parallel, azimuthal_angles, reference_point, va
     pwe_up.coefficients = pwe_up.coefficients / (2 * np.pi * kzvec[None, :, None] * swe.k) * ejkrSiS_up[None, :, :]
     pwe_down.coefficients = (pwe_down.coefficients / (2 * np.pi * kzvec[None, :, None] * swe.k)
                              * ejkrSiS_down[None, :, :])
+
+    if layer_system_mediated:
+        pwe_up, pwe_down = layer_system.response((pwe_up, pwe_down), i_swe, layer_number)
 
     return pwe_up, pwe_down
 

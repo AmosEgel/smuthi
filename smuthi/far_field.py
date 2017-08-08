@@ -150,20 +150,20 @@ def extinction_cross_section(initial_field, particle_list, layer_system):
 
     for iS, particle in enumerate(particle_list):
         i_iS = layer_system.layer_number(particle.position[2])
-        z_i_iS = layer_system.reference_z(i_iS)
-        valid_between = (layer_system.lower_zlimit(i_iS), layer_system.upper_zlimit(i_iS))
-        pwe_up, pwe_down = fldex.swe_to_pwe_conversion(particle.scattered_field, kappa_P, alpha_P,
-                                                       reference_point=[0, 0, z_i_iS], valid_between=valid_between)
 
-        top_pwe_up, _ = layer_system.response([pwe_up, pwe_down], from_layer=i_iS, to_layer=i_top)
-        pwe_scat_top = pwe_scat_top + top_pwe_up
+        # direct contribution
         if i_iS == i_top:
-            pwe_scat_top = pwe_scat_top + pwe_up  # direct scattered field
-
-        _, bot_pwe_down = layer_system.response([pwe_up, pwe_down], from_layer=i_iS, to_layer=0)
-        pwe_scat_bottom = pwe_scat_bottom + bot_pwe_down
+            pwe_up, _ = fldex.swe_to_pwe_conversion(particle.scattered_field, kappa_P, alpha_P, layer_system)
+            pwe_scat_top = pwe_scat_top + pwe_up
         if i_iS == 0:
+            _, pwe_down = fldex.swe_to_pwe_conversion(particle.scattered_field, kappa_P, alpha_P, layer_system)
             pwe_scat_bottom = pwe_scat_bottom + pwe_down
+
+        # layer mediated contribution
+        pwe_up, _ = fldex.swe_to_pwe_conversion(particle.scattered_field, kappa_P, alpha_P, layer_system, i_top, True)
+        pwe_scat_top = pwe_scat_top + pwe_up
+        _, pwe_down = fldex.swe_to_pwe_conversion(particle.scattered_field, kappa_P, alpha_P, layer_system, 0, True)
+        pwe_scat_bottom = pwe_scat_bottom + pwe_down
 
     # bottom extinction
     _, pwe_init_bottom = initial_field.plane_wave_expansion(layer_system, 0)
@@ -230,22 +230,24 @@ def scattered_far_field(polar_angles=None, vacuum_wavelength=None, azimuthal_ang
 
     for iS, particle in enumerate(particle_list):
         i_iS = layer_system.layer_number(particle.position[2])
-        z_i_iS = layer_system.reference_z(i_iS)
-        valid_between = (layer_system.lower_zlimit(i_iS), layer_system.upper_zlimit(i_iS))
-        pwe_up, pwe_down = fldex.swe_to_pwe_conversion(particle.scattered_field, neff_top*omega, azimuthal_angles,
-                                                       reference_point=[0,0,z_i_iS], valid_between=valid_between)
-        add_pwe, _ = layer_system.response([pwe_up, pwe_down], from_layer=i_iS,
-                                           to_layer=i_top)  # layer sysetem mediated scattered field
-        pwe_top = pwe_top + add_pwe
-        if i_iS == i_top:
-            pwe_top = pwe_top + pwe_up  # direct scattered field
 
-        pwe_up, pwe_down = fldex.swe_to_pwe_conversion(particle.scattered_field, neff_bottom*omega, azimuthal_angles,
-                                                       reference_point=[0, 0, z_i_iS], valid_between=valid_between)
-        _, add_pwe = layer_system.response([pwe_up, pwe_down], from_layer=i_iS, to_layer=0)
-        pwe_bottom = pwe_bottom + add_pwe
+        # direct contribution
+        if i_iS == i_top:
+            pwe_up, _ = fldex.swe_to_pwe_conversion(particle.scattered_field, neff_top*omega, azimuthal_angles,
+                                                    layer_system)
+            pwe_top = pwe_top + pwe_up
         if i_iS == 0:
+            _, pwe_down = fldex.swe_to_pwe_conversion(particle.scattered_field, neff_bottom*omega, azimuthal_angles,
+                                                      layer_system)
             pwe_bottom = pwe_bottom + pwe_down
+
+        # layer mediated contribution
+        pwe_up, _ = fldex.swe_to_pwe_conversion(particle.scattered_field, neff_top*omega, azimuthal_angles,
+                                                layer_system, i_top, True)
+        pwe_top = pwe_top + pwe_up
+        _, pwe_down = fldex.swe_to_pwe_conversion(particle.scattered_field, neff_bottom*omega, azimuthal_angles,
+                                                  layer_system, 0, True)
+        pwe_bottom = pwe_bottom + pwe_down
 
     g_total = np.concatenate([pwe_top.coefficients, pwe_bottom.coefficients], axis=1)
 
