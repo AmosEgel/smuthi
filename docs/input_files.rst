@@ -64,33 +64,59 @@ For finite cylinders, specify
 Euler angles defining the rotation of the axis of revolution relative to the `z` axis (currently rotations other than
 `[0, 0, 0]` are not implemented).
 
-
 The coordinate system is such that the interface between the first two layers defines the plane :math:`z=0`.
 
-The parameters can be listed directly in the input file, in the following format::
+In addition, specify :code:`l_max` and :code:`m_max`, which refer to the maximal multipole degree and order used for the
+spherical wave expansion of that particle's scattered field. These parameters should be chosen with reference to the
+desired accuracy and to the particle size parameter and refractive index contrast, see for example
+https://arxiv.org/ftp/arxiv/papers/1202/1202.5904.pdf
+A larger value leads to higher accuracy, but also to longer computation time. :code:`l_max` is a positive integer and
+:code:`m_max` is a non-negative integer and not greater than :code:`l_max`.
 
-   scattering particles:
-   - shape: sphere
-     radius: 100
-     refractive index: 2.4
-     extinction coefficient: 0.05
-     position: [0, 100, 150]
-   - shape: finite cylinder
-     cylinder radius: 120
-     cylinder height: 150
-     refractive index: 2.7
-     extinction coefficient: 0
-     position: [250, -100, 250]
-     euler angles: [0, 0, 0]
-   - shape: spheroid
-     semi axis c: 80
-     semi axis a: 140
-     refractive index: 2.5
-     extinction coefficient: 0.05
-     position: [-250, 0, 350]
-     euler angles: [0, 0, 0]
+In the case of non-spherical particles, you can also specify :code:`use discrete sources` (default is :code:`True`),
+:code:`nint` (default is :code:`200`) and :code:`nrank: 8` (default is :code:`l_max + 2`). These parameters specify the
+calculation of the T-matrix using the NFM-DS module. For further information about the meaning of these parameters, see
+the `NFM-DS documentation <https://scattport.org/images/scattering-code/NFM-DS_program-description.pdf>`_.
 
-Alternatively, the scattering particles can be specified in a separate file, which needs to be located in the SMUTHI project folder. 
+The parameters for the scattering particles can be listed directly in the input file, in the following format::
+
+
+  scattering particles:
+  - shape: sphere
+    radius: 100
+    refractive index: 2.4
+    extinction coefficient: 0.05
+    position: [0, 100, 150]
+    l_max: 3
+    m_max: 3
+  - shape: finite cylinder
+    cylinder radius: 120
+    cylinder height: 150
+    refractive index: 2.7
+    extinction coefficient: 0
+    position: [350, -100, 250]
+    euler angles: [0, 0, 0]
+    l_max: 4
+    m_max: 4
+    use discrete sources: true
+    nint: 200
+    nrank: 8
+  - shape: spheroid
+    semi axis c: 80
+    semi axis a: 140
+    refractive index: 2.5
+    extinction coefficient: 0.05
+    position: [-350, 50, 350]
+    euler angles: [0, 0, 0]
+    l_max: 3
+    m_max: 3
+    use discrete sources: true
+    nint: 200
+    nrank: 8
+
+
+Alternatively, the scattering particles can be specified in a separate file, which needs to be located in the SMUTHI
+project folder.
 This is more convenient for large particle numbers. 
 In that case, specify the filename of the particles parameters file, for example::
 
@@ -105,14 +131,14 @@ Currently, only plane waves are implemented as the initial excitation.
 
 Specify the initial field in the following format::
 
-   initial field:
-   - type: plane wave
-     angle units: degree
-     polar angle: 0
-     azimuthal angle: 0
-     polarization: TE
-     amplitude: 1
-     reference point: [0, 0, 0]
+  initial field:
+    type: plane wave
+    angle units: degree
+    polar angle: 0
+    azimuthal angle: 0
+    polarization: TE
+    amplitude: 1
+    reference point: [0, 0, 0]
 
 Angle units can be 'degree' (otherwise, radians are used). For polarization, select either :code:`TE` or :code:`TM`. 
 
@@ -137,16 +163,7 @@ If the polar angle is in the range :math:`90^\circ\lt\beta\leq 180^\circ`, then 
 Numerical parameters
 ----------------------
 
-Specify the multipole truncation degree :code:`lmax` and order :code:`mmax`, for example::
-
-   lmax: 3
-
-   mmax: 3
-
-:code:`lmax` and :code:`mmax` should be chosen with reference to the desired accuracy and to the particle size parameter and refractive index contrast, see for example https://arxiv.org/ftp/arxiv/papers/1202/1202.5904.pdf
-A larger value leads to higher accuracy, but also to longer computation time. :code:`lmax` is a positive integer and :code:`mmax` is a non-negative integer and not greater than :code:`lmax`.
-
-Further, specify the contour of the sommerfeld integral in the complex :code:`neff` plane where :code:`neff = k_parallel / omega` refers to the effective refractive index of the partial wave. The contour is parameterized by its waypoints::
+Specify the contour of the sommerfeld integral in the complex :code:`neff` plane where :code:`neff = k_parallel / omega` refers to the effective refractive index of the partial wave. The contour is parameterized by its waypoints::
 
    neff waypoints: [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
 
@@ -159,25 +176,6 @@ The :code:`neff waypoints` define a piecewise linear trajectory in the complex p
 A simple contour would be for example :code:`neff waypoints: [0, 4]`. However
 The trajectory can be deflected into the lower complex half plaen such that it does not come close to waveguide mode
 resonances of the layer system.
-
-T-matrix method for non-spherical particles
--------------------------------------------
-Spheroids can currently be modelled using the NFM-DS method. Specify the parameters for the algorithm like this::
-
-   tmatrix method:
-   - algorithm: nfm-ds
-     use discrete sources: true
-     nint: 200
-     nrank: 8
-
-The :code:`use discrete sources` flag determines, if during the NFM-DS method, the discrete sources functionality is
-activated. Generally, it leads to a better accuracy for particle shapes deviating strongly from that of a sphere.
-:code:`nint` is the truncation multipole degree used inside the NFM-DS algorithm, and is by default set to
-:code:`lmax + 2`. :code:`nrank` is a parameter that specifies how fine the numerical integrations in the NFM-DS are
-discretized. See the
-`NFM-DS documentation <https://scattport.org/images/scattering-code/NFM-DS_program-description.pdf>`_ for further
-details information.
-
 
 
 Post procesing
@@ -259,20 +257,21 @@ The particle specifications file
 
 The file containing the particle specifications needs to be written in the following format::
 
+
    # spheres
-   # x, y, z, radius, refractive index, exctinction coefficient
-   0	    100		150		100		2.4		0.05
-   ...      ...     ...     ...     ...     ...
+   # x, y, z, radius, refractive index, exctinction coefficient, l_max, m_max
+   0        100     150     100     2.4     0.05    3       3
+   ...      ...     ...     ...     ...     ...     ...     ...
 
    # cylinders
-   # x, y, z, cylinder radius, cylinder height, refractive index, exctinction coefficient
-   250      -100    250	    120     150     2.7     0
-   ...      ...     ...     ...     ...     ...     ...
+   # x, y, z, cylinder radius, cylinder height, refractive index, exctinction coefficient, l_max, m_max
+   250      -100    250	    120     150     2.7     0       4       4
+   ...      ...     ...     ...     ...     ...     ...     ...     ...
 
    # spheroids
-   # x, y, z, semi-axis c, semi-axis a, refractive index, exctinction coefficient
-   -250	    0       350	    80      140     2.5     0.05
-   ...      ...     ...     ...     ...     ...     ...
+   # x, y, z, semi-axis c, semi-axis a, refractive index, exctinction coefficient, l_max, m_max
+   -250     0       350     80      140     2.5     0.05    3       3
+   ...      ...     ...     ...     ...     ...     ...     ...     ...
 
 An examplary particle specifiacations can be downloaded from
 :download:`here <../smuthi/data/example_particle_specs.dat>`.
