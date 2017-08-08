@@ -19,12 +19,12 @@ def test_layerresponse_mpmath_equals_numpy():
     for pol in [0, 1]:
         for fromlayer in range(len(layer_d)):
             for tolayer in range(len(layer_d)):
-                lay.set_precision(precision=None)
+                lay.set_precision(None)
                 lmat1 = lay.layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, tolayer)
-                lay.set_precision(precision=precision)
+                lay.set_precision(precision)
                 lmat2 = lay.layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, tolayer)
                 np.testing.assert_almost_equal(lmat1, lmat2)
-    lay.set_precision(precision=None)
+    lay.set_precision(None)
 
 
 def test_scattering_matrix_equals_transfer_matrix():

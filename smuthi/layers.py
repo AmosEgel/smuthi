@@ -11,7 +11,7 @@ import smuthi.field_expansion as fldex
 # global variables
 matrix_format = np.array
 math_module = np
-layerresponse_lookup = {'args': {}, 'data': None}
+precision = None
 
 
 class LayerSystem:
@@ -269,7 +269,7 @@ def layersystem_scattering_matrix(pol, layer_d, layer_n, kpar, omega):
 
 #@lru_cache(128)
 @memo.Memoize
-def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, tolayer):
+def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, tolayer, prec=None):
     """Layer system response matrix of a planarly layered medium.
 
     Args:
@@ -279,16 +279,19 @@ def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, t
         kpar (float or array like): in-plane wavenumber
         omega (float):              angular frequency in units of c=1: omega=2*pi/lambda
         fromlayer (int):            number of layer where the excitation is located
-        tolayer (int):             number of layer where the response is evaluated
+        tolayer (int):              number of layer where the response is evaluated
+        prec (int or None):         allows to set the precision to this value (see set_precision)
 
     Returns:
         Layer system response matrix as a 2x2 array if kpar is float, or as 2x2xN array if kpar is array with len = N.
     """
+    if not prec == precision:
+        set_precision(prec)
 
     if hasattr(kpar, "__len__"):    # is kpar an array? then use recursive call to fill an 2 x 2 x N ndarray
         result = np.zeros((2, 2, len(kpar)), dtype=complex)
         for i, kp in enumerate(kpar):
-            result[:, :, i] = layersystem_response_matrix(pol, layer_d, layer_n, kp, omega, fromlayer, tolayer)
+            result[:, :, i] = layersystem_response_matrix(pol, layer_d, layer_n, kp, omega, fromlayer, tolayer, prec)
         return result
 
     layer_d_above = [0] + layer_d[fromlayer:]
@@ -324,22 +327,26 @@ def matrix_inverse(m):
         return np.linalg.inv(m)
 
 
-def set_precision(precision=None):
+def set_precision(prec=None):
     """Set the numerical precision of the layer system response. You can use this to evaluate the layer response of
     unstable systems, for example in the case of evanescent waves in very thick layers. Calculations take longer time if
     the precision is set to a value other than None (default).
 
     Args:
-        precision (None or int):    If None, calculations are done using standard double precision. If int, that many
-                                    decimal digits are considered in the calculations, using the mpmath package.
+        prec (None or int): If None, calculations are done using standard double precision. If int, that many decimal
+                            digits are considered in the calculations, using the mpmath package.
     """
     global matrix_format
     global math_module
+    global precision
 
-    if precision is None:
+    precision = prec
+    if prec is None:
+        print('Setting precision to standard numpy')
         matrix_format = np.array
         math_module = np
     else:
-        sympy.mpmath.mp.dps = precision
+        print('Setting precision ', prec, ' digits')
+        sympy.mpmath.mp.dps = prec
         matrix_format = sympy.mpmath.matrix
         math_module = sympy.mpmath

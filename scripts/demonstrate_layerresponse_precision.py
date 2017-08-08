@@ -15,7 +15,7 @@ n1 = 1
 n2 = 2 + 0.01j
 refractive_indices = [n1, n2, n1, n2, n1, n2, n1, n2, n1, n2, n1]
 neff_refl = np.linspace(0, 10, 500)
-neff_L = np.linspace(0, 3, 500)
+neff_L = np.linspace(0, 2.6, 500)
 omega = 2 * np.pi / vacuum_wavelength
 kpar_refl = omega * neff_refl
 kpar_L = omega * neff_L
@@ -35,8 +35,9 @@ for kp in kpar_refl:
 # excitation from inside: compare extended precision to standard precision
 fromlayer = 4
 tolayer = 6
-L = lay.layersystem_response_matrix(pol, thicknesses, refractive_indices, kpar_L, omega, fromlayer, tolayer, precision=None)
-L50 = lay.layersystem_response_matrix(pol, thicknesses, refractive_indices, kpar_L, omega, fromlayer, tolayer, precision=50)
+
+L = lay.layersystem_response_matrix(pol, thicknesses, refractive_indices, kpar_L, omega, fromlayer, tolayer)
+L50 = lay.layersystem_response_matrix(pol, thicknesses, refractive_indices, kpar_L, omega, fromlayer, tolayer, 50)
 
 plt.figure()
 plt.semilogy(neff_refl, abs(np.array(r_s)), color='red', label='scattering matrix')
@@ -52,7 +53,6 @@ plt.legend()
 plt.xlabel('n_effective')
 plt.ylabel('L_{1, 1}')
 plt.show()
-
 
 export_array = np.concatenate([abs(np.array(neff_refl))[:, None], abs(np.array(r_s))[:, None], abs(np.array(r_t))[:, None]], axis=1)
 np.savetxt('scattering_vs_transfer_matrix.dat', export_array,
