@@ -116,29 +116,26 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
                                 'E_init_y'       real part of y-component of complex initial electric field
                                 'E_init_z'       real part of z-component of complex initial electric field
                                 'norm(E_init)'   norm of complex initial electric field
-
-        filenames (list):   List of strings to specify the path where to store the near field images. Filenames can
-                            end on .png or on .gif (to create animated plots)
-        outputdir (str):    Folder where to plot the figure files
+        save_plots (logical):   If True, plots are exported to file.
+        show_plots (logical):   If True, plots are shown
+        save_animations (logical):  If True, animated gif-images are exported
+        save_data (logical):    If True, raw data are exported to file.
+        outputdir (str):        Path to directory where to save the export files
         xmin (float):       Plot from that x (length unit)
         xmax (float):       Plot up to that x (length unit)
         ymin (float):       Plot from that y (length unit)
         ymax (float):       Plot up to that y (length unit)
         zmin (float):       Plot from that z (length unit)
         zmax (float):       Plot up to that z (length unit)
-        resolution (float):                         Compute the field with that spatial resolution (length unit)
-        interpolate (float):                        Use spline interpolation with that resolution to plot a smooth field
-                                                    (length unit)
-        n_effective (array):                        1-D Numpy array of effective refractive index for the plane wave
-                                                    expansion
-        azimuthal_angles (array):                   1-D Numpy array of azimuthal angles for the plane wave expansion
+        resolution (float):     Compute the field with that spatial resolution (length unit)
+        interpolate (float):    Use spline interpolation with that resolution to plot a smooth field (length unit)
+        k_parallel (array):         1-D Numpy array of in-plane wavenumbers for the plane wave expansion
+        azimuthal_angles (array):   1-D Numpy array of azimuthal angles for the plane wave expansion
         simulation (smuthi.simulation.Simulation):  Simulation object
-        max_field (float):                          If specified, truncate the color scale of the field plots at that
-                                                    value.
-        max_particle_distance (float):              Show particles that are closer than that distance to the image plane
-                                                    (length unit, default = inf).
+        max_field (float):              If specified, truncate the color scale of the field plots at that value.
+        max_particle_distance (float):  Show particles that are closer than that distance to the image plane (length
+                                        unit, default = inf).
     """
-    # todo: update doc
     if quantities_to_plot is None:
         quantities_to_plot = ['norm(E)']
 
@@ -359,20 +356,16 @@ def scattered_electric_field(x, y, z, k_parallel, azimuthal_angles, vacuum_wavel
     """Complex electric scttered near field.
     Return the x, y and z component of the scattered electric field.
 
-    NOT TESTED
-
-    input:
-    x:                          Numpy array of x-coordinates of points in space where to evaluate field.
-    y:                          Numpy array of y-coordinates of points in space where to evaluate field.
-    z:                          Numpy array of z-coordinates of points in space where to evaluate field.
-    n_effective:                1-D Numpy array of effective refractive index for the plane wave expansion
-    azimuthal_angles:           1-D Numpy array of azimuthal angles for the plane wave expansion
-    vacuum_wavelength:          Vacuum wavelength
-    particle_collection:        smuthi.particle.ParticleCollection object
-    linear_system:              smuthi.linear_system.LinearSystem object
-    layer_system:               smuthi.layers.LayerSystem object
+    Args:
+        x (numpy array):    x-coordinates of points in space where to evaluate field.
+        y (numpy array):    y-coordinates of points in space where to evaluate field.
+        z (numpy array):    z-coordinates of points in space where to evaluate field.
+        k_parallel (1D numpy array):        In plane wavenumbers for the plane wave expansion
+        azimuthal_angles (1D numpy array):  Azimuthal angles for the plane wave expansion
+        vacuum_wavelength (float):          Vacuum wavelength
+        particle_list (list):               List of smuthi.particle.Particle objects
+        layer_system (smuthi.layers.LayerSystem):   Stratified medium
     """
-    # todo: update doc
 
     old_shape = x.shape
     x = x.reshape(-1)
@@ -421,122 +414,3 @@ def scattered_electric_field(x, y, z, k_parallel, azimuthal_angles, vacuum_wavel
                     # todo:check if swe valid, fill in NaN or something otherwise
 
     return electric_field_x.reshape(old_shape), electric_field_y.reshape(old_shape), electric_field_z.reshape(old_shape)
-
-
-# def initial_electric_field(x, y, z, initial_field, layer_system):
-#     """Return the x, y and z component of the initial electric field (including layer system response).
-#
-#     input:
-#     x:                          Numpy array of x-coordinates of points in space where to evaluate field.
-#     y:                          Numpy array of y-coordinates of points in space where to evaluate field.
-#     z:                          Numpy array of z-coordinates of points in space where to evaluate field.
-#     initial_field_collection    smuthi.initial.InitialFieldCollection object
-#     layer_system:               smuthi.layers.LayerSystem object
-#     layerresponse_precision:    If None, standard numpy is used for the layer response. If int>0, that many decimal
-#                                 digits are considered in multiple precision. (default=None)
-#     """
-#     electric_field_x = np.zeros(x.shape, dtype=complex)
-#     electric_field_y = np.zeros(x.shape, dtype=complex)
-#     electric_field_z = np.zeros(x.shape, dtype=complex)
-#
-#     vacuum_wavelength = initial_field_collection.vacuum_wavelength
-#     for field_specs in initial_field_collection.specs_list:
-#         if field_specs['type'] == 'plane wave':
-#             e_x, e_y, e_z = plane_wave_electric_field(x, y, z, vacuum_wavelength=vacuum_wavelength,
-#                                                       polarization=field_specs['polarization'],
-#                                                       polar_angle=field_specs['polar angle'],
-#                                                       azimuthal_angle=field_specs['azimuthal angle'],
-#                                                       amplitude=field_specs['amplitude'],
-#                                                       reference_point=field_specs['reference point'],
-#                                                       layer_system=layer_system,
-#                                                       layerresponse_precision=layerresponse_precision)
-#             electric_field_x += e_x
-#             electric_field_y += e_y
-#             electric_field_z += e_z
-#
-#     return e_x, e_y, e_z
-
-
-# def plane_wave_electric_field(x, y, z, vacuum_wvelength, polarization, polar_angle, azimuthal_angle, amplitude=1,
-#                               reference_point=[0, 0, 0], layer_system=None):
-#     """Return the x, y and z component of the electric field of a plane wave (including layer system response).
-#
-#     input:
-#     x:                          Numpy array of x-coordinates of points in space where to evaluate field.
-#     y:                          Numpy array of y-coordinates of points in space where to evaluate field.
-#     z:                          Numpy array of z-coordinates of points in space where to evaluate field.
-#     vacuum_wavelength:          Vacuum wavelength.
-#     polarization:               Polarization (0 for TE, 1 for TM)
-#     polar_angle:                Polar angle of propagation vector of plane wave (radians)
-#     azimuthal_angle:            Azimuthal angle of propagation vector of plane wave (radians)
-#     amplitude:                  Complex amplitude of wave (at reference point) (default=1)
-#     reference_pont:             List in the format [x, y, z] containing the coordinates of the reference point where the
-#                                 electric field equals the amplitude parameter
-#     layer_system:               smuthi.layers.LayerSystem object
-#     layerresponse_precision:    If None, standard numpy is used for the layer response. If int>0, that many decimal
-#                                 digits are considered in multiple precision. (default=None)
-#     """
-#     old_shape = x.shape
-#     x = x.reshape(-1)
-#     y = y.reshape(-1)
-#     z = z.reshape(-1)
-#
-#     electric_field_x = np.zeros(x.shape, dtype=complex)
-#     electric_field_y = np.zeros(x.shape, dtype=complex)
-#     electric_field_z = np.zeros(x.shape, dtype=complex)
-#
-#     omega = coord.angular_frequency(vacuum_wavelength)
-#
-#     i_top = layer_system.number_of_layers() - 1
-#     if polar_angle < np.pi / 2:
-#         i_P = 0
-#     else:
-#         i_P = i_top
-#     n_P = layer_system.refractive_indices[i_P]
-#     k_P = n_P * omega
-#
-#     # complex amplitude of initial wave (including phase factor for reference point)
-#     kappa_P = np.sin(polar_angle) * k_P
-#     kx = np.cos(azimuthal_angle) * kappa_P
-#     ky = np.sin(azimuthal_angle) * kappa_P
-#     pm_kz_P = k_P * np.cos(polar_angle)
-#     kvec_P = np.array([kx, ky, pm_kz_P])
-#     rvec_iP = np.array([0, 0, layer_system.reference_z(i_P)])
-#     rvec_0 = np.array(reference_point)
-#     ejkriP = np.exp(1j * np.dot(kvec_P, rvec_iP - rvec_0))
-#     A_P = amplitude * ejkriP
-#     if i_P == 0:
-#         gexc = np.array([A_P, 0])
-#     else:
-#         gexc = np.array([0, A_P])
-#
-#     # which field point is in which layer?
-#     layer_numbers = []
-#     for zi in z:
-#         layer_numbers.append(layer_system.layer_number(zi))
-#
-#     for il in range(layer_system.number_of_layers()):
-#         layer_indices = [i for i, laynum in enumerate(layer_numbers) if laynum == il]
-#         if layer_indices:
-#             L = lay.layersystem_response_matrix(polarization, layer_system.thicknesses, layer_system.refractive_indices,
-#                                                 kappa_P, omega, i_P, il, layerresponse_precision)
-#             gil = np.dot(L, gexc)
-#             kz = coord.k_z(k_parallel=kappa_P, vacuum_wavelength=vacuum_wavelength,
-#                            refractive_index=layer_system.refractive_indices[il])
-#             xil = x[layer_indices]
-#             yil = y[layer_indices]
-#             zil = z[layer_indices] - layer_system.reference_z(il)
-#             e_x_pl, e_y_pl, e_z_pl = vwf.plane_vector_wave_function(xil, yil, zil, kappa_P, azimuthal_angle, kz,
-#                                                                     polarization)
-#             e_x_mn, e_y_mn, e_z_mn = vwf.plane_vector_wave_function(xil, yil, zil, kappa_P, azimuthal_angle, -kz,
-#                                                                     polarization)
-#             electric_field_x[layer_indices] += e_x_pl * gil[0] + e_x_mn * gil[1]
-#             electric_field_y[layer_indices] += e_y_pl * gil[0] + e_y_mn * gil[1]
-#             electric_field_z[layer_indices] += e_z_pl * gil[0] + e_z_mn * gil[1]
-#
-#             if il == i_P:  # add direct contribution
-#                 electric_field_x[layer_indices] += e_x_pl * gexc[0] + e_x_mn * gexc[1]
-#                 electric_field_y[layer_indices] += e_y_pl * gexc[0] + e_y_mn * gexc[1]
-#                 electric_field_z[layer_indices] += e_z_pl * gexc[0] + e_z_mn * gexc[1]
-#
-#     return electric_field_x.reshape(old_shape), electric_field_y.reshape(old_shape), electric_field_z.reshape(old_shape)

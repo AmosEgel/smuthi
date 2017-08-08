@@ -104,11 +104,12 @@ class PlaneWave(InitialField):
             x (array like):     Array of x-values where to evaluate the field (length unit)
             y (array like):     Array of y-values where to evaluate the field (length unit)
             z (array like):     Array of z-values where to evaluate the field (length unit)
+            layer_system (smuthi.layer.LayerSystem):    Stratified medium
 
         Returns
             Tuple (E_x, E_y, E_z) of electric field values
         """
-        # todo: update doc
+
         old_shp = x.shape
         x = x.reshape(-1)
         y = y.reshape(-1)

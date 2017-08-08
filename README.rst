@@ -12,6 +12,11 @@ Author: Amos Egel. Mail to amos.egel@kit.edu for support or to report a problem.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
 
+What's new in version 0.4
+--------------------------
+The data structure has been updated to a more consequent object oriented approach, including a PlaneWaveExpansion class
+and a SphericalWaveExpansion class. Smuthi's API is now also `documented <http://smuthi.readthedocs.io>`_.
+
 What's new in version 0.3
 --------------------------
 The software now allows to compute the electric near field. The fields can be plotted as png figure files and as gif
