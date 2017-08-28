@@ -2,7 +2,7 @@
 """Provide class for the representation of planar layer systems."""
 
 import numpy as np
-import sympy
+import mpmath
 from functools import lru_cache
 import smuthi.memoizing as memo
 import smuthi.field_expansion as fldex
@@ -188,7 +188,7 @@ def interface_transition_matrix(pol, kz1, kz2, n1, n2):
         n2 (float or complex):  second medium's complex refractive index (n+ik)
 
     Returns:
-        Interface transition matrix as 2x2 numpy array or as 2x2 sympy.mpmath.matrix
+        Interface transition matrix as 2x2 numpy array or as 2x2 mpmath.matrix
     """
     t = fresnel_t(pol, kz1, kz2, n1, n2)
     r = fresnel_r(pol, kz1, kz2, n1, n2)
@@ -203,7 +203,7 @@ def layer_propagation_matrix(kz, d):
         d  (float):             thickness of layer
 
     Returns:
-        Layer propagation matrix as 2x2 numpy array or as 2x2 sympy.mpmath.matrix
+        Layer propagation matrix as 2x2 numpy array or as 2x2 mpmath.matrix
     """
     return matrix_format([[math_module.exp(-1j * kz * d), 0], [0, math_module.exp(1j * kz * d)]])
 
@@ -219,7 +219,7 @@ def layersystem_transfer_matrix(pol, layer_d, layer_n, kpar, omega):
         omega (float):  angular frequency in units of c=1: omega=2*pi/lambda
 
     Returns:
-        Transfer matrix as 2x2 numpy array or as 2x2 sympy.mpmath.matrix
+        Transfer matrix as 2x2 numpy array or as 2x2 mpmath.matrix
     """
     layer_kz = []
     for n in layer_n:
@@ -246,7 +246,7 @@ def layersystem_scattering_matrix(pol, layer_d, layer_n, kpar, omega):
         omega (float):  angular frequency in units of c=1: omega=2*pi/lambda
 
     Returns:
-        Scattering matrix as 2x2 numpy array or as 2x2 sympy.mpmath.matrix
+        Scattering matrix as 2x2 numpy array or as 2x2 mpmath.matrix
     """
     layer_kz = []
     for n in layer_n:
@@ -314,14 +314,14 @@ def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, t
 
 
 def matrix_product(m1, m2):
-    if isinstance(m1, sympy.mpmath.matrix) and isinstance(m2, sympy.mpmath.matrix):
+    if isinstance(m1, mpmath.matrix) and isinstance(m2, mpmath.matrix):
         return m1 * m2
     elif isinstance(m1, np.ndarray) and isinstance(m2, np.ndarray):
         return np.dot(m1, m2)
 
 
 def matrix_inverse(m):
-    if isinstance(m, sympy.mpmath.matrix):
+    if isinstance(m, mpmath.matrix):
         return m ** (-1)
     elif isinstance(m, np.ndarray):
         return np.linalg.inv(m)
@@ -347,6 +347,6 @@ def set_precision(prec=None):
         math_module = np
     else:
         print('Setting precision ', prec, ' digits')
-        sympy.mpmath.mp.dps = prec
-        matrix_format = sympy.mpmath.matrix
-        math_module = sympy.mpmath
+        mpmath.mp.dps = prec
+        matrix_format = mpmath.matrix
+        math_module = mpmath

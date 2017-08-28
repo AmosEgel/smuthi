@@ -14,3 +14,6 @@ data/
 nfmds_*
 scripts/
 *smuthi_output*
+.project
+.pydevproject
+.settings

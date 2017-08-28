@@ -14,12 +14,99 @@ class InitialField:
         """Virtual method to be overwritten."""
         pass
 
-    def plane_wave_expansion(self, layer_system):
+    def plane_wave_expansion(self, layer_system, i):
         """Virtual method to be overwritten."""
         pass
+    
+    def angular_frequency(self):
+        """Angular frequency.
+        
+        Returns:
+            Angular frequency (float) according to the vacuum wavelength in units of c=1.
+        """
+        return coord.angular_frequency(self.vacuum_wavelength)
 
 
-class PlaneWave(InitialField):
+
+class InitialPropagatingWave(InitialField):
+    """Base class for plane waves and Gaussian beams"""
+    def __init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, amplitude=1,
+             reference_point=None):
+        InitialField.__init__(self, vacuum_wavelength)
+        self.polar_angle = polar_angle
+        self.azimuthal_angle = azimuthal_angle
+        self.polarization = polarization
+        self.amplitude = amplitude
+        if reference_point:
+            self.reference_point = reference_point
+        else:
+            self.reference_point = [0, 0, 0]
+            
+    def spherical_wave_expansion(self, particle, layer_system):
+        """Regular spherical wave expansion of the wave including layer system response, at the locations of the
+        particles
+        """
+        i = layer_system.layer_number(particle.position[2])
+        pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
+        return (fldex.pwe_to_swe_conversion(pwe_up, particle.l_max, particle.m_max, particle.position)
+                + fldex.pwe_to_swe_conversion(pwe_down, particle.l_max, particle.m_max, particle.position))
+
+    def electric_field(self, x, y, z, layer_system):
+        """Evaluate the complex electric field corresponding to the wave.
+
+        Args:
+            x (array like):     Array of x-values where to evaluate the field (length unit)
+            y (array like):     Array of y-values where to evaluate the field (length unit)
+            z (array like):     Array of z-values where to evaluate the field (length unit)
+            layer_system (smuthi.layer.LayerSystem):    Stratified medium
+
+        Returns
+            Tuple (E_x, E_y, E_z) of electric field values
+        """
+
+        old_shp = x.shape
+        x = x.reshape(-1)
+        y = y.reshape(-1)
+        z = z.reshape(-1)
+
+        electric_field_x = np.zeros(x.shape, dtype=complex)
+        electric_field_y = np.zeros(x.shape, dtype=complex)
+        electric_field_z = np.zeros(x.shape, dtype=complex)
+
+        # which field point is in which layer?
+        layer_numbers = []
+        for zi in z:
+            layer_numbers.append(layer_system.layer_number(zi))
+
+        for i in range(layer_system.number_of_layers()):
+            layer_indices = [ii for ii, laynum in enumerate(layer_numbers) if laynum == i]
+            if layer_indices:
+                pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
+                ex_up, ey_up, ez_up = pwe_up.electric_field(x[layer_indices], y[layer_indices], z[layer_indices])
+                ex_down, ey_down, ez_down = pwe_down.electric_field(x[layer_indices], y[layer_indices],
+                                                                    z[layer_indices])
+                electric_field_x[layer_indices] = ex_up + ex_down
+                electric_field_y[layer_indices] = ey_up + ey_down
+                electric_field_z[layer_indices] = ez_up + ez_down
+
+        return electric_field_x.reshape(old_shp), electric_field_y.reshape(old_shp), electric_field_z.reshape(old_shp)
+
+    
+class GaussianBeam(InitialPropagatingWave):
+    """Class for the representation of a Gaussian beam as initial field."""
+    def __init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, beam_waist, k_parallel, 
+                 azimuthal_angles, amplitude=1, reference_point=None):
+        InitialPropagatingWave.__init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, amplitude,
+                                        reference_point)
+        self.beam_waist = beam_waist
+        self.k_parallel = k_parallel
+        self.azimuthal_angles = azimuthal_angles
+        
+    def plane_wave_expansion(self, layer_system, i):
+        raise NotImplementedError('TO DO')
+
+
+class PlaneWave(InitialPropagatingWave):
     """Class for the representation of a plane wave as initial field.
 
     Args:
@@ -30,18 +117,7 @@ class PlaneWave(InitialField):
         amplitude (float or complex):   Plane wave amplitude at reference point
         reference_point (list):         Location where electric field of incoming wave equals amplitude
     """
-    def __init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, amplitude=1,
-                 reference_point=None):
-        InitialField.__init__(self, vacuum_wavelength)
-        self.polar_angle = polar_angle
-        self.azimuthal_angle = azimuthal_angle
-        self.polarization = polarization
-        self.amplitude = amplitude
-        if reference_point:
-            self.reference_point = reference_point
-        else:
-            self.reference_point = [0, 0, 0]
-
+        
     def plane_wave_expansion(self, layer_system, i):
         """Plane wave expansion for the plane wave including its layer system response. As it already is a plane wave,
         the plane wave expansion is somehow trivial (containing only one partial wave, i.e., a discrete plane wave
@@ -87,54 +163,4 @@ class PlaneWave(InitialField):
 
         return pwe_up, pwe_down
 
-    def spherical_wave_expansion(self, particle, layer_system):
-        """Regular spherical wave expansion of the plane wave including layer system response, at the locations of the
-        particles
-        """
-        i = layer_system.layer_number(particle.position[2])
-        pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
-        return (fldex.pwe_to_swe_conversion(pwe_up, particle.l_max, particle.m_max, particle.position)
-                + fldex.pwe_to_swe_conversion(pwe_down, particle.l_max, particle.m_max, particle.position))
-
-    def electric_field(self, x, y, z, layer_system):
-        """Evaluate the complex electric field corresponding to the plane wave.
-
-        Args:
-            x (array like):     Array of x-values where to evaluate the field (length unit)
-            y (array like):     Array of y-values where to evaluate the field (length unit)
-            z (array like):     Array of z-values where to evaluate the field (length unit)
-            layer_system (smuthi.layer.LayerSystem):    Stratified medium
-
-        Returns
-            Tuple (E_x, E_y, E_z) of electric field values
-        """
-
-        old_shp = x.shape
-        x = x.reshape(-1)
-        y = y.reshape(-1)
-        z = z.reshape(-1)
-
-        electric_field_x = np.zeros(x.shape, dtype=complex)
-        electric_field_y = np.zeros(x.shape, dtype=complex)
-        electric_field_z = np.zeros(x.shape, dtype=complex)
-
-        # which field point is in which layer?
-        layer_numbers = []
-        for zi in z:
-            layer_numbers.append(layer_system.layer_number(zi))
-
-        for i in range(layer_system.number_of_layers()):
-            layer_indices = [ii for ii, laynum in enumerate(layer_numbers) if laynum == i]
-            if layer_indices:
-                pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
-                ex_up, ey_up, ez_up = pwe_up.electric_field(x[layer_indices], y[layer_indices], z[layer_indices])
-                ex_down, ey_down, ez_down = pwe_down.electric_field(x[layer_indices], y[layer_indices],
-                                                                    z[layer_indices])
-                electric_field_x[layer_indices] = ex_up + ex_down
-                electric_field_y[layer_indices] = ey_up + ey_down
-                electric_field_z[layer_indices] = ez_up + ez_down
-
-        return electric_field_x.reshape(old_shp), electric_field_y.reshape(old_shp), electric_field_z.reshape(old_shp)
-
-    def angular_frequency(self):
-        return coord.angular_frequency(self.vacuum_wavelength)
+    
