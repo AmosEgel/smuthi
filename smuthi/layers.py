@@ -99,18 +99,31 @@ class LayerSystem:
         return laynum
 
     def response(self, pwe, from_layer, to_layer):
+        """Evaluate the layer system response to an electromagnetic excitation inside the layer system.
 
-        # todo: check validity of pwe in from_layer, testing, docstring, check if reference point of pwe coincides with
-        #       reference point of from_layer
+        Args:
+            pwe (tuple or smuthi.field_expansion.PlaneWaveExpansion):  Either specify a PlaneWaveExpansion object that
+                                                                       that represents the electromagnetic excitation,
+                                                                       or a tuple of two PlaneWaveExpansion objects
+                                                                       representing the upwards- and downwards
+                                                                       propagating partial waves of the excitation.
+            from_layer (int):   Layer number in which the excitation is located
+            to_layer (int):     Layer number in which the layer response is to be evaluated
 
-        if hasattr(pwe, '__len__') and len(pwe) == 2:
-            pwe_up_0, pwe_down_0 = self.response(pwe[0], from_layer, to_layer)
-            pwe_up_1, pwe_down_1 = self.response(pwe[1], from_layer, to_layer)
-            pwe_up = pwe_up_0 + pwe_up_1
-            pwe_down = pwe_down_0 + pwe_down_1
-        elif hasattr(pwe, '__len__'):
-            raise ValueError('pwe argument must be either PlaneWaveExpansion or tuple of length two')
+        Returns:
+            Tuple (pwe_up, pwe_sown) of PlaneWaveExpansion objects representing the layer system response to the
+            excitation.
+        """
+        if hasattr(pwe, '__len__'):
+            if len(pwe) == 2:
+                pwe_up_0, pwe_down_0 = self.response(pwe[0], from_layer, to_layer)
+                pwe_up_1, pwe_down_1 = self.response(pwe[1], from_layer, to_layer)
+                pwe_up = pwe_up_0 + pwe_up_1
+                pwe_down = pwe_down_0 + pwe_down_1
+            else:
+                raise ValueError('pwe argument must be either PlaneWaveExpansion or tuple of length two')
         else:
+            assert pwe.reference_point == [0, 0, self.reference_z(from_layer)]
             omega = pwe.k / self.refractive_indices[from_layer]
             k_to_layer = omega * self.refractive_indices[to_layer]
             reference_point = [0, 0, self.reference_z(to_layer)]

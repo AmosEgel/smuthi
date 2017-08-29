@@ -1,11 +1,6 @@
 # This is an exemplary script to run SMUTHI from within python.
 
-import smuthi.index_conversion
 import numpy as np
-
-# ----------------------------------------------------------------------------------------------------------------------
-# Set truncation parameters for spherical wave expansion:
-smuthi.index_conversion.set_swe_specs(l_max=3)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Initialize simulation object

@@ -353,8 +353,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
 
 
 def scattered_electric_field(x, y, z, k_parallel, azimuthal_angles, vacuum_wavelength, particle_list, layer_system):
-    """Complex electric scttered near field.
-    Return the x, y and z component of the scattered electric field.
+    """Complex electric scattered near field.
 
     Args:
         x (numpy array):    x-coordinates of points in space where to evaluate field.
@@ -365,6 +364,8 @@ def scattered_electric_field(x, y, z, k_parallel, azimuthal_angles, vacuum_wavel
         vacuum_wavelength (float):          Vacuum wavelength
         particle_list (list):               List of smuthi.particle.Particle objects
         layer_system (smuthi.layers.LayerSystem):   Stratified medium
+    Returns:
+        Tuple (E_x, E_y, E_z) of complex electric field values as numpy arrays. The shapes are the same as x.shape
     """
 
     old_shape = x.shape
