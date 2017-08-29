@@ -27,11 +27,20 @@ class InitialField:
         return coord.angular_frequency(self.vacuum_wavelength)
 
 
-
 class InitialPropagatingWave(InitialField):
-    """Base class for plane waves and Gaussian beams"""
+    """Base class for plane waves and Gaussian beams
+
+    Args:
+        vacuum_wavelength (float):
+        polar_angle (float):            polar propagation angle (0 means, parallel to z-axis)
+        azimuthal_angle (float):        azimuthal propagation angle (0 means, in x-z plane)
+        polarization (int):             0 for TE/s, 1 for TM/p
+        amplitude (float or complex):   Electric field amplitude
+        reference_point (list):         Location where electric field of incoming wave equals amplitude
+    """
     def __init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, amplitude=1,
-             reference_point=None):
+                 reference_point=None):
+        assert (polarization == 0 or polarization == 1)
         InitialField.__init__(self, vacuum_wavelength)
         self.polar_angle = polar_angle
         self.azimuthal_angle = azimuthal_angle
@@ -94,16 +103,58 @@ class InitialPropagatingWave(InitialField):
     
 class GaussianBeam(InitialPropagatingWave):
     """Class for the representation of a Gaussian beam as initial field."""
-    def __init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, beam_waist, k_parallel, 
-                 azimuthal_angles, amplitude=1, reference_point=None):
+    def __init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, beam_waist, k_parallel_array,
+                 azimuthal_angles_array, amplitude=1, reference_point=None):
         InitialPropagatingWave.__init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, amplitude,
                                         reference_point)
         self.beam_waist = beam_waist
-        self.k_parallel = k_parallel
-        self.azimuthal_angles = azimuthal_angles
+        self.k_parallel_array = k_parallel_array
+        self.azimuthal_angles_array = azimuthal_angles_array
         
     def plane_wave_expansion(self, layer_system, i):
-        raise NotImplementedError('TO DO')
+
+        if np.cos(self.polar_angle) > 0:
+            iG = 0  # excitation layer number
+            type = 'upgoing'
+        else:
+            iG = layer_system.number_of_layers() - 1
+            type = 'downgoing'
+
+        niG = layer_system.refractive_indices[iG]  # refractive index in excitation layer
+        k_iG = niG * self.angular_frequency()
+        z_iG = layer_system.reference_z(iG)
+        iG_between = (layer_system.lower_zlimit(iG), layer_system.upper_zlimit(iG))
+        pwe_exc = fldex.PlaneWaveExpansion(k=k_iG, k_parallel=self.k_parallel_array,
+                                           azimuthal_angles=self.azimuthal_angles_array, type=type,
+                                           reference_point=[0, 0, z_iG], valid_between=iG_between)
+
+        k_Gx = k_iG * np.sin(self.polar_angle) * np.cos(self.azimuthal_angle)
+        k_Gy = k_iG * np.sin(self.polar_angle) * np.sin(self.azimuthal_angle)
+
+        kp = pwe_exc.k_parallel_grid()
+        al = pwe_exc.azimuthal_angle_grid()
+
+        kx = kp * np.cos(al)
+        ky = kp * np.sin(al)
+        kz = pwe_exc.k_z_grid()
+
+        w = self.beam_waist
+        r_G = self.reference_point
+
+        g = (self.amplitude * w**2 / (4 * np.pi) * np.exp(-w**2 / 4 * ((kx - k_Gx)**2 + (ky - k_Gy)**2))
+             * np.exp(-1j * (kx * r_G[0] + ky * r_G[1] + kz * (r_G[2] - z_iG))) )
+
+        pwe_exc.coefficients[0, :, :] = g * np.cos(al - self.azimuthal_angle + self.polarization * np.pi/2)
+        pwe_exc.coefficients[1, :, :] = g * np.sin(al - self.azimuthal_angle + self.polarization * np.pi/2)
+
+        pwe_up, pwe_down = layer_system.response(pwe_exc, from_layer=iG, to_layer=i)
+        if iG == i:
+            if type == 'upgoing':
+                pwe_up = pwe_up + pwe_exc
+            elif type == 'downgoing':
+                pwe_down = pwe_down + pwe_exc
+
+        return pwe_up, pwe_down
 
 
 class PlaneWave(InitialPropagatingWave):
@@ -149,7 +200,7 @@ class PlaneWave(InitialPropagatingWave):
         k_Pz = k_iP * np.cos(self.polar_angle)
         z_iP = layer_system.reference_z(iP)
         amplitude_iP = self.amplitude * np.exp(-1j * (k_Px * self.reference_point[0] + k_Py * self.reference_point[1]
-                                                   + k_Pz * (self.reference_point[2] - z_iP)))
+                                                      + k_Pz * (self.reference_point[2] - z_iP)))
         iP_between = (layer_system.lower_zlimit(iP), layer_system.upper_zlimit(iP))
         pwe_exc = fldex.PlaneWaveExpansion(k=k_iP, k_parallel=neff*angular_frequency, azimuthal_angles=alpha, type=type,
                                            reference_point=[0, 0, z_iP], valid_between=iP_between)
@@ -162,5 +213,3 @@ class PlaneWave(InitialPropagatingWave):
                 pwe_down = pwe_down + pwe_exc
 
         return pwe_up, pwe_down
-
-    
