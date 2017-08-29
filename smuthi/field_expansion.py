@@ -86,10 +86,30 @@ class SphericalWaveExpansion:
         self.valid_between = valid_between
 
     def coefficients_tlm(self, tau, l, m):
+        """SWE coefficient for given (tau, l, m)
+
+        Args:
+            tau (int):  SVWF polarization (0 for spherical TE, 1 for spherical TM)
+            l (int):    SVWF degree
+            m (int):    SVWF order
+
+        Returns:
+            SWE coefficient
+        """
         n = multi_to_single_index(tau, l, m, self.l_max, self.m_max)
         return self.coefficients[n]
 
     def electric_field(self, x, y, z):
+        """Evaluate the electric near field corresponding to the SWE.
+
+        Args:
+            x (numpy array):    x-coordinates of field points
+            y (numpy array):    y-coordinates of field points
+            z (numpy array):    z-coordinates of field points
+
+        Returns:
+            Tuple (E_x, E_y, E_z) of complex electric field values as numpy arrays of the same shape as x
+        """
         xr = x - self.reference_point[0]
         yr = y - self.reference_point[1]
         zr = z - self.reference_point[2]
@@ -224,7 +244,19 @@ class PlaneWaveExpansion:
         return pwe_sum
 
     def electric_field(self, x, y, z):
-        # todo: doc, check if z inside domain of validity
+        """Evaluate electric field.
+
+        Args:
+            x (numpy array):    x-coordinates of points where to evaluate the field
+            y (numpy array):    y-coordinates of points where to evaluate the field
+            z (numpy array):    z-coordinates of points where to evaluate the field
+
+        Returns:
+            Tuple (E_x, E_y, E_z) of complex electric fields as numpy arrays with the same shape as x, y, z
+        """
+        for zi in z.reshape(-1):
+            assert zi >= self.valid_between[0] and zi <= self.valid_between[1]
+
         xr = x - self.reference_point[0]
         yr = y - self.reference_point[1]
         zr = z - self.reference_point[2]
@@ -267,7 +299,17 @@ class PlaneWaveExpansion:
 
 
 def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
-    # todo: doc
+    """Convert plane wave expansion object to a spherical wave expansion object.
+
+    Args:
+        pwe (PlaneWaveExpansion):   Plane wave expansion to be converted
+        l_max (int):                Maximal multipole degree of spherical wave expansion
+        m_max (int):                Maximal multipole order of spherical wave expansion
+        reference_point (list):     Coordinates of reference point in the format [x, y, z]
+
+    Returns:
+        SphericalWaveExpansion object.
+    """
 
     if reference_point[2] < min(pwe.valid_between) or reference_point[2] > max(pwe.valid_between):
         raise ValueError('reference point not inside domain of pwe validity')
@@ -307,8 +349,20 @@ def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
 
 def swe_to_pwe_conversion(swe, k_parallel=None, azimuthal_angles=None, layer_system=None, layer_number=None,
                           layer_system_mediated=False):
-    # todo: doc
+    """Convert SphericalWaveExpansion object to a PlaneWaveExpansion object.
 
+        Args:
+            swe (SphericalWaveExpansion):   Spherical wave expansion to be converted
+            k_parallel (numpy array):       In-plane wavenumbers for the pwe object
+            azimuthal_angles (numpy array): Azimuthal angles for the pwe object
+            layer_system (smuthi.layers.LayerSystem):   Stratified medium in which the origin of the SWE is located
+            layer_number (int):             Layer number in which the PWE should be valid.
+            layer_system_mediated (bool):   If True, the PWE refers to the layer system response of the SWE, otherwise
+                                            it is the direct transform.
+
+        Returns:
+            PlaneWaveExpansion object.
+        """
     i_swe = layer_system.layer_number(swe.reference_point[2])
     if layer_number is None and not layer_system_mediated:
         layer_number = i_swe
