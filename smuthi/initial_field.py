@@ -145,7 +145,10 @@ class GaussianBeam(InitialPropagatingWave):
              * np.exp(-1j * (kx * r_G[0] + ky * r_G[1] + kz * (r_G[2] - z_iG))) )
 
         pwe_exc.coefficients[0, :, :] = g * np.cos(al - self.azimuthal_angle + self.polarization * np.pi/2)
-        pwe_exc.coefficients[1, :, :] = g * np.sin(al - self.azimuthal_angle + self.polarization * np.pi/2)
+        if np.cos(self.polar_angle) > 0:
+            pwe_exc.coefficients[1, :, :] = g * np.sin(al - self.azimuthal_angle + self.polarization * np.pi/2)
+        else:
+            pwe_exc.coefficients[1, :, :] = - g * np.sin(al - self.azimuthal_angle + self.polarization * np.pi/2)
 
         pwe_up, pwe_down = layer_system.response(pwe_exc, from_layer=iG, to_layer=i)
         if iG == i:
