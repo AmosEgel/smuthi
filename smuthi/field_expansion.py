@@ -413,6 +413,51 @@ def swe_to_pwe_conversion(swe, k_parallel=None, azimuthal_angles=None, layer_sys
     return pwe_up, pwe_down
 
 
+def scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, layer_number, k_parallel=None,
+                        azimuthal_angles=None, include_direct=True, include_layer_response=True):
+    """Calculate the plane wave expansion of the scattered field of a set of particles.
+
+    Args:
+        vacuum_wavelength (float):          Vacuum wavelength (length unit)
+        particle_list (list):               List of Particle objects
+        layer_system (smuthi.layers.LayerSystem):  Stratified medium
+        layer_number (int):                 Layer number in which the plane wave expansion should be valid
+        k_parallel (numpy.ndarray):         In-plane wavenumbers for the plane wave expansion (inverse length unit)
+        azimuthal_angles (numpy.ndarray):   Azimuthal angles of the wave vector for the plane wave expansion (radian)
+        include_direct (bool):              If True, include the direct scattered field
+        include_layer_response (bool):      If True, include the layer system response
+    Returns:
+        A tuple of PlaneWaveExpansion objects for upgoing and downgoing waves.
+    """
+
+    omega = coord.angular_frequency(vacuum_wavelength)
+    k = omega * layer_system.refractive_indices[layer_number]
+    z = layer_system.reference_z(layer_number)
+    vb = (layer_system.lower_zlimit(layer_number), layer_system.upper_zlimit(layer_number))
+    pwe_up = PlaneWaveExpansion(k=k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, type='upgoing',
+                                reference_point=[0, 0, z], valid_between=vb)
+    pwe_down = PlaneWaveExpansion(k=k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, type='downgoing',
+                                  reference_point=[0, 0, z], valid_between=vb)
+
+    for iS, particle in enumerate(particle_list):
+        i_iS = layer_system.layer_number(particle.position[2])
+
+        # direct contribution
+        if i_iS == layer_number and include_direct:
+            pu, pd = swe_to_pwe_conversion(particle.scattered_field, k_parallel, azimuthal_angles, layer_system)
+            pwe_up = pwe_up + pu
+            pwe_down = pwe_down + pd
+
+        # layer mediated contribution
+        if include_layer_response:
+            pu, pd = swe_to_pwe_conversion(particle.scattered_field, k_parallel, azimuthal_angles, layer_system,
+                                           layer_number, True)
+            pwe_up = pwe_up + pu
+            pwe_down = pwe_down + pd
+
+    return pwe_up, pwe_down
+
+
 def plane_vector_wave_function(x, y, z, kp, alpha, kz, pol):
     r"""Electric field components of plane wave (PVWF).
 

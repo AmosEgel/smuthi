@@ -3,6 +3,7 @@
 import numpy as np
 import smuthi.coordinates as coord
 import smuthi.field_expansion as fldex
+import smuthi.field_evaluation as fldev
 
 
 class InitialField:
@@ -158,6 +159,43 @@ class GaussianBeam(InitialPropagatingWave):
                 pwe_down = pwe_down + pwe_exc
 
         return pwe_up, pwe_down
+
+    def propagated_far_field(self, layer_system):
+        """Evaluate the far field intensity of the reflected / transmitted initial field.
+
+        Args:
+            layer_system (smuthi.layers.LayerSystem):           Stratified medium
+
+        Returns:
+            A tuple of smuthi.field_evaluation.FarField objects, one for forward (i.e., into the top hemisphere) and one
+            for backward propagation (bottom hemisphere).
+        """
+        i_top = layer_system.number_of_layers() - 1
+        top_far_field = fldev.FarField(vacuum_wavelength=self.vacuum_wavelength,
+                                       plane_wave_expansion=self.plane_wave_expansion(layer_system, i_top)[0])
+        bottom_far_field = fldev.FarField(vacuum_wavelength=self.vacuum_wavelength,
+                                          plane_wave_expansion=self.plane_wave_expansion(layer_system, 0)[1])
+
+        return top_far_field, bottom_far_field
+
+    def initial_intensity(self, layer_system):
+        """Evaluate the incoming intensity of the initial field.
+
+        Args:
+            layer_system (smuthi.layers.LayerSystem):           Stratified medium
+
+        Returns:
+            A smuthi.field_evaluation.FarField object holding the initial intensity information.
+        """
+        if np.cos(self.polar_angle) > 0:  # bottom illumination
+            far_field = fldev.FarField(vacuum_wavelength=self.vacuum_wavelength,
+                                       plane_wave_expansion=self.plane_wave_expansion(layer_system, 0)[0])
+        else:  # top illumination
+            i_top = layer_system.number_of_layers() - 1
+            far_field = fldev.FarField(vacuum_wavelength=self.vacuum_wavelength,
+                                       plane_wave_expansion=self.plane_wave_expansion(layer_system, i_top)[1])
+
+        return far_field
 
 
 class PlaneWave(InitialPropagatingWave):
