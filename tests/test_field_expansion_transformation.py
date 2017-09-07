@@ -27,15 +27,15 @@ x = np.array([fieldpoint[0]])
 y = np.array([fieldpoint[1]])
 z = np.array([fieldpoint[2]])
 
-swe = fldex.SphericalWaveExpansion(k=k, l_max=3, m_max=3, type='outgoing', reference_point=swe_ref)
+swe = fldex.SphericalWaveExpansion(k=k, l_max=3, m_max=3, kind='outgoing', reference_point=swe_ref)
 swe.coefficients[0] = 2
 swe.coefficients[1] = -3j
 swe.coefficients[16] = 1
 swe.coefficients[18] = 0.5
 
 kp2 = np.linspace(0, 2, num=1000) * k
-pwe = fldex.PlaneWaveExpansion(k=k, k_parallel=kp2, azimuthal_angles=a, type='upgoing', reference_point=pwe_ref,
-                               valid_between=vb)
+pwe = fldex.PlaneWaveExpansion(k=k, k_parallel=kp2, azimuthal_angles=a, kind='upgoing', reference_point=pwe_ref,
+                               lower_z=vb[0], upper_z=vb[1])
 pwe.coefficients[0, :, :] = 100000 * np.exp(- pwe.k_parallel_grid() / k / 20)
 pwe.coefficients[1, :, :] = -100000 * np.exp(- pwe.k_parallel_grid() / k / 10)
 

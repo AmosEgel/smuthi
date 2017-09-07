@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import smuthi.far_field as ff
+import smuthi.scattered_field as sf
 import smuthi.near_field as nf
 import matplotlib.pyplot as plt
 import sys
@@ -22,7 +22,7 @@ class PostProcessing:
                 polar_angles = item.get('polar angles')
                 azimuthal_angles = item.get('azimuthal angles')
 
-                self.scattering_cross_section = ff.scattering_cross_section(
+                self.scattering_cross_section = sf.scattering_cross_section(
                     initial_field=initial_field, polar_angles=polar_angles, azimuthal_angles=azimuthal_angles,
                     particle_list=particle_list, layer_system=layer_system)
 
@@ -58,7 +58,7 @@ class PostProcessing:
                     np.savetxt(outputdir + '/azimuthal_angles.dat', aa, header=header)
 
                 # extinction_cross_section(initial_field, particle_list, layer_system)
-                self.extinction_cross_section = ff.extinction_cross_section(initial_field, particle_list, layer_system)
+                self.extinction_cross_section = sf.extinction_cross_section(initial_field, particle_list, layer_system)
 
                 # distinguish the cases of top/bottom illumination
                 i_top = layer_system.number_of_layers() - 1

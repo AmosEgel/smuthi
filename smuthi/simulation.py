@@ -136,10 +136,13 @@ class Simulation:
             raise ValueError('This solver type is currently not implemented.')
 
         for iS, particle in enumerate(self.particle_list):
-            n_iS = self.layer_system.refractive_indices[self.layer_system.layer_number(particle.position[2])]
+            i_iS = self.layer_system.layer_number(particle.position[2])
+            n_iS = self.layer_system.refractive_indices[i_iS]
             k = coord.angular_frequency(self.initial_field.vacuum_wavelength) * n_iS
+            loz, upz = self.layer_system.lower_zlimit(i_iS), self.layer_system.upper_zlimit(i_iS)
             particle.scattered_field = fldex.SphericalWaveExpansion(k=k, l_max=particle.l_max, m_max=particle.m_max,
-                                                                    type='outgoing', reference_point=particle.position)
+                                                                    kind='outgoing', reference_point=particle.position,
+                                                                    lower_z=loz, upper_z=upz)
             particle.scattered_field.coefficients = b[self.index_block(iS)]
 
         sys.stdout.write("done. \n")

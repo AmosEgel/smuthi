@@ -7,7 +7,7 @@ import smuthi.layers
 import smuthi.particles
 import smuthi.coordinates
 import smuthi.post_processing
-import smuthi.field_evaluation
+import smuthi.scattered_field
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Initialize simulation object
@@ -21,9 +21,9 @@ plane_wave_azimuthal_angle = 45 * np.pi / 180  # azimuthal angle of the incoming
 plane_wave_amplitude = 1
 plane_wave_polarization = 0  # 0 stands for TE, 1 stands for TM
 
-plane_wave = smuthi.initial_field.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=plane_wave_polar_angle, 
-                                               azimuthal_angle=plane_wave_azimuthal_angle, 
-                                               polarization=plane_wave_polarization)
+plane_wave = smuthi.initial_field.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=plane_wave_polar_angle,
+                                            azimuthal_angle=plane_wave_azimuthal_angle,
+                                            polarization=plane_wave_polarization)
 simulation.initial_field = plane_wave
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -53,13 +53,9 @@ simulation.wr_neff_contour = smuthi.coordinates.ComplexContour(neff_waypoints=co
 # Run simulation and show some output
 simulation.run()
 
-scs = smuthi.field_evaluation.scattering_cross_section(initial_field=simulation.initial_field,
-                                                       particle_list=simulation.particle_list,
-                                                       layer_system=simulation.layer_system)
+scs = smuthi.scattered_field.scattering_cross_section(initial_field=simulation.initial_field,
+                                                      particle_list=simulation.particle_list,
+                                                      layer_system=simulation.layer_system)
 
 print('Total scattering cross section:')
 print(sum(scs[0].integral()))
-
-
-
-

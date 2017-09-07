@@ -7,7 +7,7 @@ import smuthi.layers as lay
 import smuthi.initial_field as init
 import smuthi.coordinates as coord
 import smuthi.simulation as simul
-import smuthi.far_field as ff
+import smuthi.scattered_field as sf
 
 
 # Parameter input ----------------------------
@@ -40,16 +40,17 @@ simulation = simul.Simulation(layer_system=lay_sys, particle_list=particle_list,
                               wr_neff_contour=coord.ComplexContour(neff_waypoints, neff_discr))
 simulation.run()
 
-scs = ff.scattering_cross_section(initial_field=simulation.initial_field, particle_list=simulation.particle_list,
+scs = sf.scattering_cross_section(initial_field=simulation.initial_field, particle_list=simulation.particle_list,
                                   layer_system=simulation.layer_system)
 
-ecs = ff.extinction_cross_section(initial_field=simulation.initial_field,particle_list=simulation.particle_list,
+ecs = sf.extinction_cross_section(initial_field=simulation.initial_field,particle_list=simulation.particle_list,
                                   layer_system=simulation.layer_system)
 
 
 def test_optical_theorem():
-    relerr = abs((scs['total'][0] + scs['total'][1] - ecs['top'] - ecs['bottom'])
-                 / (scs['total'][0] + scs['total'][1]))
+    relerr = abs((scs[0].integral()[0] + scs[0].integral()[1] + scs[1].integral()[0] + scs[1].integral()[1]
+                  - ecs['top'] - ecs['bottom']) / (scs[0].integral()[0] + scs[0].integral()[1]
+                                                   + scs[1].integral()[0] + scs[1].integral()[1]))
     # print(scs['total'][0] + scs['total'][1])
     # print(ecs['top'] + ecs['bottom'])
     # print(relerr)

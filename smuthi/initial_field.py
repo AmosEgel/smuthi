@@ -3,7 +3,6 @@
 import numpy as np
 import smuthi.coordinates as coord
 import smuthi.field_expansion as fldex
-import smuthi.field_evaluation as fldev
 
 
 class InitialField:
@@ -16,6 +15,10 @@ class InitialField:
         pass
 
     def plane_wave_expansion(self, layer_system, i):
+        """Virtual method to be overwritten."""
+        pass
+
+    def piecewise_field_expansion(self, layer_system):
         """Virtual method to be overwritten."""
         pass
     
@@ -54,12 +57,22 @@ class InitialPropagatingWave(InitialField):
             
     def spherical_wave_expansion(self, particle, layer_system):
         """Regular spherical wave expansion of the wave including layer system response, at the locations of the
-        particles
+        particles.
         """
+        # todo: doc
         i = layer_system.layer_number(particle.position[2])
         pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
         return (fldex.pwe_to_swe_conversion(pwe_up, particle.l_max, particle.m_max, particle.position)
                 + fldex.pwe_to_swe_conversion(pwe_down, particle.l_max, particle.m_max, particle.position))
+
+    def piecewise_field_expansion(self, layer_system):
+        # todo: doc
+        pfe = fldex.PiecewiseFieldExpansion()
+        for i in range(layer_system.number_of_layers()):
+            pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
+            pfe.expansion_list.append(pwe_up)
+            pfe.expansion_list.append(pwe_down)
+        return pfe
 
     def electric_field(self, x, y, z, layer_system):
         """Evaluate the complex electric field corresponding to the wave.
@@ -74,32 +87,8 @@ class InitialPropagatingWave(InitialField):
             Tuple (E_x, E_y, E_z) of electric field values
         """
 
-        old_shp = x.shape
-        x = x.reshape(-1)
-        y = y.reshape(-1)
-        z = z.reshape(-1)
-
-        electric_field_x = np.zeros(x.shape, dtype=complex)
-        electric_field_y = np.zeros(x.shape, dtype=complex)
-        electric_field_z = np.zeros(x.shape, dtype=complex)
-
-        # which field point is in which layer?
-        layer_numbers = []
-        for zi in z:
-            layer_numbers.append(layer_system.layer_number(zi))
-
-        for i in range(layer_system.number_of_layers()):
-            layer_indices = [ii for ii, laynum in enumerate(layer_numbers) if laynum == i]
-            if layer_indices:
-                pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
-                ex_up, ey_up, ez_up = pwe_up.electric_field(x[layer_indices], y[layer_indices], z[layer_indices])
-                ex_down, ey_down, ez_down = pwe_down.electric_field(x[layer_indices], y[layer_indices],
-                                                                    z[layer_indices])
-                electric_field_x[layer_indices] = ex_up + ex_down
-                electric_field_y[layer_indices] = ey_up + ey_down
-                electric_field_z[layer_indices] = ez_up + ez_down
-
-        return electric_field_x.reshape(old_shp), electric_field_y.reshape(old_shp), electric_field_z.reshape(old_shp)
+        pfe = self.piecewise_field_expansion(layer_system=layer_system)
+        return pfe.electric_field(x, y, z)
 
     
 class GaussianBeam(InitialPropagatingWave):
@@ -116,18 +105,19 @@ class GaussianBeam(InitialPropagatingWave):
 
         if np.cos(self.polar_angle) > 0:
             iG = 0  # excitation layer number
-            type = 'upgoing'
+            kind = 'upgoing'
         else:
             iG = layer_system.number_of_layers() - 1
-            type = 'downgoing'
+            kind = 'downgoing'
 
         niG = layer_system.refractive_indices[iG]  # refractive index in excitation layer
         k_iG = niG * self.angular_frequency()
         z_iG = layer_system.reference_z(iG)
-        iG_between = (layer_system.lower_zlimit(iG), layer_system.upper_zlimit(iG))
+        loz = layer_system.lower_zlimit(iG)
+        upz = layer_system.upper_zlimit(iG)
         pwe_exc = fldex.PlaneWaveExpansion(k=k_iG, k_parallel=self.k_parallel_array,
-                                           azimuthal_angles=self.azimuthal_angles_array, type=type,
-                                           reference_point=[0, 0, z_iG], valid_between=iG_between)
+                                           azimuthal_angles=self.azimuthal_angles_array, kind=kind,
+                                           reference_point=[0, 0, z_iG], lower_z=loz, upper_z=upz)
 
         k_Gx = k_iG * np.sin(self.polar_angle) * np.cos(self.azimuthal_angle)
         k_Gy = k_iG * np.sin(self.polar_angle) * np.sin(self.azimuthal_angle)
@@ -153,9 +143,9 @@ class GaussianBeam(InitialPropagatingWave):
 
         pwe_up, pwe_down = layer_system.response(pwe_exc, from_layer=iG, to_layer=i)
         if iG == i:
-            if type == 'upgoing':
+            if kind == 'upgoing':
                 pwe_up = pwe_up + pwe_exc
-            elif type == 'downgoing':
+            elif kind == 'downgoing':
                 pwe_down = pwe_down + pwe_exc
 
         return pwe_up, pwe_down
@@ -171,12 +161,12 @@ class GaussianBeam(InitialPropagatingWave):
             for backward propagation (bottom hemisphere).
         """
         i_top = layer_system.number_of_layers() - 1
-        top_far_field = fldev.FarField(vacuum_wavelength=self.vacuum_wavelength,
-                                       plane_wave_expansion=self.plane_wave_expansion(layer_system, i_top)[0])
-        bottom_far_field = fldev.FarField(vacuum_wavelength=self.vacuum_wavelength,
-                                          plane_wave_expansion=self.plane_wave_expansion(layer_system, 0)[1])
+        top_ff = fldex.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
+                                            plane_wave_expansion=self.plane_wave_expansion(layer_system, i_top)[0])
+        bottom_ff = fldex.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
+                                               plane_wave_expansion=self.plane_wave_expansion(layer_system, 0)[1])
 
-        return top_far_field, bottom_far_field
+        return top_ff, bottom_ff
 
     def initial_intensity(self, layer_system):
         """Evaluate the incoming intensity of the initial field.
@@ -188,14 +178,14 @@ class GaussianBeam(InitialPropagatingWave):
             A smuthi.field_evaluation.FarField object holding the initial intensity information.
         """
         if np.cos(self.polar_angle) > 0:  # bottom illumination
-            far_field = fldev.FarField(vacuum_wavelength=self.vacuum_wavelength,
-                                       plane_wave_expansion=self.plane_wave_expansion(layer_system, 0)[0])
+            ff = fldex.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
+                                            plane_wave_expansion=self.plane_wave_expansion(layer_system, 0)[0])
         else:  # top illumination
             i_top = layer_system.number_of_layers() - 1
-            far_field = fldev.FarField(vacuum_wavelength=self.vacuum_wavelength,
-                                       plane_wave_expansion=self.plane_wave_expansion(layer_system, i_top)[1])
+            ff = fldex.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
+                                            plane_wave_expansion=self.plane_wave_expansion(layer_system, i_top)[1])
 
-        return far_field
+        return ff.integral()
 
 
 class PlaneWave(InitialPropagatingWave):
@@ -225,10 +215,10 @@ class PlaneWave(InitialPropagatingWave):
         """
         if np.cos(self.polar_angle) > 0:
             iP = 0
-            type = 'upgoing'
+            kind = 'upgoing'
         else:
             iP = layer_system.number_of_layers() - 1
-            type = 'downgoing'
+            kind = 'downgoing'
 
         niP = layer_system.refractive_indices[iP]
         neff = np.sin([self.polar_angle]) * niP
@@ -242,15 +232,16 @@ class PlaneWave(InitialPropagatingWave):
         z_iP = layer_system.reference_z(iP)
         amplitude_iP = self.amplitude * np.exp(-1j * (k_Px * self.reference_point[0] + k_Py * self.reference_point[1]
                                                       + k_Pz * (self.reference_point[2] - z_iP)))
-        iP_between = (layer_system.lower_zlimit(iP), layer_system.upper_zlimit(iP))
-        pwe_exc = fldex.PlaneWaveExpansion(k=k_iP, k_parallel=neff*angular_frequency, azimuthal_angles=alpha, type=type,
-                                           reference_point=[0, 0, z_iP], valid_between=iP_between)
+        loz = layer_system.lower_zlimit(iP)
+        upz = layer_system.upper_zlimit(iP)
+        pwe_exc = fldex.PlaneWaveExpansion(k=k_iP, k_parallel=neff*angular_frequency, azimuthal_angles=alpha, kind=kind,
+                                           reference_point=[0, 0, z_iP], lower_z=loz, upper_z=upz)
         pwe_exc.coefficients[self.polarization, 0, 0] = amplitude_iP
         pwe_up, pwe_down = layer_system.response(pwe_exc, from_layer=iP, to_layer=i)
         if iP == i:
-            if type == 'upgoing':
+            if kind == 'upgoing':
                 pwe_up = pwe_up + pwe_exc
-            elif type == 'downgoing':
+            elif kind == 'downgoing':
                 pwe_down = pwe_down + pwe_exc
 
         return pwe_up, pwe_down

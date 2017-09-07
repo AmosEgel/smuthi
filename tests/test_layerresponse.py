@@ -73,10 +73,10 @@ def test_layerresponse_method():
     a = np.linspace(0, 2*np.pi)
     layer_system = lay.LayerSystem(thicknesses=layer_d, refractive_indices=layer_n)
     ref = [0, 0, layer_system.reference_z(fromlayer)]
-    pwe_up = fldex.PlaneWaveExpansion(k=omega*1.2, k_parallel=kp, azimuthal_angles=a, type='upgoing',
+    pwe_up = fldex.PlaneWaveExpansion(k=omega*1.2, k_parallel=kp, azimuthal_angles=a, kind='upgoing',
                                         reference_point=ref)
     pwe_up.coefficients[0,:, :] = np.exp(-pwe_up.k_parallel_grid()/omega)
-    pwe_down = fldex.PlaneWaveExpansion(k=omega * 1.2, k_parallel=kp, azimuthal_angles=a, type='downgoing',
+    pwe_down = fldex.PlaneWaveExpansion(k=omega * 1.2, k_parallel=kp, azimuthal_angles=a, kind='downgoing',
                                           reference_point=ref)
     pwe_down.coefficients[0, :, :] = 2j * np.exp(-pwe_up.k_parallel_grid() / omega * 3)
 

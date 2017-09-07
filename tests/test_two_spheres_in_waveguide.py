@@ -7,7 +7,7 @@ import smuthi.layers as lay
 import smuthi.initial_field as init
 import smuthi.coordinates as coord
 import smuthi.simulation as simul
-import smuthi.far_field as ff
+import smuthi.scattered_field as sf
 
 
 # Parameter input ----------------------------
@@ -46,8 +46,8 @@ simulation2 = simul.Simulation(layer_system=lay_sys2, particle_list=[part1,part2
                                wr_neff_contour=coord.ComplexContour(neff_waypoints, neff_discr))
 simulation2.run()
 
-farfield = ff.scattered_far_field(vacuum_wavelength=vacuum_wavelength, particle_list=simulation1.particle_list,
-                                  layer_system=simulation1.layer_system)
+top_ff, bottom_ff = sf.scattered_far_field(vacuum_wavelength=vacuum_wavelength, particle_list=simulation1.particle_list,
+                                           layer_system=simulation1.layer_system)
 
 
 def test_equivalent_layer_systems():
@@ -70,11 +70,12 @@ def test_against_prototype():
     assert abs((simulation1.particle_list[1].scattered_field.coefficients[0] - b10) / b10) < 1e-4
 
     top_power_flux = 4.3895865e+02
-    assert abs((farfield['top power'][0] + farfield['top power'][1] - top_power_flux) / top_power_flux) < 1e-3
+    print(abs((sum(top_ff.integral()) - top_power_flux) / top_power_flux))
+    assert abs((sum(top_ff.integral()) - top_power_flux) / top_power_flux) < 1e-3
 
     bottom_power_flux = 2.9024410e+04
-    assert abs((farfield['bottom power'][0] + farfield['bottom power'][1] - bottom_power_flux)
-               / bottom_power_flux) < 1e-3
+    print(abs((sum(bottom_ff.integral()) - bottom_power_flux) / bottom_power_flux))
+    assert abs((sum(bottom_ff.integral()) - bottom_power_flux) / bottom_power_flux) < 1e-3
 
 
 if __name__ == '__main__':

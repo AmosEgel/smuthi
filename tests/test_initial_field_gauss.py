@@ -33,7 +33,7 @@ def test_SWE_coefficients_against_prototype():
     
     
 def test_focus_field():
-    E = gauss_beam.electric_field(np.array(ref[0]), np.array(ref[1]), np.array(ref[2]), laysys)
+    E = gauss_beam.electric_field(np.array([ref[0]]), np.array([ref[1]]), np.array([ref[2]]), laysys)
     assert abs(np.sqrt(E[0]**2 + E[1]**2 + E[2]**2) - A) < 1e-3
     
 

@@ -127,22 +127,22 @@ class LayerSystem:
             omega = pwe.k / self.refractive_indices[from_layer]
             k_to_layer = omega * self.refractive_indices[to_layer]
             reference_point = [0, 0, self.reference_z(to_layer)]
-            valid_between = (self.lower_zlimit(to_layer), self.upper_zlimit(to_layer))
+            loz, upz = self.lower_zlimit(to_layer), self.upper_zlimit(to_layer)
             pwe_up = fldex.PlaneWaveExpansion(k=k_to_layer, k_parallel=pwe.k_parallel,
                                               azimuthal_angles=pwe.azimuthal_angles,
-                                              type='upgoing', reference_point=reference_point,
-                                              valid_between=valid_between)
+                                              kind='upgoing', reference_point=reference_point,
+                                              lower_z=loz, upper_z=upz)
             pwe_down = fldex.PlaneWaveExpansion(k=k_to_layer, k_parallel=pwe.k_parallel,
                                                 azimuthal_angles=pwe.azimuthal_angles,
-                                                type='downgoing', reference_point=reference_point,
-                                                valid_between=valid_between)
+                                                kind='downgoing', reference_point=reference_point,
+                                                lower_z=loz, upper_z=upz)
             for pol in range(2):
                 L = layersystem_response_matrix(pol, self.thicknesses, self.refractive_indices, pwe.k_parallel, omega,
                                                 from_layer, to_layer)
-                if pwe.type == 'upgoing':
+                if pwe.kind == 'upgoing':
                     pwe_up.coefficients[pol, :, :] = L[0, 0, :][:, None] * pwe.coefficients[pol, :, :]
                     pwe_down.coefficients[pol, :, :] = L[1, 0, :][:, None] * pwe.coefficients[pol, :, :]
-                elif pwe.type == 'downgoing':
+                elif pwe.kind == 'downgoing':
                     pwe_up.coefficients[pol, :, :] = L[0, 1, :][:, None] * pwe.coefficients[pol, :, :]
                     pwe_down.coefficients[pol, :, :] = L[1, 1, :][:, None] * pwe.coefficients[pol, :, :]
                 else:
