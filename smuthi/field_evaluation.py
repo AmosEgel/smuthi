@@ -49,7 +49,7 @@ class FarField:
             else:
                 raise ValueError('PWE type not specified')
 
-            if any(polar_angles.imag):
+            if any(self.polar_angles.imag):
                 raise ValueError('complex angles are not allowed')
 
             self.azimuthal_angles = plane_wave_expansion.azimuthal_angles
@@ -59,15 +59,15 @@ class FarField:
                            * abs(plane_wave_expansion.coefficients) ** 2).real
         self.type = type
 
-    def azimuthally_averaged_signal(self):
+    def azimuthal_integral(self):
         if len(self.azimuthal_angles) > 2:
             return np.trapz(self.signal, self.azimuthal_angles[None, None, :]) * np.sin(self.polar_angles[None, :])
         else:
             return None
 
-    def power(self):
+    def integral(self):
         if len(self.azimuthal_angles) > 2:
-            return np.trapz(self.azimuthally_averaged_signal(), self.polar_angles[None, :])
+            return np.trapz(self.azimuthal_integral(), self.polar_angles[None, :])
         else:
             return None
 
@@ -99,7 +99,7 @@ def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_an
     neff_top = np.sort(np.sin(top_polar_angles) * layer_system.refractive_indices[i_top])
     neff_bottom = np.sort(np.sin(bottom_polar_angles) * layer_system.refractive_indices[0])
 
-    if top_polar_angles.__len__ > 1 and layer_system.refractive_indices[i_top].imag == 0:
+    if top_polar_angles.__len__() > 1 and layer_system.refractive_indices[i_top].imag == 0:
         pwe_top, _ = fldex.scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, i_top,
                                                k_parallel=neff_top*omega, azimuthal_angles=azimuthal_angles,
                                                include_direct=True, include_layer_response=True)
@@ -107,7 +107,7 @@ def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_an
     else:
         top_far_field = None
 
-    if bottom_polar_angles.__len__ > 1 and layer_system.refractive_indices[0].imag == 0:
+    if bottom_polar_angles.__len__() > 1 and layer_system.refractive_indices[0].imag == 0:
         _, pwe_bottom = fldex.scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, 0,
                                                   k_parallel=neff_bottom*omega, azimuthal_angles=azimuthal_angles,
                                                   include_direct=True, include_layer_response=True)

@@ -232,8 +232,8 @@ class PlaneWaveExpansion:
         return kz
 
     def __add__(self, other):
-        if not (self.k == other.k and all(self.k_parallel == other.k_parallel)
-                and all(self.azimuthal_angles == other.azimuthal_angles) and self.type == other.type
+        if not (np.isclose(self.k, other.k) and all(np.isclose(self.k_parallel, other.k_parallel))
+                and all(np.isclose(self.azimuthal_angles, other.azimuthal_angles)) and self.type == other.type
                 and self.reference_point == other.reference_point):
             raise ValueError('Plane wave expansion are inconsistent.')
         pwe_sum = PlaneWaveExpansion(k=self.k, k_parallel=self.k_parallel, azimuthal_angles=self.azimuthal_angles,
