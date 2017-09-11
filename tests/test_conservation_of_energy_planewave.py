@@ -51,8 +51,6 @@ def test_optical_theorem():
     relerr = abs((scs[0].integral()[0] + scs[0].integral()[1] + scs[1].integral()[0] + scs[1].integral()[1]
                   - ecs['top'] - ecs['bottom']) / (scs[0].integral()[0] + scs[0].integral()[1]
                                                    + scs[1].integral()[0] + scs[1].integral()[1]))
-    # print(scs['total'][0] + scs['total'][1])
-    # print(ecs['top'] + ecs['bottom'])
     # print(relerr)
     assert relerr < 1e-4
 

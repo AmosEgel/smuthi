@@ -475,11 +475,10 @@ def pwe_to_ff_conversion(vacuum_wavelength, plane_wave_expansion):
     """
     omega = coord.angular_frequency(vacuum_wavelength)
     k = plane_wave_expansion.k
+    kp = plane_wave_expansion.k_parallel
     if plane_wave_expansion.kind == 'upgoing':
-        kp = plane_wave_expansion.k_parallel
         polar_angles = np.arcsin(kp / k)
     elif plane_wave_expansion.kind == 'downgoing':
-        kp = plane_wave_expansion.k_parallel[-1::-1]
         polar_angles = np.pi - np.arcsin(kp / k)
     else:
         raise ValueError('PWE type not specified')
@@ -487,9 +486,11 @@ def pwe_to_ff_conversion(vacuum_wavelength, plane_wave_expansion):
         raise ValueError('complex angles are not allowed')
     azimuthal_angles = plane_wave_expansion.azimuthal_angles
     kkz2 = coord.k_z(k_parallel=kp, k=k) ** 2 * k
-    ff = FarField(polar_angles=polar_angles, azimuthal_angles=azimuthal_angles)
-    ff.signal = (2 * np.pi ** 2 / omega * kkz2[np.newaxis, :, np.newaxis]
-                 * abs(plane_wave_expansion.coefficients) ** 2).real
+    intens = (2 * np.pi ** 2 / omega * kkz2[np.newaxis, :, np.newaxis] 
+              * abs(plane_wave_expansion.coefficients) ** 2).real
+    srt_idcs = np.argsort(polar_angles)  # reversing order in case of downgoing
+    ff = FarField(polar_angles=polar_angles[srt_idcs], azimuthal_angles=azimuthal_angles)
+    ff.signal = intens[:, srt_idcs, :]
     return ff
 
 

@@ -57,8 +57,9 @@ def scattering_cross_section(initial_field, particle_list, layer_system, polar_a
         initial_field (smuthi.initial.PlaneWave): Initial Plane wave
         particle_list (list):                     scattering particles
         layer_system (smuthi.layers.LayerSystem): stratified medium
-        polar_angles (numpy.ndarray):             polar angles (radian), default: from 1 to 180 degree in steps of 1
-        azimuthal_angles (numpy.ndarray):         azimuthal angles (radian), default: from 1 to 360 degree in steps of 1
+        polar_angles (numpy.ndarray):             polar angles (radian), default: from 0 to pi in steps of 1 degree
+        azimuthal_angles (numpy.ndarray):         azimuthal angles (radian), default: from 0 to 2*pi in steps of 
+                                                  1 degree
 
     Returns:
         A tuple of FarField objects, one for forward scattering (i.e., into the top hemisphere) and one for backward
