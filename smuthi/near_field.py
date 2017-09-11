@@ -3,6 +3,7 @@ import numpy as np
 import scipy.interpolate as interp
 import smuthi.coordinates as coord
 import smuthi.field_expansion as fldex
+import smuthi.scattered_field as sf
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Ellipse, Rectangle
 import tempfile
@@ -161,10 +162,11 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         zarr = xarr - xarr + zmin
         dim1name = 'x (' + simulation.length_unit + ')'
         dim2name = 'y (' + simulation.length_unit + ')'
-
-    e_x_scat_raw, e_y_scat_raw, e_z_scat_raw = scattered_electric_field(xarr, yarr, zarr, k_parallel, azimuthal_angles,
-                                                                        vacuum_wavelength, simulation.particle_list,
-                                                                        simulation.layer_system)
+        
+    scat_fld_exp = sf.scattered_field_piecewise_expansion(k_parallel, azimuthal_angles, vacuum_wavelength,
+                                                          simulation.particle_list, simulation.layer_system)
+    e_x_scat_raw, e_y_scat_raw, e_z_scat_raw = scat_fld_exp.electric_field(xarr, yarr, zarr) 
+    
     e_x_init_raw, e_y_init_raw, e_z_init_raw = simulation.initial_field.electric_field(xarr, yarr, zarr,
                                                                                        simulation.layer_system)
     if interpolate is None:
@@ -390,9 +392,9 @@ def scattered_electric_field(x, y, z, k_parallel, azimuthal_angles, vacuum_wavel
             ref = [0, 0, layer_system.reference_z(i)]
             vb = (layer_system.lower_zlimit(i), layer_system.upper_zlimit(i))
             pwe_up = fldex.PlaneWaveExpansion(k=k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles,
-                                              type='upgoing', reference_point=ref, valid_between=vb)
+                                              kind='upgoing', reference_point=ref, lower_z=vb[0], upper_z=vb[1])
             pwe_down = fldex.PlaneWaveExpansion(k=k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles,
-                                                type='downgoing', reference_point=ref, valid_between=vb)
+                                                kind='downgoing', reference_point=ref, lower_z=vb[0], upper_z=vb[1])
             for particle in particle_list:
                 add_up, add_down = fldex.swe_to_pwe_conversion(particle.scattered_field, k_parallel, azimuthal_angles,
                                                                layer_system, i, True)

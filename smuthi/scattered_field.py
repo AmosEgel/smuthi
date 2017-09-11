@@ -207,9 +207,9 @@ def scattered_field_piecewise_expansion(k_parallel, azimuthal_angles, vacuum_wav
         sfld.expansion_list.append(pwe_up)
         sfld.expansion_list.append(pwe_down)
 
-        # direct field ---------------------------------------------------------------------------------------------
-        for particle in particle_list:
-            sfld.expansion_list.append(particle.scattered_field)
+    # direct field ---------------------------------------------------------------------------------------------
+    for particle in particle_list:
+        sfld.expansion_list.append(particle.scattered_field)
 
     return sfld
 

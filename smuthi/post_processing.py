@@ -10,7 +10,8 @@ import os
 class PostProcessing:
     def __init__(self):
         self.tasks = []
-        self.scattering_cross_section = None
+        self.top_scattering_cross_section = None
+        self.bottom_scattering_cross_section = None
         self.extinction_cross_section = None
 
     def run(self, simulation):
@@ -22,7 +23,7 @@ class PostProcessing:
                 polar_angles = item.get('polar angles')
                 azimuthal_angles = item.get('azimuthal angles')
 
-                self.scattering_cross_section = sf.scattering_cross_section(
+                self.top_scattering_cross_section, self.bottom_scattering_cross_section = sf.scattering_cross_section(
                     initial_field=initial_field, polar_angles=polar_angles, azimuthal_angles=azimuthal_angles,
                     particle_list=particle_list, layer_system=layer_system)
 
@@ -31,35 +32,42 @@ class PostProcessing:
                     os.makedirs(outputdir)
 
                 if item.get('save data', False):
-                    dsc = self.scattering_cross_section['differential']
-                    header = ('Differential TE polarized cross section. Each line corresponds to a polar angle, each'
-                              ' column corresponds to an azimuthal angle.')
-                    np.savetxt(outputdir + '/differential_cross_section_TE.dat', dsc[0, :, :],
-                               header=header)
-                    header = ('Differential TM polarized cross section. Each line corresponds to a polar angle, each'
-                              ' column corresponds to an azimuthal angle.')
-                    np.savetxt(outputdir + '/differential_cross_section_TM.dat', dsc[1, :, :],
-                               header=header)
-
-                    pdsc = self.scattering_cross_section['polar']
-                    header = 'Polar differential TE polarized cross section. Each line corresponds to a polar angle.'
-                    np.savetxt(outputdir + '/polar_differential_cross_section_TE.dat', pdsc[0, :],
-                               header=header)
-                    header = 'Polar differential TM polarized cross section. Each line corresponds to a polar angle.'
-                    np.savetxt(outputdir + '/polar_differential_cross_section_TM.dat', pdsc[1, :],
-                               header=header)
-
-                    pa = self.scattering_cross_section['polar angles']
-                    header = 'Polar angles of the far field in radians.'
-                    np.savetxt(outputdir + '/polar_angles.dat', pa, header=header)
-
-                    aa = self.scattering_cross_section['azimuthal angles']
-                    header = 'Azimuthal angles of the far field in radians.'
-                    np.savetxt(outputdir + '/azimuthal_angles.dat', aa, header=header)
+                    dsc_top, dsc_bottom = self.top_scattering_cross_section, self.bottom_scattering_cross_section
+                    if dsc_top:
+                        np.savetxt(outputdir + '/top_differential_cross_section_TE.dat', dsc_top.signal[0, :, :],
+                                   header='Differential TE polarized cross section into top hemisphere. Each line'
+                                   ' corresponds to a polar angle, each column corresponds to an azimuthal angle.')
+                        np.savetxt(outputdir + '/top_differential_cross_section_TM.dat', dsc_top.signal[1, :, :],
+                                   header='Differential TM polarized cross section into top hemisphere. Each line'
+                                   ' corresponds to a polar angle, each column corresponds to an azimuthal angle.')
+                        np.savetxt(outputdir + '/top_polar_differential_cross_section_TE.dat', 
+                                   dsc_top.azimuthal_integral()[0, :], header='Polar differential TE polarized cross ' 
+                                   'section into top hemisphere. Each line corresponds to a polar angle.')
+                        np.savetxt(outputdir + '/top_polar_differential_cross_section_TM.dat', 
+                                   dsc_top.azimuthal_integral()[1, :], header='Polar differential TM polarized cross ' 
+                                   'section into top hemisphere. Each line corresponds to a polar angle.')
+                        np.savetxt(outputdir + '/top_polar_angles.dat', dsc_top.polar_angles, 
+                                   header= 'Polar angles of the far field in the top hemisphere in radians.')
+                    if dsc_bottom:
+                        np.savetxt(outputdir + '/bottom_differential_cross_section_TE.dat', dsc_bottom.signal[0, :, :],
+                                   header='Differential TE polarized cross section into bottom hemisphere. Each line'
+                                   ' corresponds to a polar angle, each column corresponds to an azimuthal angle.')
+                        np.savetxt(outputdir + '/bottom_differential_cross_section_TM.dat', dsc_bottom.signal[1, :, :],
+                                   header='Differential TM polarized cross section into bottom hemisphere. Each line'
+                                   ' corresponds to a polar angle, each column corresponds to an azimuthal angle.')
+                        np.savetxt(outputdir + '/bottom_polar_differential_cross_section_TE.dat', 
+                                   dsc_bottom.azimuthal_integral()[0, :], header='Polar differential TE polarized '
+                                   'cross section into bottom hemisphere. Each line corresponds to a polar angle.')
+                        np.savetxt(outputdir + '/bottom_polar_differential_cross_section_TM.dat', 
+                                   dsc_bottom.azimuthal_integral()[1, :], header='Polar differential TM polarized '
+                                   'cross section into bottom hemisphere. Each line corresponds to a polar angle.')
+                        np.savetxt(outputdir + '/bottom_polar_angles.dat', dsc_bottom.polar_angles, 
+                                   header= 'Polar angles of the far field in the bottom hemisphere in radians.')
+                    np.savetxt(outputdir + '/azimuthal_angles.dat', self.azimuthal_angles, 
+                               header='Azimuthal angles of the far field in radians.')
 
                 # extinction_cross_section(initial_field, particle_list, layer_system)
                 self.extinction_cross_section = sf.extinction_cross_section(initial_field, particle_list, layer_system)
-
                 # distinguish the cases of top/bottom illumination
                 i_top = layer_system.number_of_layers() - 1
                 beta_P = initial_field.polar_angle
@@ -79,18 +87,21 @@ class PostProcessing:
                 print('Cross sections:')
                 if i_P == 0:
                     print('Scattering into bottom layer (diffuse reflection):  ',
-                          self.scattering_cross_section['total bottom'][0]
-                          + self.scattering_cross_section['total bottom'][1], ' ' + simulation.length_unit + '^2')
-
+                          (self.bottom_scattering_cross_section.integral()[0] 
+                          + self.bottom_scattering_cross_section.integral()[1]).real, ' ' + simulation.length_unit 
+                          + '^2')
+                    tot_scat = (self.bottom_scattering_cross_section.integral()[0] 
+                                + self.bottom_scattering_cross_section.integral()[1]).real
                     if n_transm.imag == 0:
-                        print('Scattering into top layer (diffuse transmission):   ',
-                              self.scattering_cross_section['total top'][0]
-                              + self.scattering_cross_section['total top'][1],
-                              ' ' + simulation.length_unit + '^2')
-
+                        print('Scattering into top layer (diffuse transmission):  ',
+                              (self.top_scattering_cross_section.integral()[0]
+                              + self.top_scattering_cross_section.integral()[1]).real, ' ' + simulation.length_unit 
+                              + '^2')
+                        tot_scat += (self.top_scattering_cross_section.integral()[0] 
+                                     + self.top_scattering_cross_section.integral()[1]).real
+                        
                         print('Total scattering cross section:                     ',
-                              self.scattering_cross_section['total'][0] + self.scattering_cross_section['total'][1],
-                              ' ' + simulation.length_unit + '^2')
+                              tot_scat, ' ' + simulation.length_unit + '^2')
 
                     print('Bottom layer extinction (extinction of reflection): ',
                           self.extinction_cross_section['bottom'].real,
@@ -104,20 +115,22 @@ class PostProcessing:
                         print('Total extinction cross section:                     ',
                               (self.extinction_cross_section['top'] + self.extinction_cross_section['bottom']).real,
                               ' ' + simulation.length_unit + '^2')
-
+                    
                 else:
                     print('Scattering into top layer (diffuse reflection):       ',
-                          self.scattering_cross_section['total top'][0] + self.scattering_cross_section['total top'][1],
+                          (self.top_scattering_cross_section.integral()[0]
+                           + self.top_scattering_cross_section.integral()[1]).real,
                           ' ' + simulation.length_unit + '^2')
-
                     if n_transm.imag == 0:
                         print('Scattering into bottom layer (diffuse transmission):  ',
-                              self.scattering_cross_section['total bottom'][0] +
-                              self.scattering_cross_section['total bottom'][1],
+                              (self.bottom_scattering_cross_section.integral()[0] +
+                               self.bottom_scattering_cross_section.integral()[1]).real,
                               ' ' + simulation.length_unit + '^2')
-
                         print('Total scattering cross section:                       ',
-                              self.scattering_cross_section['total'][0] + self.scattering_cross_section['total'][1],
+                              (self.top_scattering_cross_section.integral()[0]
+                               + self.top_scattering_cross_section.integral()[1]
+                               + self.bottom_scattering_cross_section.integral()[0]
+                               + self.bottom_scattering_cross_section.integral()[1]).real,
                               ' ' + simulation.length_unit + '^2')
 
                     print('Top layer extinction (extinction of reflection):      ',
@@ -137,18 +150,17 @@ class PostProcessing:
                 # plot the far field
 
                 # dsc as polar plot
-                if layer_system.refractive_indices[i_top].imag == 0:
+                if self.top_scattering_cross_section:
                     # top layer
-                    top_idcs = (self.scattering_cross_section['polar angles'] <= np.pi / 2)
-                    alpha_grid, beta_grid = np.meshgrid(self.scattering_cross_section['azimuthal angles'],
-                                                        self.scattering_cross_section['polar angles'][top_idcs].real
+                    alpha_grid, beta_grid = np.meshgrid(self.top_scattering_cross_section.azimuthal_angles,
+                                                        self.top_scattering_cross_section.polar_angles.real 
                                                         * 180 / np.pi)
 
                     fig = plt.figure()
                     ax = fig.add_subplot(111, polar=True)
                     pcmsh = ax.pcolormesh(alpha_grid, beta_grid,
-                                  (self.scattering_cross_section['differential'][0, top_idcs, :]
-                                   + self.scattering_cross_section['differential'][1, top_idcs, :]), cmap='inferno')
+                                  (self.top_scattering_cross_section.signal[0, :, :]
+                                   + self.top_scattering_cross_section.signal[1, :, :]), cmap='inferno')
                     plt.colorbar(pcmsh, ax=ax)
                     plt.title('DCS in top layer (' + simulation.length_unit + '^2)')
 
@@ -158,13 +170,12 @@ class PostProcessing:
                         plt.draw()
                     else:
                         plt.close(fig)
-
+                    
                     fig = plt.figure()
-                    plt.plot(self.scattering_cross_section['polar angles'][top_idcs] * 180 / np.pi,
-                             (self.scattering_cross_section['polar'][0, top_idcs]
-                              + self.scattering_cross_section['polar'][1, top_idcs]) * np.pi / 180)
+                    plt.plot(self.top_scattering_cross_section.polar_angles * 180 / np.pi,
+                             np.sum(self.top_scattering_cross_section.azimuthal_integral(), axis=0) * np.pi / 180)
                     plt.xlabel('polar angle (degree)')
-                    plt.ylabel('d_CS/d_beta (' + simulation.length_unit + '^2)')
+                    plt.ylabel('d_CS/d_beta (' + simulation.length_unit + '^2/deg)')
                     plt.title('Polar differential scattering cross section in top layer')
                     plt.grid(True)
 
@@ -174,19 +185,17 @@ class PostProcessing:
                         plt.draw()
                     else:
                         plt.close(fig)
-
-                if layer_system.refractive_indices[0].imag == 0:
+                if self.bottom_scattering_cross_section:
                     # bottom layer
-                    bottom_idcs = (self.scattering_cross_section['polar angles'] > np.pi / 2)
-                    alpha_grid, beta_grid = np.meshgrid(self.scattering_cross_section['azimuthal angles'],
-                                                        self.scattering_cross_section['polar angles'][bottom_idcs].real
+                    alpha_grid, beta_grid = np.meshgrid(self.bottom_scattering_cross_section.azimuthal_angles,
+                                                        self.bottom_scattering_cross_section.polar_angles.real 
                                                         * 180 / np.pi)
 
                     fig = plt.figure()
                     ax = fig.add_subplot(111, polar=True)
-                    pcmsh = ax.pcolormesh(alpha_grid, 180 - beta_grid,
-                                  (self.scattering_cross_section['differential'][0, bottom_idcs, :] +
-                                   self.scattering_cross_section['differential'][1, bottom_idcs, :]), cmap='inferno')
+                    pcmsh = ax.pcolormesh(alpha_grid, beta_grid,
+                                  (self.bottom_scattering_cross_section.signal[0, :, :]
+                                   + self.bottom_scattering_cross_section.signal[1, :, :]), cmap='inferno')
                     plt.colorbar(pcmsh, ax=ax)
                     plt.title('DCS in bottom layer (' + simulation.length_unit + '^2)')
 
@@ -198,11 +207,10 @@ class PostProcessing:
                         plt.close(fig)
 
                     fig = plt.figure()
-                    plt.plot(180 - self.scattering_cross_section['polar angles'][bottom_idcs] * 180 / np.pi,
-                             (self.scattering_cross_section['polar'][0, bottom_idcs]
-                              + self.scattering_cross_section['polar'][1, bottom_idcs]) * np.pi / 180)
+                    plt.plot(self.bottom_scattering_cross_section.polar_angles * 180 / np.pi,
+                             np.sum(self.bottom_scattering_cross_section.azimuthal_integral(), axis=0) * np.pi / 180)
                     plt.xlabel('polar angle (degree)')
-                    plt.ylabel('d_CS/d_beta (' + simulation.length_unit + '^2)')
+                    plt.ylabel('d_CS/d_beta (' + simulation.length_unit + '^2/deg)')
                     plt.title('Polar differential scattering cross section in bottom layer')
                     plt.grid(True)
 
@@ -212,7 +220,6 @@ class PostProcessing:
                         plt.draw()
                     else:
                         plt.close(fig)
-
             elif item['task'] == 'evaluate near field':
                 sys.stdout.write("\nEvaluate near fields ... ")
                 sys.stdout.flush()

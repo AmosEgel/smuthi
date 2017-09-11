@@ -3,6 +3,7 @@
 
 import numpy as np
 import smuthi.field_expansion as fldex
+import smuthi.vector_wave_functions as vwf
 
 tau = 0
 l = 4
@@ -20,20 +21,20 @@ lmax = 20
 
 
 def test_PVWF_against_prototype():
-    Ex, Ey, Ez = fldex.plane_vector_wave_function(x, y, z, kp, alpha, kz, 0)
+    Ex, Ey, Ez = vwf.plane_vector_wave_function(x, y, z, kp, alpha, kz, 0)
     
     np.testing.assert_almost_equal(Ex, -0.113172457895318 - 0.049202579500952j)
     np.testing.assert_almost_equal(Ey, 0.234284796808545 + 0.101857082148903j)
     np.testing.assert_almost_equal(Ez, 0)
 
-    Ex, Ey, Ez = fldex.plane_vector_wave_function(x, y, z, kp, alpha, kz, 1)
+    Ex, Ey, Ez = vwf.plane_vector_wave_function(x, y, z, kp, alpha, kz, 1)
     np.testing.assert_almost_equal(Ex, -0.140030336704405 + 0.322088344665751j)
     np.testing.assert_almost_equal(Ey, -0.067642363485058 + 0.155586406466850j)
     np.testing.assert_almost_equal(Ez, -0.442318214511318 - 0.192301179270512j)
 
 
 def test_SVWF_against_prototype():
-    Ex, Ey, Ez = fldex.spherical_vector_wave_function(x, y, z, omega, 1, tau, l, m)
+    Ex, Ey, Ez = vwf.spherical_vector_wave_function(x, y, z, omega, 1, tau, l, m)
     np.testing.assert_almost_equal(Ex, -0.010385224981764 + 0.018386955705419j)
     np.testing.assert_almost_equal(Ey, -0.005209637449869 + 0.011576972110819j)
     np.testing.assert_almost_equal(Ez, 0.002553743847975 + 0.001361996718920j)

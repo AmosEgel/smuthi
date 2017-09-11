@@ -17,3 +17,4 @@ scripts/
 .project
 .pydevproject
 .settings
+*.pyc

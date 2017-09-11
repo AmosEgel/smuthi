@@ -7,6 +7,7 @@ import smuthi.coordinates as coord
 import smuthi.layers as lay
 import smuthi.spherical_functions as sf
 import smuthi.field_expansion as fldex
+import smuthi.vector_wave_functions as vwf
 import matplotlib.pyplot as plt
 
 
@@ -82,7 +83,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
                 m_vec[0][n] = m
                 for iplmn, plmn in enumerate(plmn_tup):
                     for pol in range(2):
-                        B[0][pol, iplmn, n, :] = fldex.transformation_coefficients_VWF(tau, l, m, pol, kpar, plmn*kzis1,
+                        B[0][pol, iplmn, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, kpar, plmn*kzis1,
                                                                                        dagger=True)
 
         for m in range(-mmax2, mmax2 + 1):
@@ -91,7 +92,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
                 m_vec[1][n] = m
                 for iplmn, plmn in enumerate(plmn_tup):
                     for pol in range(2):
-                        B[1][pol, iplmn, n, :] = fldex.transformation_coefficients_VWF(tau, l, m, pol, kpar, plmn*kzis2,
+                        B[1][pol, iplmn, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, kpar, plmn*kzis2,
                                                                                        dagger=False)
 
     BeL = np.zeros((2, 2, blocksize1, len(neff)), dtype=complex)  # indices are: pol, plmn2, n1, kpar_idx
@@ -206,7 +207,7 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
                     for l2 in range(max(1, abs(m2)), lmax2 + 1):
                         A, B = complex(0), complex(0)
                         for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
-                            a5, b5 = fldex.ab5_coefficients(l2, m2, l1, m1, ld)
+                            a5, b5 = vwf.ab5_coefficients(l2, m2, l1, m1, ld)
                             A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                             B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                         A, B = eimph * A, eimph * B
