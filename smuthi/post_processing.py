@@ -54,48 +54,45 @@ class PostProcessing:
                 print('Cross sections:')
                 if i_P == 0:
                     print('Scattering into bottom layer (diffuse reflection):  ',
-                          (self.scattering_cross_section.bottom.integral()[0]
-                          + self.scattering_cross_section.bottom.integral()[1]).real, ' ' + simulation.length_unit
+                          (self.scattering_cross_section.bottom().integral()[0]
+                          + self.scattering_cross_section.bottom().integral()[1]).real, ' ' + simulation.length_unit
                           + '^2')
                     if n_transm.imag == 0:
                         print('Scattering into top layer (diffuse transmission):  ',
-                              (self.scattering_cross_section.top.integral()[0]
-                              + self.scattering_cross_section.top.integral()[1]).real, ' ' + simulation.length_unit
+                              (self.scattering_cross_section.top().integral()[0]
+                              + self.scattering_cross_section.top().integral()[1]).real, ' ' + simulation.length_unit
                               + '^2')
-                        tot_scat = (self.scattering_cross_section.integral()[0]
-                                    + self.scattering_cross_section.integral()[1]).real
-
-                        print('Total scattering cross section:                     ',
-                              tot_scat, ' ' + simulation.length_unit + '^2')
-
+                        print('Total scattering cross section:                       ',
+                              (self.scattering_cross_section.top().integral()[0]
+                               + self.scattering_cross_section.top().integral()[1]
+                               + self.scattering_cross_section.bottom().integral()[0]
+                               + self.scattering_cross_section.bottom().integral()[1]).real,
+                              ' ' + simulation.length_unit + '^2')
                     print('Bottom layer extinction (extinction of reflection): ',
                           self.extinction_cross_section['bottom'].real,
                           ' ' + simulation.length_unit + '^2')
-
                     if n_transm.imag == 0:
                         print('Top layer extinction (extinction of transmission):  ',
                               self.extinction_cross_section['top'].real,
                               ' ' + simulation.length_unit + '^2')
-
                         print('Total extinction cross section:                     ',
                               (self.extinction_cross_section['top'] + self.extinction_cross_section['bottom']).real,
                               ' ' + simulation.length_unit + '^2')
-                    
                 else:
                     print('Scattering into top layer (diffuse reflection):       ',
-                          (self.scattering_cross_section.top.integral()[0]
-                           + self.scattering_cross_section.top.integral()[1]).real,
+                          (self.scattering_cross_section.top().integral()[0]
+                           + self.scattering_cross_section.top().integral()[1]).real,
                           ' ' + simulation.length_unit + '^2')
                     if n_transm.imag == 0:
                         print('Scattering into bottom layer (diffuse transmission):  ',
-                              (self.scattering_cross_section.bottom.integral()[0] +
-                               self.scattering_cross_section.bottom.integral()[1]).real,
+                              (self.scattering_cross_section.bottom().integral()[0] +
+                               self.scattering_cross_section.bottom().integral()[1]).real,
                               ' ' + simulation.length_unit + '^2')
                         print('Total scattering cross section:                       ',
-                              (self.scattering_cross_section.top.integral()[0]
-                               + self.scattering_cross_section.top.integral()[1]
-                               + self.scattering_cross_section.bottom.integral()[0]
-                               + self.scattering_cross_section.bottom.integral()[1]).real,
+                              (self.scattering_cross_section.top().integral()[0]
+                               + self.scattering_cross_section.top().integral()[1]
+                               + self.scattering_cross_section.bottom().integral()[0]
+                               + self.scattering_cross_section.bottom().integral()[1]).real,
                               ' ' + simulation.length_unit + '^2')
 
                     print('Top layer extinction (extinction of reflection):      ',

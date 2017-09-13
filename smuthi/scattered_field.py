@@ -25,6 +25,9 @@ def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_an
     if azimuthal_angles is None:
         azimuthal_angles = np.arange(0, 361, 1, dtype=float) * np.pi / 180
 
+    if any(polar_angles.imag):
+        raise ValueError("complex angles not allowed in far field")
+
     i_top = layer_system.number_of_layers() - 1
     top_polar_angles = polar_angles[polar_angles <= (np.pi / 2)]
     bottom_polar_angles = polar_angles[polar_angles > (np.pi / 2)]
@@ -48,13 +51,14 @@ def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_an
     else:
         bottom_far_field = None
 
-    if top_far_field and bottom_far_field:
-        far_field = top_far_field.append(bottom_far_field)
-    elif top_far_field:
+    if top_far_field is not None:
         far_field = top_far_field
+        if bottom_far_field is not None:
+            far_field.append(bottom_far_field)
     else:
         far_field = bottom_far_field
 
+    far_field.polar_angles = far_field.polar_angles.real
     return far_field
 
 

@@ -355,7 +355,6 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
 
 
 def show_far_field(far_field, save_plots, show_plots, tag='far_field', outputdir='.'):
-
     alpha_grid = far_field.alpha_grid()
     beta_grid = far_field.beta_grid()
 
@@ -369,7 +368,6 @@ def show_far_field(far_field, save_plots, show_plots, tag='far_field', outputdir
         plt.draw()
     else:
         plt.close(fig)
-
     fig = plt.figure()
     plt.plot(far_field.polar_angles * 180 / np.pi, np.sum(far_field.azimuthal_integral(), axis=0) * np.pi / 180)
     plt.xlabel('polar angle (degree)')
