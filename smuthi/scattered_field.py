@@ -20,7 +20,8 @@ def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_an
     """
     omega = coord.angular_frequency(vacuum_wavelength)
     if polar_angles is None:
-        polar_angles = np.arange(0, 181, 1, dtype=float) * np.pi / 180
+        polar_angles = (np.concatenate([np.arange(0, 90, 1, dtype=float), np.arange(91, 181, 1, dtype=float)])
+                        * np.pi / 180)
     if azimuthal_angles is None:
         azimuthal_angles = np.arange(0, 361, 1, dtype=float) * np.pi / 180
 
@@ -47,7 +48,14 @@ def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_an
     else:
         bottom_far_field = None
 
-    return top_far_field, bottom_far_field
+    if top_far_field and bottom_far_field:
+        far_field = top_far_field.append(bottom_far_field)
+    elif top_far_field:
+        far_field = top_far_field
+    else:
+        far_field = bottom_far_field
+
+    return far_field
 
 
 def scattering_cross_section(initial_field, particle_list, layer_system, polar_angles=None, azimuthal_angles=None):
@@ -96,16 +104,11 @@ def scattering_cross_section(initial_field, particle_list, layer_system, polar_a
 
     initial_intensity = abs(A_P) ** 2 * abs(np.cos(beta_P)) * n_P / 2
 
-    top_dscs, bottom_dscs = scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_angles,
-                                                azimuthal_angles)
-    if top_dscs:
-        top_dscs.signal_type = 'differential scattering cross section'
-        top_dscs.signal = top_dscs.signal / initial_intensity
-    if bottom_dscs:
-        bottom_dscs.signal_type = 'differential scattering cross section'
-        bottom_dscs.signal = bottom_dscs.signal / initial_intensity
+    dscs = scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_angles, azimuthal_angles)
+    dscs.signal_type = 'differential scattering cross section'
+    dscs.signal = dscs.signal / initial_intensity
 
-    return top_dscs, bottom_dscs
+    return dscs
 
 
 def extinction_cross_section(initial_field, particle_list, layer_system):

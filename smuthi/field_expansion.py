@@ -339,6 +339,59 @@ class FarField:
         else:
             return None
 
+    def top(self):
+        if any(self.polar_angles <= np.pi/2):
+            ff = FarField(polar_angles=self.polar_angles[self.polar_angles <= np.pi/2],
+                          azimuthal_angles=self.azimuthal_angles, signal_type=self.signal_type)
+            ff.signal = self.signal[:, self.polar_angles <= np.pi/2, :]
+            return ff
+        else:
+            return None
+
+    def bottom(self):
+        if any(self.polar_angles >= np.pi/2):
+            ff = FarField(polar_angles=self.polar_angles[self.polar_angles >= np.pi/2],
+                          azimuthal_angles=self.azimuthal_angles, signal_type=self.signal_type)
+            ff.signal = self.signal[:, self.polar_angles >= np.pi/2, :]
+            return ff
+        else:
+            return None
+
+    def alpha_grid(self):
+        agrid, _ = np.meshgrid(self.azimuthal_angles, self.polar_angles.real * 180 / np.pi)
+        return agrid
+
+    def beta_grid(self):
+        _, bgrid = np.meshgrid(self.azimuthal_angles, self.polar_angles.real * 180 / np.pi)
+        return bgrid
+
+    def append(self, other):
+        if not all(self.azimuthal_angles == other.azimuthal_angles):
+            raise ValueError('azimuthal angles not consistent')
+        if not self.signal_type == other.signal_type:
+            raise ValueError('signal type not consistent')
+        if max(self.polar_angles) <= min(other.polar_angles):
+            self.polar_angles = np.concatenate((self.polar_angles, other.polar_angles))
+            self.signal = np.concatenate((self.signal, other.signal), 1)
+        elif min(self.polar_angles) >= max(other.polar_angles):
+            self.polar_angles = np.concatenate((other.polar_angles, self.polar_angles))
+            self.signal = np.concatenate((other.signal, self.signal), 1)
+        else:
+            raise ValueError('far fields have overlapping polar angle domains')
+
+    def export(self, output_directory='.', tag='far_field'):
+        np.savetxt(output_directory + '/' + tag + '_TE.dat', self.signal[0, :, :],
+                   header='Each line corresponds to a polar angle, each column corresponds to an azimuthal angle.')
+        np.savetxt(output_directory + '/' + tag + '_TM.dat', self.signal[1, :, :],
+                   header='Each line corresponds to a polar angle, each column corresponds to an azimuthal angle.')
+        np.savetxt(output_directory + '/' + tag + '_polar_TE.dat', self.azimuthal_integral()[0, :],
+                   header='Each line corresponds to a polar angle, each column corresponds to an azimuthal angle.')
+        np.savetxt(output_directory + '/' + tag + '_polar_TM.dat', self.azimuthal_integral()[1, :],
+                   header='Each line corresponds to a polar angle, each column corresponds to an azimuthal angle.')
+        np.savetxt(output_directory + '/polar_angles.dat', self.polar_angles,
+                   header='Polar angles of the far field in radians.')
+        np.savetxt(output_directory + '/azimuthal_angles.dat', self.azimuthal_angles,
+                   header='Azimuthal angles of the far field in radians.')
 
 def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
     """Convert plane wave expansion object to a spherical wave expansion object.

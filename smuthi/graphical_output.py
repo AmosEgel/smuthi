@@ -354,66 +354,33 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         np.savetxt(filename, e_z_scat_raw.imag, header=header)
 
 
-def scattered_electric_field(x, y, z, k_parallel, azimuthal_angles, vacuum_wavelength, particle_list, layer_system):
-    """Complex electric scattered near field.
+def show_far_field(far_field, save_plots, show_plots, tag='far_field', outputdir='.'):
 
-    Args:
-        x (numpy array):    x-coordinates of points in space where to evaluate field.
-        y (numpy array):    y-coordinates of points in space where to evaluate field.
-        z (numpy array):    z-coordinates of points in space where to evaluate field.
-        k_parallel (1D numpy array):        In plane wavenumbers for the plane wave expansion
-        azimuthal_angles (1D numpy array):  Azimuthal angles for the plane wave expansion
-        vacuum_wavelength (float):          Vacuum wavelength
-        particle_list (list):               List of smuthi.particle.Particle objects
-        layer_system (smuthi.layers.LayerSystem):   Stratified medium
-    Returns:
-        Tuple (E_x, E_y, E_z) of complex electric field values as numpy arrays. The shapes are the same as x.shape
-    """
+    alpha_grid = far_field.alpha_grid()
+    beta_grid = far_field.beta_grid()
 
-    old_shape = x.shape
-    x = x.reshape(-1)
-    y = y.reshape(-1)
-    z = z.reshape(-1)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, polar=True)
+    pcm = ax.pcolormesh(alpha_grid, beta_grid, (far_field.signal[0, :, :] + far_field.signal[1, :, :]), cmap='inferno')
+    plt.colorbar(pcm, ax=ax)
+    if save_plots:
+        plt.savefig(outputdir + '/' + tag + '.png')
+    if show_plots:
+        plt.draw()
+    else:
+        plt.close(fig)
 
-    electric_field_x = np.zeros(x.shape, dtype=complex)
-    electric_field_y = np.zeros(x.shape, dtype=complex)
-    electric_field_z = np.zeros(x.shape, dtype=complex)
-
-    layer_numbers = []
-    for zi in z:
-        layer_numbers.append(layer_system.layer_number(zi))
-
-    for i in range(layer_system.number_of_layers()):
-        layer_indices = [ii for ii, laynum in enumerate(layer_numbers) if laynum == i]
-        if layer_indices:
-
-            # layer mediated scattered field ---------------------------------------------------------------------------
-            k = coord.angular_frequency(vacuum_wavelength) * layer_system.refractive_indices[i]
-            ref = [0, 0, layer_system.reference_z(i)]
-            vb = (layer_system.lower_zlimit(i), layer_system.upper_zlimit(i))
-            pwe_up = fldex.PlaneWaveExpansion(k=k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles,
-                                              kind='upgoing', reference_point=ref, lower_z=vb[0], upper_z=vb[1])
-            pwe_down = fldex.PlaneWaveExpansion(k=k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles,
-                                                kind='downgoing', reference_point=ref, lower_z=vb[0], upper_z=vb[1])
-            for particle in particle_list:
-                add_up, add_down = fldex.swe_to_pwe_conversion(particle.scattered_field, k_parallel, azimuthal_angles,
-                                                               layer_system, i, True)
-                pwe_up = pwe_up + add_up
-                pwe_down = pwe_down + add_down
-            ex_up, ey_up, ez_up = pwe_up.electric_field(x[layer_indices], y[layer_indices], z[layer_indices])
-            ex_down, ey_down, ez_down = pwe_down.electric_field(x[layer_indices], y[layer_indices], z[layer_indices])
-            electric_field_x[layer_indices] = ex_up + ex_down
-            electric_field_y[layer_indices] = ey_up + ey_down
-            electric_field_z[layer_indices] = ez_up + ez_down
-
-            # direct field ---------------------------------------------------------------------------------------------
-            for particle in particle_list:
-                if layer_system.layer_number(particle.position[2]) == i:
-                    ex, ey, ez = particle.scattered_field.electric_field(x[layer_indices], y[layer_indices],
-                                                                         z[layer_indices])
-                    electric_field_x[layer_indices] += ex
-                    electric_field_y[layer_indices] += ey
-                    electric_field_z[layer_indices] += ez
-                    # todo:check if swe valid, fill in NaN or something otherwise
-
-    return electric_field_x.reshape(old_shape), electric_field_y.reshape(old_shape), electric_field_z.reshape(old_shape)
+    fig = plt.figure()
+    plt.plot(far_field.polar_angles * 180 / np.pi, np.sum(far_field.azimuthal_integral(), axis=0) * np.pi / 180)
+    plt.xlabel('polar angle (degree)')
+    if far_field.signal_type == 'differential cross section':
+        plt.ylabel('d_CS/d_beta')
+    elif far_field.signal_type == 'intensity':
+        plt.ylabel('d_P/d_beta')
+    plt.grid(True)
+    if save_plots:
+        plt.savefig(outputdir + '/' + tag + '_polar.png')
+    if show_plots:
+        plt.draw()
+    else:
+        plt.close(fig)
