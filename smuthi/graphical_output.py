@@ -354,13 +354,18 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         np.savetxt(filename, e_z_scat_raw.imag, header=header)
 
 
-def show_far_field(far_field, save_plots, show_plots, tag='far_field', outputdir='.'):
+def show_far_field(far_field, save_plots, show_plots, tag='far_field', outputdir='.', flip_downward=True):
     alpha_grid = far_field.alpha_grid()
     beta_grid = far_field.beta_grid()
 
     fig = plt.figure()
     ax = fig.add_subplot(111, polar=True)
-    pcm = ax.pcolormesh(alpha_grid, beta_grid, (far_field.signal[0, :, :] + far_field.signal[1, :, :]), cmap='inferno')
+    if flip_downward and all(far_field.polar_angles >= np.pi / 2):
+        pcm = ax.pcolormesh(alpha_grid, 180 - beta_grid, (far_field.signal[0, :, :] + far_field.signal[1, :, :]),
+                            cmap='inferno')
+    else:
+        pcm = ax.pcolormesh(alpha_grid, beta_grid, (far_field.signal[0, :, :] + far_field.signal[1, :, :]),
+                            cmap='inferno')
     plt.colorbar(pcm, ax=ax)
     if save_plots:
         plt.savefig(outputdir + '/' + tag + '.png')
@@ -369,7 +374,11 @@ def show_far_field(far_field, save_plots, show_plots, tag='far_field', outputdir
     else:
         plt.close(fig)
     fig = plt.figure()
-    plt.plot(far_field.polar_angles * 180 / np.pi, np.sum(far_field.azimuthal_integral(), axis=0) * np.pi / 180)
+    if flip_downward and all(far_field.polar_angles >= np.pi/2):
+        plt.plot(180 - far_field.polar_angles * 180 / np.pi, np.sum(far_field.azimuthal_integral(), axis=0) * np.pi / 180)
+    else:
+        plt.plot(far_field.polar_angles * 180 / np.pi, np.sum(far_field.azimuthal_integral(), axis=0) * np.pi / 180)
+
     plt.xlabel('polar angle (degree)')
     if far_field.signal_type == 'differential cross section':
         plt.ylabel('d_CS/d_beta')
