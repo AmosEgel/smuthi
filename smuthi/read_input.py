@@ -128,6 +128,33 @@ def read_input_yaml(filename):
                float(infld['reference point'][2])]
         initial_field = init.PlaneWave(vacuum_wavelength=wl, polar_angle=pol_ang, azimuthal_angle=az_ang,
                                        polarization=pol, amplitude=a, reference_point=ref)
+    elif infld['type'] == 'Gaussian beam':
+        a = float(infld['amplitude'])
+        if infld['angle units'] == 'degree':
+            ang_fac = np.pi / 180
+        else:
+            ang_fac = 1
+        pol_ang = ang_fac * float(infld['polar angle'])
+        az_ang = ang_fac * float(infld['azimuthal angle'])
+        if infld['polarization'] == 'TE':
+            pol = 0
+        elif infld['polarization'] == 'TM':
+            pol = 1
+        else:
+            raise ValueError('polarization must be "TE" or "TM"')
+        ref = [float(infld['focus point'][0]), float(infld['focus point'][1]), float(infld['focus point'][2])]
+        ang_res = infld.get('angular resolution', np.pi / 180 / ang_fac) * ang_fac
+        bet_arr = np.arange(0, np.pi/2, ang_res)
+        if pol_ang <= np.pi:
+            kparr = np.sin(bet_arr) * simulation.layer_system.wavenumber(layer_number=0, vacuum_wavelength=wl)
+        else:
+            kparr = np.sin(bet_arr) * simulation.layer_system.wavenumber(layer_number=-1, vacuum_wavelength=wl)
+        wst = infld['beam waist']
+        aarr = np.arange(0, 2 * np.pi, ang_res)
+        initial_field = init.GaussianBeam(vacuum_wavelength=wl, polar_angle=pol_ang, azimuthal_angle=az_ang,
+                                          polarization=pol, beam_waist=wst, k_parallel_array=kparr,
+                                          azimuthal_angles_array=aarr, amplitude=a, reference_point=ref)
+
     simulation.initial_field = initial_field
 
     # contour

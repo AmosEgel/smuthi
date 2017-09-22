@@ -93,6 +93,8 @@ scattering particles:
 # format:
 # ----------------------------------------------------------------------------------------------------------------------
 
+# If the initial field is given by a plane wave, use the following template to specify the properties:
+
 initial field:
   type: plane wave
   angle units: degree
@@ -108,6 +110,20 @@ initial field:
 # 90 and 180 degree, then the plane wave is incident from the top. For polarization, select either TE or TM. The
 # reference point specifies the location where the incident wave would have zero phase, i.e., the electric field of the
 # incident wave is proportional to E(r) = A * exp(j k.(r-r0)) where A is the amplitude and r0 is the reference point.
+
+# If the initial field is given by a Gaussian beam, comment the above block and uncomment and use the following template
+# to specify the properties:
+
+#initial field:
+#  type: Gaussian beam
+#  angle units: degree
+#  polar angle: 0
+#  azimuthal angle: 0
+#  polarization: TE
+#  amplitude: 1
+#  focus point: [0, 0, 0]
+#  beam waist: 1000
+#  angular resolution: 1
 
 
 # ----------------------------------------------------------------------------------------------------------------------

@@ -6,6 +6,7 @@ import mpmath
 from functools import lru_cache
 import smuthi.memoizing as memo
 import smuthi.field_expansion as fldex
+import smuthi.coordinates as coord
 
 
 # global variables
@@ -149,6 +150,9 @@ class LayerSystem:
                     raise ValueError('pwe type undefined')
 
         return pwe_up, pwe_down
+
+    def wavenumber(self, layer_number, vacuum_wavelength):
+        return self.refractive_indices[layer_number] * coord.angular_frequency(vacuum_wavelength=vacuum_wavelength)
 
 
 def fresnel_r(pol, kz1, kz2, n1, n2):
