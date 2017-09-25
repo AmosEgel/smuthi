@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-"""This script runs a simulation for a single sphere on a substrate, illuminated by a plane wave."""
 
 import numpy as np
 import smuthi.particles as part
