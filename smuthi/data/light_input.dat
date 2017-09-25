@@ -1,0 +1,156 @@
+# ----------------------------------------------------------------------------------------------------------------------
+# Declare here the unit in which you want to specify all lengths. It has no influence on the calculations and can be
+# chosen arbitrarily. This field is mainly there to remind the user that all lengths have to be specified in consistent
+# units. In addition, it is used for the axis annotation of output plots.
+# ----------------------------------------------------------------------------------------------------------------------
+
+length unit: nm
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Vacuum wavelength of the electromagnetic field, in the specified length unit:
+# ----------------------------------------------------------------------------------------------------------------------
+
+vacuum wavelength: 550
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Define the background geometry of the layered medium. A layer system consists of N layers, counted from bottom to top.
+# Each layer is characterized by its thickness as well as its (real) refractive index and extinction coefficient (the
+# latter is equivalent to the imaginary part of the complex refractive index). Provide the thickness information in the
+# form of [d_0, d_1, d_2, ..., d_N], where d_i is the thickness of the i-th layer. As the outermost layers are
+# infinitely thick, specify them with a thickness of 0. Analogously, provide the refractive indices and extinction
+# coefficients in the form of [n0, ..., nN] and [k0, ..., kN].
+# ----------------------------------------------------------------------------------------------------------------------
+
+layer system:
+  thicknesses: [0, 500, 0]
+  refractive indices: [1.5, 1.9, 1]
+  extinction coefficients: [0, 0, 0]
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Specify the ensemble of scattering particles inside the layered medium.
+# For spherical particles, specify shape: sphere', the radius, refractive index, extinction coefficient and the
+# [x, y, z] coordinates of the particle position.
+# The coordinate system is such that the interface between the first two layers defines the plane z=0.
+# ----------------------------------------------------------------------------------------------------------------------
+
+scattering particles:
+- shape: sphere
+  radius: 80
+  refractive index: 2.4
+  extinction coefficient: 0.05
+  position: [0, 100, 150]
+  l_max: 2
+  m_max: 2
+- shape: spheroid
+  semi axis c: 80
+  semi axis a: 140
+  refractive index: 2.5
+  extinction coefficient: 0.05
+  position: [-350, 50, 350]
+  euler angles: [0, 0, 0]
+  l_max: 3
+  m_max: 3
+  use discrete sources: true
+  nint: 200
+  nrank: 8
+
+# The multipole truncation degree l_max and order m_max should be chosen with reference to the desired
+# accuracy and to the particle size parameter and refractive index contrast, see for example
+# https://arxiv.org/ftp/arxiv/papers/1202/1202.5904.pdf
+# A larger value leads to higher accuracy, but also to longer computation time. lmax is a positive integer and mmax is a
+# non-negative integer not greater than lmax.
+
+# The parameters 'use discrete sources', 'nint' and 'nrank' can be used to set the behavior of the NFM-DS algorithm that
+# computes the T-matrix of the non-spherical particles. 'use discrete sources' = true is in general a good choice.
+# 'nrank' is equivalent to l_max and can be set to a slightly larger value than l_max to ensure the accuracy of the
+# T-matrix (default: l_max + 2). 'nint' determines how fine the resolution in the numerical evaluation of certain
+# integrals is set (default = 200). See the NFM-DS manual for further information on the meaning of these parameters.
+
+# Alternatively, the scattering particles can be specified in a separate file, which needs to be located in the SMUTHI
+# project folder. This is more convenient for large particle numbers. In that case, specify the filename of the
+# particles parameters file, for example:
+
+# scattering particles: smuthi/data/example_particle_specs.dat
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Currently, only plane waves are implemented as the initial excitation. Specify the initial field in the following
+# format:
+# ----------------------------------------------------------------------------------------------------------------------
+
+initial field:
+  type: plane wave
+  angle units: degree
+  polar angle: 0
+  azimuthal angle: 0
+  polarization: TE
+  amplitude: 1
+  reference point: [0, 0, 0]
+
+# Polar and azimuthal angle refer to the corresponding spherical coordinates of the plane wave's wave vector. Angle
+# units can be 'degree' (otherwise, radians are used). If the polar is between 0 and 90 degree, the k-vector has a
+# positive z-component and consequently, the plane wave is incident from the bottom side. If the polar angle is between
+# 90 and 180 degree, then the plane wave is incident from the top. For polarization, select either TE or TM. The
+# reference point specifies the location where the incident wave would have zero phase, i.e., the electric field of the
+# incident wave is proportional to E(r) = A * exp(j k.(r-r0)) where A is the amplitude and r0 is the reference point.
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Specify the contour of the Sommerfeld integral in the complex neff plane, where neff = k_parallel / omega refers to
+# the effective refractive index of the partial wave.
+# The Sommerfeld integral is performed using the trapezoidal rule along a contour. The contour is parameterized by its
+# waypoints and the discretization. The neff waypoints define a piecewise linear trajectory in the complex plane.
+# This trajectory should start at 0 and end at a suitable real truncation parameter (somewhere above the highest layer
+# refractive index).
+# A simple contour would be for example neff waypoints: [0, 4]. However, if the trajectory comes close to resonances of
+# the layered medium, the accuracy is affected. To improve, deflect the contour into the lower complex half plane such
+# that it does not come close to waveguide mode resonances of the layer system.
+# ----------------------------------------------------------------------------------------------------------------------
+
+neff waypoints: [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
+
+neff discretization: 2e-3
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Define here, what output you want to generate. Currently only the evaluation of scattering and extinction cross
+# sections is implemented.
+# If 'show plots' is not set to 'false' (default), the differential scattering cross section is plotted.
+# ----------------------------------------------------------------------------------------------------------------------
+
+post processing:
+- task: evaluate cross sections
+  show plots: true
+  save plots: false
+  save data: false
+- task: evaluate near field
+  show plots: true
+  save plots: false
+  save animations: false
+  save data: false
+  quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
+  xmin: -800
+  xmax: 800
+  zmin: -400
+  zmax: 900
+  spatial resolution: 100
+  interpolation spatial resolution: 50
+  maximal field strength: 1.2
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Specify the output folder. This will create a new folder with a time stamp including a log file and all file output
+# from the simulation.
+# ----------------------------------------------------------------------------------------------------------------------
+
+output folder: smuthi_output
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Tell smuthi if the simulation object shall be saved after running.
+# ----------------------------------------------------------------------------------------------------------------------
+
+save simulation: true
