@@ -58,15 +58,28 @@ class InitialPropagatingWave(InitialField):
     def spherical_wave_expansion(self, particle, layer_system):
         """Regular spherical wave expansion of the wave including layer system response, at the locations of the
         particles.
+        
+        Args:
+            particle (smuthi.particles.Particle):    particle relative to which the swe is computed
+            layer_system (smuthi.layer.LayerSystem): stratified medium
+            
+        Returns:
+            regular smuthi.field_expansion.SphericalWaveExpansion object
         """
-        # todo: doc
         i = layer_system.layer_number(particle.position[2])
         pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
         return (fldex.pwe_to_swe_conversion(pwe_up, particle.l_max, particle.m_max, particle.position)
                 + fldex.pwe_to_swe_conversion(pwe_down, particle.l_max, particle.m_max, particle.position))
 
     def piecewise_field_expansion(self, layer_system):
-        # todo: doc
+        """Compute a piecewise field expansion of the initial field.
+        
+        Args:
+            layer_system (smuthi.layer.LayerSystem):    stratified medium
+            
+        Returns:
+            smuthi.field_expansion.PiecewiseWaveExpansion object
+        """
         pfe = fldex.PiecewiseFieldExpansion()
         for i in range(layer_system.number_of_layers()):
             pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
@@ -102,7 +115,20 @@ class GaussianBeam(InitialPropagatingWave):
         self.azimuthal_angles_array = azimuthal_angles_array
         
     def plane_wave_expansion(self, layer_system, i, k_parallel_array=None, azimuthal_angles_array=None):
+        """Plane wave expansion of the Gaussian beam.
         
+        Args:
+            layer_system (smuthi.layer.LayerSystem):    stratified medium
+            i (int):                                    layer number in which to evaluate the expansion
+            k_parallel_array (numpy.ndarray):           in-plane wavenumber array for the expansion. if none specified,
+                                                        self.k_parallel_array is used
+            azimuthal_angles_array (numpy.ndarray):     azimuthal angles for the expansion. if none specified,
+                                                        self.azimuthal_angles_array is used
+            
+        Returns:
+            tuple of to smuthi.field_expansion.PlaneWaveExpansion objects, one for upgoing and one for downgoing 
+            component
+        """            
         if k_parallel_array is None:
             k_parallel_array = self.k_parallel_array
         if azimuthal_angles_array is None:

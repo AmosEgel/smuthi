@@ -134,11 +134,11 @@ def evaluate_cross_section(polar_angles, azimuthal_angles, initial_field, partic
               + scattering_cross_section.bottom().integral()[1]).real, ' ' + length_unit
               + '^2')
         if n_transm.imag == 0:
-            print('Scattering into top layer (diffuse transmission):  ',
+            print('Scattering into top layer (diffuse transmission):   ',
                   (scattering_cross_section.top().integral()[0]
                   + scattering_cross_section.top().integral()[1]).real, ' ' + length_unit
                   + '^2')
-            print('Total scattering cross section:                       ',
+            print('Total scattering cross section:                     ',
                   (scattering_cross_section.top().integral()[0]
                    + scattering_cross_section.top().integral()[1]
                    + scattering_cross_section.bottom().integral()[0]

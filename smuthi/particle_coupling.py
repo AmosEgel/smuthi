@@ -130,13 +130,12 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
 def layer_mediated_coupling_matrix(vacuum_wavelength, particle_list, layer_system, neff_contour):
     """Layer system mediated particle coupling matrix W^R for a particle collection in a layered medium.
 
-    NOT TESTED
-
     Args:
         vacuum_wavelength (float):                                  Wavelength in length unit
         particle_list (list of smuthi.particles.Particle obejcts:   Scattering particles
         layer_system (smuthi.layers.LayerSystem):                   The stratified medium
         neff_contour (smuthi.coordinates.ComplexContour):           Contour of the Sommerfeld integral
+    
     Returns:
         Ensemble coupling matrix as numpy array.
     """
@@ -226,12 +225,11 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
 def direct_coupling_matrix(vacuum_wavelength, particle_list, layer_system):
     """Return the direct particle coupling matrix W for a particle collection in a layered medium.
 
-    NOT TESTED
-
     Args:
         vacuum_wavelength (float):                                  Wavelength in length unit
         particle_list (list of smuthi.particles.Particle obejcts:   Scattering particles
         layer_system (smuthi.layers.LayerSystem):                   The stratified medium
+    
     Returns:
         Ensemble coupling matrix as numpy array.
     """

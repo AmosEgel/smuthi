@@ -30,10 +30,8 @@ layer system:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Specify the ensemble of scattering particles inside the layered medium.
-# For spherical particles, specify shape: sphere', the radius, refractive index, extinction coefficient and the
-# [x, y, z] coordinates of the particle position.
-# The coordinate system is such that the interface between the first two layers defines the plane z=0.
+# Specify the ensemble of scattering particles inside the layered medium by modifying the below example particle specs.
+# The coordinate system for position data is such that the interface between the first two layers defines the plane z=0.
 # ----------------------------------------------------------------------------------------------------------------------
 
 scattering particles:
@@ -89,12 +87,11 @@ scattering particles:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Currently, only plane waves are implemented as the initial excitation. Specify the initial field in the following
-# format:
+# Specify the initial field in the following section by modifying the examplary initial field specs.
+# Currently, plane waves and beams with Gaussian transverse cross-section are implemented. 
 # ----------------------------------------------------------------------------------------------------------------------
 
-# If the initial field is given by a plane wave, use the following template to specify the properties:
-
+# comment if not using plane wave >>>>>>>>>>>>>>>>>>>>>
 initial field:
   type: plane wave
   angle units: degree
@@ -103,6 +100,7 @@ initial field:
   polarization: TE
   amplitude: 1
   reference point: [0, 0, 0]
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 # Polar and azimuthal angle refer to the corresponding spherical coordinates of the plane wave's wave vector. Angle
 # units can be 'degree' (otherwise, radians are used). If the polar is between 0 and 90 degree, the k-vector has a
@@ -111,9 +109,7 @@ initial field:
 # reference point specifies the location where the incident wave would have zero phase, i.e., the electric field of the
 # incident wave is proportional to E(r) = A * exp(j k.(r-r0)) where A is the amplitude and r0 is the reference point.
 
-# If the initial field is given by a Gaussian beam, comment the above block and uncomment and use the following template
-# to specify the properties:
-
+# uncomment if using Gaussian beam >>>>>>>>>>>>>>>>>>>>
 #initial field:
 #  type: Gaussian beam
 #  angle units: degree
@@ -124,6 +120,11 @@ initial field:
 #  focus point: [0, 0, 0]
 #  beam waist: 1000
 #  angular resolution: 1
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+# The Gaussian beam amplitude corresponds to the electric field value at the focus point. The beam waist parameter 
+# describes the transverse width of the beam near the focus point. The angular resolution parameter is in angle units 
+# and determines how fine the plane wave expansion of the Gaussian beam is sampled (lower value means more accurate).  
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -144,18 +145,16 @@ neff discretization: 1e-3
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Define here, what output you want to generate. Currently only the evaluation of scattering and extinction cross
-# sections is implemented.
-# If 'show plots' is not set to 'false' (default), the differential scattering cross section is plotted.
+# Define what output you want to generate by modifying the following example output specs.
 # ----------------------------------------------------------------------------------------------------------------------
 
 post processing:
 - task: evaluate far field
-  show plots: false
+  show plots: true
   save plots: true
   save data: false
 - task: evaluate near field
-  show plots: false
+  show plots: true
   save plots: true
   save animations: true
   save data: false
@@ -167,6 +166,9 @@ post processing:
   spatial resolution: 50
   interpolation spatial resolution: 5
   maximal field strength: 1.2
+
+# If the initial field is a plane wave, far field quantities are interpreted in terms of differential cross sections. 
+# Otherwise, they are interpreted as intensity distributions.
 
 
 # ----------------------------------------------------------------------------------------------------------------------

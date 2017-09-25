@@ -149,6 +149,7 @@ class Simulation:
 
 
 class Logger(object):
+    """Allows to prompt messages both to terminal and to log file simultaneously."""
     def __init__(self, log_filename):
         self.terminal = sys.stdout
         self.log = open(log_filename, "a")
