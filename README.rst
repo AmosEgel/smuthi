@@ -12,6 +12,10 @@ Author: Amos Egel. Mail to amos.egel@kit.edu for support or to report a problem.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
 
+What's new in version 0.5
+--------------------------
+Gaussian beams (more precisely: beams with transverse Gaussian footprint) are supported as initial field.
+
 What's new in version 0.4
 --------------------------
 The data structure has been updated to a more consequent object oriented approach, including a PlaneWaveExpansion class
@@ -40,4 +44,3 @@ Things to be implemented next:
 
  - faster evaluation of particle coupling
  - dipole excitation
- - Gaussian beam excitation

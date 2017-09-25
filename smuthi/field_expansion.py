@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""Classes and functions to manage the expansion of the electric field in plane wave and spherical wave basis sets."""
+
 import numpy as np
 import sympy.physics.wigner
 import sympy
@@ -10,35 +12,106 @@ import smuthi.vector_wave_functions as vwf
 class FieldExpansion:
     """Base class for field expansions."""
     def valid(self, x, y, z):
-        """To be overwritten."""
+        """Test if points are in definition range of the expansion. Virtual method to be overwritten in child classes.
+        
+        Args:
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
+        Returns:
+            numpy.ndarray of bool datatype indicating if points are inside definition domain.
+        """
         pass
 
     def diverging(self, x, y, z):
-        """To be overwritten."""
+        """Test if points are in domain where expansion could diverge. Virtual method to be overwritten in child 
+        classes.
+        
+        Args:
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
+        Returns:
+            numpy.ndarray of bool datatype indicating if points are inside divergence domain.
+        """
+        pass
 
     def electric_field(self, x, y, z):
-        """To be overwritten."""
+        """Evaluate electric field. Virtual method to be overwritten in child classes.
+        
+        Args:
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
+        Returns:
+            Tuple of (E_x, E_y, E_z) numpy.ndarray objects with the Cartesian coordinates of complex electric field.
+        """
         pass
 
 
 class PiecewiseFieldExpansion(FieldExpansion):
-    """Manage a field that is expanded in different ways for different domains."""
+    r"""Manage a field that is expanded in different ways for different domains, i.e., an expansion of the kind
+    
+    .. math::
+        \mathbf{E}(\mathbf{r}) = \sum_{i} \mathbf{E}_i(\mathbf{r}),
+    
+    where
+    
+    .. math::
+        \mathbf{E}_i(\mathbf{r}) = \begin{cases} \tilde{\mathbf{E}}_i(\mathbf{r}) & \text{ if }\mathbf{r}\in D_i \\ 0 & \text{ else} \end{cases}
+    
+    and :math:`\tilde{\mathbf{E_i}}(\mathbf{r})` is either a plane wave expansion or a spherical wave expansion, and 
+    :math:`D_i` is its domain of validity.
+    """
     def __init__(self):
         self.expansion_list = []
 
     def valid(self, x, y, z):
+        """Test if points are in definition range of the expansion.
+        
+        Args:
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
+        Returns:
+            numpy.ndarray of bool datatype indicating if points are inside definition domain.
+        """
         vld = np.zeros(x.shape, dtype=bool)
         for fex in self.expansion_list:
             vld = np.logical_or(vld, fex.valid(x, y, z))
         return vld
 
     def diverging(self, x, y, z):
+        """Test if points are in domain where expansion could diverge.
+        
+        Args:
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
+        Returns:
+            numpy.ndarray of bool datatype indicating if points are inside divergence domain.
+        """
         dvg = np.zeros(x.shape, dtype=bool)
         for fex in self.expansion_list:
             dvg = np.logical_and(dvg, fex.diverging(x, y, z))
         return dvg
 
     def electric_field(self, x, y, z):
+        """Evaluate electric field.
+        
+        Args:
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
+        Returns:
+            Tuple of (E_x, E_y, E_z) numpy.ndarray objects with the Cartesian coordinates of complex electric field.
+        """
         ex = np.zeros(x.shape, dtype=complex)
         ey = np.zeros(x.shape, dtype=complex)
         ez = np.zeros(x.shape, dtype=complex)
@@ -49,7 +122,37 @@ class PiecewiseFieldExpansion(FieldExpansion):
 
 
 class SphericalWaveExpansion(FieldExpansion):
-    # todo doc
+    r"""A class to manage spherical wave expansions of the form
+
+    .. math::
+        \mathbf{E}(\mathbf{r}) = \sum_{\tau=1}^2 \sum_{l=1}^\infty \sum_{m=-l}^l a_{\tau l m} 
+        \mathbf{\Psi}^{(\nu)}_{\tau l m}(\mathbf{r} - \mathbf{r}_i)
+
+    for :math:`\mathbf{r}` located in a layer defined by :math:`z\in [z_{min}, z_{max}]`
+    and where :math:`\mathbf{\Psi}^{(\nu)}_{\tau l m}` are the SVWFs, see 
+    :meth:`smuthi.vector_wave_functions.spherical_vector_wave_function`.
+
+    Internally, the expansion coefficients :math:`a_{\tau l m}` are stored as a 1-dimensional array running over a multi
+    index :math:`n` subsumming over the SVWF indices :math:`(\tau,l,m)`. The mapping from the SVWF indices to the multi
+    index is organized by the function :meth:`multi_to_single_index`.
+    
+    Args:
+        k (float):    wavenumber in layer where expansion is valid
+        l_max (int):  maximal multipole degree :math:`l_\mathrm{max}\geq 1` where to truncate the expansion. 
+        m_max (int):  maximal multipole order :math:`0 \leq m_\mathrm{max} \leq l_\mathrm{max}` where to truncate the 
+                      expansion.
+        kind (str):   'regular' for :math:`\nu=1` or 'outgoing' for :math:`\nu=3`
+        reference_point (list or tuple):  [x, y, z]-coordinates of point relative to which the spherical waves are 
+                                          considered (e.g., particle center).
+        lower_z (float):   the expansion is valid on and above that z-coordinate
+        upper_z (float):   the expansion is valid below that z-coordinate
+        inner_r (float):   radius inside which the expansion diverges (e.g. circumscribing sphere of particle)
+        outer_r (float):   radius outside which the expansion diverges
+
+    Attributes:
+        coefficients (numpy ndarray): expansion coefficients :math:`a_{\tau l m}` ordered by multi index n
+    """
+
     def __init__(self, k, l_max, m_max=None, kind=None, reference_point=None, lower_z=-np.inf, upper_z=np.inf,
                  inner_r=0, outer_r=np.inf):
         self.k = k
@@ -67,9 +170,29 @@ class SphericalWaveExpansion(FieldExpansion):
         self.outer_r = outer_r
 
     def valid(self, x, y, z):
+        """Test if points are in definition range of the expansion.
+        
+        Args:
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
+        Returns:
+            numpy.ndarray of bool datatype indicating if points are inside definition domain.
+        """
         return np.logical_and(z >= self.lower_z, z < self.upper_z)
 
     def diverging(self, x, y, z):
+        """Test if points are in domain where expansion could diverge.
+        
+        Args:
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
+        Returns:
+            numpy.ndarray of bool datatype indicating if points are inside divergence domain.
+        """
         r = np.sqrt((x - self.reference_point[0])**2 + (y - self.reference_point[1])**2
                     + (z - self.reference_point[2])**2)
         if self.kind == 'regular':
@@ -94,15 +217,15 @@ class SphericalWaveExpansion(FieldExpansion):
         return self.coefficients[n]
 
     def electric_field(self, x, y, z):
-        """Evaluate the electric near field corresponding to the SWE.
-
+        """Evaluate electric field.
+        
         Args:
-            x (numpy array):    x-coordinates of field points
-            y (numpy array):    y-coordinates of field points
-            z (numpy array):    z-coordinates of field points
-
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
         Returns:
-            Tuple (E_x, E_y, E_z) of complex electric field values as numpy arrays of the same shape as x
+            Tuple of (E_x, E_y, E_z) numpy.ndarray objects with the Cartesian coordinates of complex electric field.
         """
         xr = x[self.valid(x, y, z)] - self.reference_point[0]
         yr = y[self.valid(x, y, z)] - self.reference_point[1]
@@ -124,6 +247,14 @@ class SphericalWaveExpansion(FieldExpansion):
         return ex, ey, ez
 
     def __add__(self, other):
+        """Addition of expansion objects (by coefficients).
+        
+        Args:
+            other (SphericalWaveExpansion):  expansion object to add to this object
+        
+        Returns:
+            SphericalWaveExpansion object as the sum of this expansion and the other
+        """
         if not (self.k == other.k and self.l_max == other.l_max and self.m_max == other.m_max
                 and self.kind == other.kind and self.reference_point == other.reference_point):
             raise ValueError('SphericalWaveExpansions are inconsistent.')
@@ -144,36 +275,37 @@ class PlaneWaveExpansion(FieldExpansion):
         \mathbf{\Phi}^\pm_j(\kappa, \alpha; \mathbf{r} - \mathbf{r}_i)
 
     for :math:`\mathbf{r}` located in a layer defined by :math:`z\in [z_{min}, z_{max}]`
-    and :math:`\mathrm{d}^2\mathbf{k}_\parallel = \kappa\,\mathrm{d}\alpha\,\mathrm{d}\kappa` and the double integral
-    runs over :math:`\alpha\in[0, 2\pi]` and :math:`\kappa\in[0,\kappa_\mathrm{max}]`. Further,
-    :math:`\mathbf{\Phi}^\pm_j` are the PVWFs, see :meth:`plane_vector_wave_function`.
+    and :math:`\mathrm{d}^2\mathbf{k}_\parallel = \kappa\,\mathrm{d}\alpha\,\mathrm{d}\kappa`. 
+    
+    The double integral runs over :math:`\alpha\in[0, 2\pi]` and :math:`\kappa\in[0,\kappa_\mathrm{max}]`. 
+    Further, :math:`\mathbf{\Phi}^\pm_j` are the PVWFs, see :meth:`plane_vector_wave_function`.
 
-    Internally, the expansion coefficients :math:`g_{ij}^\pm(\kappa, \alpha)` are stored as a list of 4-dimensional
-    arrays.
+    Internally, the expansion coefficients :math:`g_{ij}^\pm(\kappa, \alpha)` are stored as a 3-dimensional numpy 
+    ndarray.
+    
     If the attributes k_parallel and azimuthal_angles have only a single entry, a discrete distribution is
     assumed:
 
     .. math::
-        g_{ij}^-(\kappa, \alpha) \sim \delta^2(\mathbf{k}_\parallel - \mathbf{k}_{\parallel, 0})
+        g_{j}^\pm(\kappa, \alpha) \sim \delta^2(\mathbf{k}_\parallel - \mathbf{k}_{\parallel, 0})
 
     .. todo: update attributes doc
 
     Args:
-        n_effective (ndarray):                      :math:`n_\mathrm{eff} = \kappa / \omega`, can be float or complex
-                                                    numpy.array
-        azimuthal_angles (ndarray):                 :math:`\alpha`, from 0 to :math:`2\pi`
-        layer_system (smuthi.layers.LayerSystem):   Layer system in which the field is expanded
+        k (float):                                  wavenumber in layer where expansion is valid
+        k_parallel (numpy ndarray):                 array of in-plane wavenumbers (can be float or complex)
+        azimuthal_angles (numpy ndarray):           :math:`\alpha`, from 0 to :math:`2\pi`
+        kind (str):                                 'upgoing' for :math:`g^+` and 'downgoing' for :math:`g^-` type 
+                                                    expansions 
+        reference_point (list or tuple):            [x, y, z]-coordinates of point relative to which the plane waves are 
+                                                    defined.
+        lower_z (float):                            the expansion is valid on and above that z-coordinate
+        upper_z (float):                            the expansion is valid below that z-coordinate
+        
 
     Attributes:
-        k_parallel (array): Array of in-plane wavenumbers
-        azimuthal_angles (array): Azimuthal propagation angles of partial plane waves
-        layer_system (smuthi.layers.LayerSystem): Layer system object to which the plane wave expansion refers.
-        coefficients (list of numpy arrays): coefficients[i][j, pm, k, l] contains
-            :math:`g^\pm_{ij}(\kappa_{k}, \alpha_{l})`, where :math:`\pm` is + for pm = 0 and :math:`\pm` is - for
-            pm = 1, and the coordinates :math:`\kappa_{k}` and :math:`\alpha_{l}` correspond to n_effective[k] times the
-            angular frequency and azimuthal_angles[l], respectively.
+        coefficients (numpy ndarray): coefficients[j, k, l] contains :math:`g^\pm_{j}(\kappa_{k}, \alpha_{l})`
     """
-    # todo: update doc
     def __init__(self, k, k_parallel=None, azimuthal_angles=None, kind=None, reference_point=None, lower_z=-np.inf,
                  upper_z=np.inf):
 
@@ -193,15 +325,35 @@ class PlaneWaveExpansion(FieldExpansion):
 
         # The coefficients :math:`g^\pm_{j}(\kappa,\alpha) are represented as a 3-dimensional numpy.ndarray.
         # The indices are:
-        # -  polarization (0=TE, 1=TM)
+        # - polarization (0=TE, 1=TM)
         # - index of the kappa dimension
         # - index of the alpha dimension
         self.coefficients = np.zeros((2, len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
 
     def valid(self, x, y, z):
+        """Test if points are in definition range of the expansion.
+        
+        Args:
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
+        Returns:
+            numpy.ndarray of bool datatype indicating if points are inside definition domain.
+        """
         return np.logical_and(z >= self.lower_z, z < self.upper_z)
 
     def diverging(self, x, y, z):
+        """Test if points are in domain where expansion could diverge.
+        
+        Args:
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
+        Returns:
+            numpy.ndarray of bool datatype indicating if points are inside divergence domain.
+        """
         return np.zeros(x.shape,dtype=bool)
 
     def k_parallel_grid(self):
@@ -246,14 +398,14 @@ class PlaneWaveExpansion(FieldExpansion):
 
     def electric_field(self, x, y, z):
         """Evaluate electric field.
-
+        
         Args:
-            x (numpy array):    x-coordinates of points where to evaluate the field
-            y (numpy array):    y-coordinates of points where to evaluate the field
-            z (numpy array):    z-coordinates of points where to evaluate the field
-
+            x (numpy.ndarray):    x-coordinates of query points
+            y (numpy.ndarray):    y-coordinates of query points
+            z (numpy.ndarray):    z-coordinates of query points
+         
         Returns:
-            Tuple (E_x, E_y, E_z) of complex electric fields as numpy arrays with the same shape as x, y, z
+            Tuple of (E_x, E_y, E_z) numpy.ndarray objects with the Cartesian coordinates of complex electric field.
         """
         ex = np.zeros(x.shape, dtype=complex)
         ey = np.zeros(x.shape, dtype=complex)
@@ -301,14 +453,18 @@ class PlaneWaveExpansion(FieldExpansion):
 
 
 class FarField:
-    """Represent the far field intensity of an electromagnetic field.
+    r"""Represent the far field intensity of an electromagnetic field.
+    
+    .. math::
+        P = \sum_{j=1}^2 \iint \mathrm{d}^2 \Omega \, I_{\Omega,j}(\beta, \alpha),
 
-    A far field of NaN's is initialized. Default angular resolution is 1 degree.
-
+    where :math:`P` is the radiative power, :math:`j` indicates the polarization and 
+    :math:`\mathrm{d}^2 \Omega = \mathrm{d}\alpha \sin\beta \mathrm{d}\beta` denotes the infinitesimal solid angle.   
+    
     Args:
         polar_angles (numpy.ndarray):       Polar angles (default: from 0 to 180 degree in steps of 1 degree)
         azimuthal_angles (numpy.ndarray):   Azimuthal angles (default: from 0 to 360 degree in steps of 1 degree)
-        signal_type (str):                         Type of the signal (e.g., intensity for power flux far fields).
+        signal_type (str):                  Type of the signal (e.g., 'intensity' for power flux far fields).
     """
     def __init__(self, polar_angles=None, azimuthal_angles=None, signal_type='intensity'):
         if polar_angles is None:
@@ -328,18 +484,41 @@ class FarField:
         self.signal_type = signal_type
 
     def azimuthal_integral(self):
+        r"""Far field as a function of polar angle only.
+    
+        .. math::
+            P = \sum_{j=1}^2 \int \mathrm{d} \beta \, I_{\beta,j}(\beta),
+        
+        with 
+        
+        .. math::
+            I_{\beta,j}(\beta) = \int \mathrm{d} \alpha \, \sin\beta I_j(\beta, \alpha),
+    
+        Returns:
+            :math:`I_{\beta,j}(\beta)` as numpy ndarray. First index is polarization, second is polar angle.
+        """
         if len(self.azimuthal_angles) > 2:
             return np.trapz(self.signal, self.azimuthal_angles[None, None, :]) * np.sin(self.polar_angles[None, :])
         else:
             return None
 
     def integral(self):
+        r"""Integrate intensity to obtain total power :math:`P`.
+    
+        Returns:
+            :math:`P_j` as numpy 1D-array with length 2, the index referring to polarization.
+        """
         if len(self.azimuthal_angles) > 2:
             return np.trapz(self.azimuthal_integral(), self.polar_angles[None, :])
         else:
             return None
 
     def top(self):
+        r"""Split far field into top and bottom part.
+        
+        Returns:
+            FarField object with only the intensity for top hemisphere (:math:`\beta\leq\pi/2`)
+        """
         if any(self.polar_angles <= np.pi/2):
             ff = FarField(polar_angles=self.polar_angles[self.polar_angles <= np.pi/2],
                           azimuthal_angles=self.azimuthal_angles, signal_type=self.signal_type)
@@ -349,6 +528,11 @@ class FarField:
             return None
 
     def bottom(self):
+        r"""Split far field into top and bottom part.
+        
+        Returns:
+            FarField object with only the intensity for bottom hemisphere (:math:`\beta\geq\pi/2`)
+        """
         if any(self.polar_angles >= np.pi/2):
             ff = FarField(polar_angles=self.polar_angles[self.polar_angles >= np.pi/2],
                           azimuthal_angles=self.azimuthal_angles, signal_type=self.signal_type)
@@ -358,14 +542,28 @@ class FarField:
             return None
 
     def alpha_grid(self):
+        r"""
+        Returns:
+            Meshgrid with :math:`\alpha` values.
+        """
         agrid, _ = np.meshgrid(self.azimuthal_angles, self.polar_angles.real * 180 / np.pi)
         return agrid
 
     def beta_grid(self):
+        r"""
+        Returns:
+            Meshgrid with :math:`\beta` values.
+        """
         _, bgrid = np.meshgrid(self.azimuthal_angles, self.polar_angles.real * 180 / np.pi)
         return bgrid
 
     def append(self, other):
+        """Combine two FarField objects with disjoint angular ranges. The other far field is appended to this one.
+        
+        Args:
+            other (FarField): far field to append to this one.
+        """
+    
         if not all(self.azimuthal_angles == other.azimuthal_angles):
             raise ValueError('azimuthal angles not consistent')
         if not self.signal_type == other.signal_type:
@@ -380,6 +578,12 @@ class FarField:
             raise ValueError('far fields have overlapping polar angle domains')
 
     def export(self, output_directory='.', tag='far_field'):
+        """Export far field information to text file in ASCII format.
+        
+        Args:
+            output_directory (str): Path to folder where to store data.
+            tag (str):              Keyword to use in the naming of data files, allowing to assign them to this object. 
+        """
         np.savetxt(output_directory + '/' + tag + '_TE.dat', self.signal[0, :, :],
                    header='Each line corresponds to a polar angle, each column corresponds to an azimuthal angle.')
         np.savetxt(output_directory + '/' + tag + '_TM.dat', self.signal[1, :, :],
@@ -511,10 +715,6 @@ def swe_to_pwe_conversion(swe, k_parallel=None, azimuthal_angles=None, layer_sys
         pwe_up, pwe_down = layer_system.response((pwe_up, pwe_down), i_swe, layer_number)
 
     return pwe_up, pwe_down
-
-
-def piecewise_to_pwe_conversion():
-    pass
 
 
 def pwe_to_ff_conversion(vacuum_wavelength, plane_wave_expansion):

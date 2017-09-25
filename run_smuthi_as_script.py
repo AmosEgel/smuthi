@@ -58,4 +58,4 @@ scs = smuthi.scattered_field.scattering_cross_section(initial_field=simulation.i
                                                       layer_system=simulation.layer_system)
 
 print('Total scattering cross section:')
-print(sum(scs[0].integral()))
+print(sum(scs.integral()))

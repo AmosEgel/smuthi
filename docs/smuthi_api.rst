@@ -9,13 +9,6 @@ smuthi.coordinates module
     :members:
     :undoc-members:
 
-smuthi.far_field module
------------------------
-
-.. automodule:: smuthi.far_field
-    :members:
-    :undoc-members:
-
 smuthi.field_expansion module
 -----------------------
 
@@ -23,10 +16,10 @@ smuthi.field_expansion module
     :members:
     :undoc-members:
 
-smuthi.index_conversion module
+smuthi.graphical_output module
 ------------------------------
 
-.. automodule:: smuthi.index_conversion
+.. automodule:: smuthi.graphical_output
     :members:
     :undoc-members:
 
@@ -44,17 +37,10 @@ smuthi.layers module
     :members:
     :undoc-members:
 
-smuthi.linear_system module
+smuthi.memoizing module
 ---------------------------
 
-.. automodule:: smuthi.linear_system
-    :members:
-    :undoc-members:
-
-smuthi.near_field module
-------------------------
-
-.. automodule:: smuthi.near_field
+.. automodule:: smuthi.memoizing
     :members:
     :undoc-members:
 
@@ -72,13 +58,6 @@ smuthi.particles module
     :members:
     :undoc-members:
 
-smuthi.plane_wave_pattern module
---------------------------------
-
-.. automodule:: smuthi.plane_wave_pattern
-    :members:
-    :undoc-members:
-
 smuthi.post_processing module
 -----------------------------
 
@@ -90,6 +69,13 @@ smuthi.read_input module
 ------------------------
 
 .. automodule:: smuthi.read_input
+    :members:
+    :undoc-members:
+
+smuthi.scattered_field module
+------------------------
+
+.. automodule:: smuthi.scattered_field
     :members:
     :undoc-members:
 
