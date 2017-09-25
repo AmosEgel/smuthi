@@ -3,6 +3,95 @@ import smuthi.coordinates as coord
 import smuthi.field_expansion as fldex
 
 
+def total_far_field(initial_field, particle_list, layer_system, polar_angles=None, azimuthal_angles=None):
+    """
+    Evaluate the total far field, the initial far field and the scattered far field. Cannot be used if initial field
+    is a plane wave.
+    
+    Args:
+        initial_field (smuthi.initial_field.InitialField): represents the initial field
+        particle_list (list):                       list of smuthi.Particle objects
+        layer_system (smuthi.layers.LayerSystem):   represents the stratified medium
+        polar_angles (numpy.ndarray):               polar angles values (radian)
+        azimuthal_angles (numpy.ndarray):           azimuthal angle values (radian)
+
+    Returns:
+        A tuple of three FarField objects for total, initial and scattered far field. Mind that the scattered far field
+        has no physical meaning and is for illustration purposes only. 
+    """ 
+    if not type(initial_field).__name__ == 'GaussianBeam':
+        raise ValueError('only for Gaussian beams')
+    omega = initial_field.angular_frequency()
+    vacuum_wavelength = initial_field.vacuum_wavelength
+    if polar_angles is None:
+        polar_angles = (np.concatenate([np.arange(0, 90, 1, dtype=float), np.arange(91, 181, 1, dtype=float)])
+                        * np.pi / 180)
+    if azimuthal_angles is None:
+        azimuthal_angles = np.arange(0, 361, 1, dtype=float) * np.pi / 180
+
+    if any(polar_angles.imag):
+        raise ValueError("complex angles not allowed in far field")
+
+    i_top = layer_system.number_of_layers() - 1
+    top_polar_angles = polar_angles[polar_angles <= (np.pi / 2)]
+    bottom_polar_angles = polar_angles[polar_angles > (np.pi / 2)]
+    neff_top = np.sort(np.sin(top_polar_angles) * layer_system.refractive_indices[i_top])
+    neff_bottom = np.sort(np.sin(bottom_polar_angles) * layer_system.refractive_indices[0])
+    
+    if len(top_polar_angles) > 1 and layer_system.refractive_indices[i_top].imag == 0:
+        pwe_scat_top, _ = scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, i_top,
+                                              k_parallel=neff_top*omega, azimuthal_angles=azimuthal_angles,
+                                              include_direct=True, include_layer_response=True)
+        pwe_in_top, _ = initial_field.plane_wave_expansion(layer_system, i_top, k_parallel_array=neff_top*omega,
+                                                        azimuthal_angles_array=azimuthal_angles)
+        pwe_top = pwe_scat_top + pwe_in_top
+        top_far_field = fldex.pwe_to_ff_conversion(vacuum_wavelength=vacuum_wavelength, plane_wave_expansion=pwe_top)
+        top_far_field_init = fldex.pwe_to_ff_conversion(vacuum_wavelength=vacuum_wavelength, 
+                                                        plane_wave_expansion=pwe_in_top)
+        top_far_field_scat = fldex.pwe_to_ff_conversion(vacuum_wavelength=vacuum_wavelength, 
+                                                        plane_wave_expansion=pwe_scat_top)
+    else:
+        top_far_field = None
+        top_far_field_init = None
+        top_far_field_scat = None
+
+    if len(bottom_polar_angles) > 1 and layer_system.refractive_indices[0].imag == 0:
+        _, pwe_scat_bottom = scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, 0,
+                                                 k_parallel=neff_bottom*omega, azimuthal_angles=azimuthal_angles,
+                                                 include_direct=True, include_layer_response=True)
+        _, pwe_in_bottom = initial_field.plane_wave_expansion(layer_system, 0, k_parallel_array=neff_bottom*omega,
+                                                           azimuthal_angles_array=azimuthal_angles)
+        pwe_bottom = pwe_scat_bottom + pwe_in_bottom
+        bottom_far_field = fldex.pwe_to_ff_conversion(vacuum_wavelength=vacuum_wavelength,
+                                                      plane_wave_expansion=pwe_bottom)
+        bottom_far_field_init = fldex.pwe_to_ff_conversion(vacuum_wavelength=vacuum_wavelength,
+                                                           plane_wave_expansion=pwe_in_bottom)
+        bottom_far_field_scat = fldex.pwe_to_ff_conversion(vacuum_wavelength=vacuum_wavelength,
+                                                           plane_wave_expansion=pwe_scat_bottom)
+    else:
+        bottom_far_field = None
+        bottom_far_field_init = None
+        bottom_far_field_scat = None
+
+    if top_far_field is not None:
+        far_field = top_far_field
+        far_field_init = top_far_field_init
+        far_field_scat = top_far_field_scat
+        if bottom_far_field is not None:
+            far_field.append(bottom_far_field)
+            far_field_init.append(bottom_far_field_init)
+            far_field_scat.append(bottom_far_field_scat)
+    else:
+        far_field = bottom_far_field
+        far_field_init = bottom_far_field_init
+        far_field_scat = bottom_far_field_scat
+
+    far_field.polar_angles = far_field.polar_angles.real
+    far_field_init.polar_angles = far_field_init.polar_angles.real
+    far_field_scat.polar_angles = far_field_scat.polar_angles.real
+    return far_field, far_field_init, far_field_scat
+
+
 def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_angles=None, azimuthal_angles=None):
     """
     Evaluate the scattered far field.
@@ -15,8 +104,7 @@ def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_an
         azimuthal_angles (numpy.ndarray):           azimuthal angle values (radian)
 
     Returns:
-        A tuple of FarField objects, one for forward scattering (i.e., into the top hemisphere) and one for backward
-        scattering (bottom hemisphere).
+        A FarField object of the scattered field.
     """
     omega = coord.angular_frequency(vacuum_wavelength)
     if polar_angles is None:

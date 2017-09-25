@@ -51,8 +51,8 @@ scattering particles:
   extinction coefficient: 0.05
   position: [-350, 50, 350]
   euler angles: [0, 0, 0]
-  l_max: 3
-  m_max: 3
+  l_max: 4
+  m_max: 4
   use discrete sources: true
   nint: 200
   nrank: 8
@@ -105,8 +105,8 @@ initial field:
   polarization: TE
   amplitude: 1
   focus point: [0, 0, 0]
-  beam waist: 1000
-  angular resolution: 1
+  beam waist: 5000
+  angular resolution: 0.5
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -133,19 +133,25 @@ neff discretization: 2e-3
 # ----------------------------------------------------------------------------------------------------------------------
 
 post processing:
-- task: evaluate near field
-  show plots: true
+- task: evaluate far field
+  angle units: degree
+  angular resolution: 0.5
+  show plots: false
   save plots: false
-  save animations: false
   save data: false
-  quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
-  xmin: -1200
-  xmax: 1200
-  zmin: -800
-  zmax: 1200
-  spatial resolution: 100
-  interpolation spatial resolution: 25
-  maximal field strength: 1.2
+#- task: evaluate near field
+#  show plots: true
+#  save plots: false
+#  save animations: false
+#  save data: false
+#  quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
+#  xmin: -1200
+#  xmax: 1200
+#  zmin: -800
+#  zmax: 1200
+#  spatial resolution: 100
+#  interpolation spatial resolution: 25
+#  maximal field strength: 1.2
 
 
 # ----------------------------------------------------------------------------------------------------------------------

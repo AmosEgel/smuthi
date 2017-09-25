@@ -9,6 +9,7 @@ from matplotlib.patches import Circle, Ellipse, Rectangle
 import tempfile
 import shutil
 import imageio
+import os
 
 
 def plot_layer_interfaces(dim1min, dim1max, layer_system):
@@ -137,6 +138,9 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         max_particle_distance (float):  Show particles that are closer than that distance to the image plane (length
                                         unit, default = inf).
     """
+    if (not os.path.exists(outputdir)) and (save_plots or save_animations or save_data):
+        os.makedirs(outputdir)
+    
     if quantities_to_plot is None:
         quantities_to_plot = ['norm(E)']
 
@@ -354,7 +358,34 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         np.savetxt(filename, e_z_scat_raw.imag, header=header)
 
 
-def show_far_field(far_field, save_plots, show_plots, tag='far_field', outputdir='.', flip_downward=True):
+def show_far_field(far_field, save_plots, show_plots, save_data=False, tag='far_field', outputdir='.', 
+                   flip_downward=True, split=True):
+    """Display and export the far field.
+    
+    Args:
+        far_field (smuthi.field_expansion.FarField):    far field object to show and export
+        save_plots (bool):                              save images if true
+        show_plots (bool):                              display plots if true
+        save_data (bool):                               export data in ascii format if true
+        tag (str):                                      name to attribute files
+        outputdir (str):                                path to the directory where data to be stored
+        flip_downward (bool):                           represent downward directions as 0-90 deg instead of 90-180
+                                                        if true
+        split (bool):                                   show two different plots for upward and downward directions 
+                                                        if true
+    """
+    
+    if split and any(far_field.polar_angles < np.pi/2) and any(far_field.polar_angles > np.pi/2):
+        show_far_field(far_field.top(), save_plots, show_plots, save_data, tag+'_top', outputdir, True, False)
+        show_far_field(far_field.bottom(), save_plots, show_plots, save_data, tag+'_bottom', outputdir, True, False)
+        return
+    
+    if (not os.path.exists(outputdir)) and (save_plots or save_data):
+        os.makedirs(outputdir)
+    
+    if save_data:
+        far_field.export(output_directory=outputdir, tag=tag)
+    
     alpha_grid = far_field.alpha_grid()
     beta_grid = far_field.beta_grid()
 
@@ -367,6 +398,7 @@ def show_far_field(far_field, save_plots, show_plots, tag='far_field', outputdir
         pcm = ax.pcolormesh(alpha_grid, beta_grid, (far_field.signal[0, :, :] + far_field.signal[1, :, :]),
                             cmap='inferno')
     plt.colorbar(pcm, ax=ax)
+    plt.title(tag)
     if save_plots:
         plt.savefig(outputdir + '/' + tag + '.png')
     if show_plots:
@@ -385,6 +417,7 @@ def show_far_field(far_field, save_plots, show_plots, tag='far_field', outputdir
     elif far_field.signal_type == 'intensity':
         plt.ylabel('d_P/d_beta')
     plt.grid(True)
+    plt.title(tag)
     if save_plots:
         plt.savefig(outputdir + '/' + tag + '_polar.png')
     if show_plots:

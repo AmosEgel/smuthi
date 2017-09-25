@@ -150,7 +150,7 @@ def read_input_yaml(filename):
         else:
             kparr = np.sin(bet_arr) * simulation.layer_system.wavenumber(layer_number=-1, vacuum_wavelength=wl)
         wst = infld['beam waist']
-        aarr = np.arange(0, 2 * np.pi, ang_res)
+        aarr = np.concatenate([np.arange(0, 2 * np.pi, ang_res), [2 * np.pi]])
         initial_field = init.GaussianBeam(vacuum_wavelength=wl, polar_angle=pol_ang, azimuthal_angle=az_ang,
                                           polarization=pol, beam_waist=wst, k_parallel_array=kparr,
                                           azimuthal_angles_array=aarr, amplitude=a, reference_point=ref)
@@ -167,8 +167,10 @@ def read_input_yaml(filename):
     simulation.post_processing = pp.PostProcessing()
     if input_data.get('post processing'):
         for item in input_data['post processing']:
-            if item['task'] == 'evaluate cross sections':
+            if item['task'] == 'evaluate far field':
                 simulation.post_processing.tasks.append(item)
+#            if item['task'] == 'evaluate cross sections':
+#                simulation.post_processing.tasks.append(item)
             elif item['task'] == 'evaluate near field':
                 simulation.post_processing.tasks.append(item)
 

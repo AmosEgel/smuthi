@@ -150,7 +150,7 @@ neff discretization: 1e-3
 # ----------------------------------------------------------------------------------------------------------------------
 
 post processing:
-- task: evaluate cross sections
+- task: evaluate far field
   show plots: false
   save plots: true
   save data: false

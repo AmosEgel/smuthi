@@ -101,7 +101,12 @@ class GaussianBeam(InitialPropagatingWave):
         self.k_parallel_array = k_parallel_array
         self.azimuthal_angles_array = azimuthal_angles_array
         
-    def plane_wave_expansion(self, layer_system, i):
+    def plane_wave_expansion(self, layer_system, i, k_parallel_array=None, azimuthal_angles_array=None):
+        
+        if k_parallel_array is None:
+            k_parallel_array = self.k_parallel_array
+        if azimuthal_angles_array is None:
+            azimuthal_angles_array = self.azimuthal_angles_array
 
         if np.cos(self.polar_angle) > 0:
             iG = 0  # excitation layer number
@@ -115,9 +120,8 @@ class GaussianBeam(InitialPropagatingWave):
         z_iG = layer_system.reference_z(iG)
         loz = layer_system.lower_zlimit(iG)
         upz = layer_system.upper_zlimit(iG)
-        pwe_exc = fldex.PlaneWaveExpansion(k=k_iG, k_parallel=self.k_parallel_array,
-                                           azimuthal_angles=self.azimuthal_angles_array, kind=kind,
-                                           reference_point=[0, 0, z_iG], lower_z=loz, upper_z=upz)
+        pwe_exc = fldex.PlaneWaveExpansion(k=k_iG, k_parallel=k_parallel_array, azimuthal_angles=azimuthal_angles_array, 
+                                           kind=kind, reference_point=[0, 0, z_iG], lower_z=loz, upper_z=upz)
 
         k_Gx = k_iG * np.sin(self.polar_angle) * np.cos(self.azimuthal_angle)
         k_Gy = k_iG * np.sin(self.polar_angle) * np.sin(self.azimuthal_angle)
@@ -184,8 +188,7 @@ class GaussianBeam(InitialPropagatingWave):
             i_top = layer_system.number_of_layers() - 1
             ff = fldex.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
                                             plane_wave_expansion=self.plane_wave_expansion(layer_system, i_top)[1])
-
-        return ff.integral()
+        return ff
 
 
 class PlaneWave(InitialPropagatingWave):
