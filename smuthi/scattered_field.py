@@ -1,3 +1,4 @@
+"""Manage post processing steps to evaluate the scattered near and far field"""
 import numpy as np
 import smuthi.coordinates as coord
 import smuthi.field_expansion as fldex
@@ -282,6 +283,19 @@ def extinction_cross_section(initial_field, particle_list, layer_system):
 
 
 def scattered_field_piecewise_expansion(k_parallel, azimuthal_angles, vacuum_wavelength, particle_list, layer_system):
+    """Compute a piecewise field expansion of the scattered field.
+
+    Args:
+        k_parallel (numpy.ndarray):                 in-plane wavenumbers array
+        azimuthal_angles (numpy.ndarray):           azimuthal angles array
+        vacuum_wavelength (float):                  vacuum wavelength
+        particle_list (list):                       list of smuthi.particles.Particle objects
+        layer_system (smuthi.layers.LayerSystem):   stratified medium
+
+    Returns:
+        scattered field as smuthi.field_expansion.PiecewiseFieldExpansion object
+
+    """
 
     sfld = fldex.PiecewiseFieldExpansion()
 
@@ -322,6 +336,7 @@ def scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, layer_nu
         azimuthal_angles (numpy.ndarray):   Azimuthal angles of the wave vector for the plane wave expansion (radian)
         include_direct (bool):              If True, include the direct scattered field
         include_layer_response (bool):      If True, include the layer system response
+
     Returns:
         A tuple of PlaneWaveExpansion objects for upgoing and downgoing waves.
     """

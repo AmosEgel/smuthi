@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Manage all post processing tasks after solving the linear system."""
 import numpy as np
 import smuthi.scattered_field as sf
 import smuthi.graphical_output as go
@@ -10,6 +11,11 @@ class PostProcessing:
         self.tasks = []
 
     def run(self, simulation):
+        """Run tasks for post processing.
+
+        Args:
+            simulation (smuthi.simulation.Simulation):  simulation object containing input and solution of the problem
+        """
         particle_list = simulation.particle_list
         layer_system = simulation.layer_system
         initial_field = simulation.initial_field
@@ -102,6 +108,25 @@ class PostProcessing:
 
 def evaluate_cross_section(polar_angles, azimuthal_angles, initial_field, particle_list, layer_system, outputdir, 
                            show_plots, save_plots, save_data, length_unit):
+    """Compute differential scattering cross section as well as extinction cross sections.
+
+    Args:
+        polar_angles (numpy.ndarray):   array of polar angles for differential cross section
+        azimuthal_angles (numpy.ndarray):   array of azimuthal angles for differential cross section
+        initial_field (smuthi.initial.InitialField):    initial field object
+        particle_list (list):   list of smuthi.particles.Particle objects
+        layer_system (smuthi.layers.LayerSystem): stratified medium
+        outputdir (str):    path to folder where to store data and figures
+        show_plots (bool):  show plots if true
+        save_plots (bool):  export plots to disc if true
+        save_data (bool):   save raw data to disc if true
+        length_unit (str):  length unit used in simulation, e.g. 'nm'
+
+    Returns:
+        A tuple of a scattering cross section object and an extinction cross section dictionary.
+
+
+    """
     scattering_cross_section = sf.scattering_cross_section(initial_field=initial_field, polar_angles=polar_angles, 
                                                            azimuthal_angles=azimuthal_angles, 
                                                            particle_list=particle_list, layer_system=layer_system)

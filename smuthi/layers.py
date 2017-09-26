@@ -33,7 +33,11 @@ class LayerSystem:
         self.refractive_indices = refractive_indices
 
     def number_of_layers(self):
-        """Return total number of layers"""
+        """Return total number of layers
+
+        Returns:
+            number of layers
+        """
         return len(self.thicknesses)
 
     def lower_zlimit(self, i):
@@ -41,8 +45,11 @@ class LayerSystem:
 
         The coordinate system is defined such that z=0 corresponds to the interface between layer 0 and layer 1.
 
-        input:
-        i:      index of layer in question (must be between 0 and number_of_layers-1)
+        Args:
+            i (int):      index of layer in question (must be between 0 and number_of_layers-1)
+
+        Returns:
+            z-coordinate of lower boundary
         """
         if i == 0:
             return -np.inf
@@ -57,8 +64,11 @@ class LayerSystem:
 
         The coordinate system is defined such that z=0 corresponds to the interface between layer 0 and layer 1.
 
-        input:
-        i:      index of layer in question (must be between 0 and number_of_layers-1)
+        Args:
+            i (int):      index of layer in question (must be between 0 and number_of_layers-1)
+
+        Returns:
+            z-coordinate of upper boundary
         """
         if i == self.number_of_layers() - 1:
             return np.inf
@@ -73,8 +83,11 @@ class LayerSystem:
 
         The coordinate system is defined such that z=0 corresponds to the interface between layer 0 and layer 1.
 
-        input:
-        i:      index of layer in question (must be between 0 and number_of_layers-1)
+        Args:
+            i (int):      index of layer in question (must be between 0 and number_of_layers-1)
+
+        Returns:
+            anchor point's z-coordinate
         """
         if i == 0:
             return self.upper_zlimit(i)
@@ -86,8 +99,11 @@ class LayerSystem:
 
         If z is on the interface, the higher layer number is selected.
 
-        input:
-        z:       z-coordinate of query point (length unit)
+        Args:
+            z (float):       z-coordinate of query point (length unit)
+
+        Returns:
+            number of layer containing z
         """
         d = 0
         laynum = 0
@@ -152,6 +168,14 @@ class LayerSystem:
         return pwe_up, pwe_down
 
     def wavenumber(self, layer_number, vacuum_wavelength):
+        """
+        Args:
+            layer_number (int): number of layer in question
+            vacuum_wavelength (float): vacuum wavelength
+
+        Returns:
+            wavenumber in that layer as float
+        """
         return self.refractive_indices[layer_number] * coord.angular_frequency(vacuum_wavelength=vacuum_wavelength)
 
 
@@ -331,6 +355,14 @@ def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, t
 
 
 def matrix_product(m1, m2):
+    """
+    Args:
+        m1 (mpmath.matrix or numpy.ndarray):    first matrix
+        m2 (mpmath.matrix or numpy.ndarray):    second matrix
+
+    Returns:
+        matrix product m1 * m2 with same data type as m1 and m2
+    """
     if isinstance(m1, mpmath.matrix) and isinstance(m2, mpmath.matrix):
         return m1 * m2
     elif isinstance(m1, np.ndarray) and isinstance(m2, np.ndarray):
@@ -338,6 +370,13 @@ def matrix_product(m1, m2):
 
 
 def matrix_inverse(m):
+    """
+    Args:
+        m (mpmath.matrix or numpy.ndarray):    matrix to invert
+
+    Returns:
+        inverse of m with same data type as m1 and m2
+    """
     if isinstance(m, mpmath.matrix):
         return m ** (-1)
     elif isinstance(m, np.ndarray):

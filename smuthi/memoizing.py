@@ -1,7 +1,9 @@
+"""Provide functionality to store intermediate results in lookup tables (memoize)"""
 import pickle
 
 
 class Memoize:
+    """To be used as a decorator for functions that are memoized."""
     def __init__(self, fn):
         self.fn = fn
         self.memo = {}

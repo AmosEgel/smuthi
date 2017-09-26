@@ -127,9 +127,10 @@ The format of the particle specifications file is described below, see `The part
 Initial field
 ---------------
 
-Currently, only plane waves are implemented as the initial excitation. 
+Currently, plane waves and Gaussian beams (more precisely: beams with Gaussian transverse cross-section) are implemented
+as the initial excitation.
 
-Specify the initial field in the following format::
+For plane waves, specify the initial field in the following format::
 
   initial field:
     type: plane wave
@@ -151,14 +152,38 @@ where :math:`A` is the amplitude, :math:`\mathrm{j}` is the imaginary unit,
 .. math:: \mathbf{k}=\frac{2 \pi n_\mathrm{init}}{\lambda}  \left( \begin{array}{c} \sin(\beta)\cos(\alpha)\\ \sin(\beta)\sin(\alpha) \\ \cos(\beta) \end{array} \right)
 
 is the wave vector in the layer from which the plane wave comes,
-:math:`n_\mathrm{init}` is the refractive index in that layer (must be real), :math:`(\beta,\alpha)` are the polar and azimuthal angle of the plane wave,
-:math:`\mathbf{r_0}` is the reference point and 
-:math:`\hat{\mathbf{e}}_j` is the unit vector pointing into the :math:`\alpha`-direction for :code:`TE` polarization 
-and into the  in the :math:`\beta`-direction for :code:`TM` polarization.
+:math:`n_\mathrm{init}` is the refractive index in that layer (must be real), :math:`(\beta,\alpha)` are the polar and
+azimuthal angle of the plane wave, :math:`\mathbf{r_0}` is the reference point and :math:`\hat{\mathbf{e}}_j` is the
+unit vector pointing into the :math:`\alpha`-direction for :code:`TE` polarization and into the  in the
+:math:`\beta`-direction for :code:`TM` polarization.
 
-If the polar angle is in the range :math:`0\leq\beta\lt 90^\circ`, the k-vector has a positive :math:`z`-component and consequently, the plane wave is incident from the bottom side. 
+If the polar angle is in the range :math:`0\leq\beta\lt 90^\circ`, the k-vector has a positive :math:`z`-component and
+consequently, the plane wave is incident from the bottom side.
 If the polar angle is in the range :math:`90^\circ\lt\beta\leq 180^\circ`, then the plane wave is incident from the top. 
 
+For Gaussian beams, specify the input in this format::
+
+  initial field:
+    type: Gaussian beam
+    angle units: degree
+    polar angle: 0
+    azimuthal angle: 0
+    polarization: TE
+    amplitude: 1
+    focus point: [0, 0, 0]
+    beam waist: 1000
+    angular resolution: 1
+
+The Gaussian beam amplitude corresponds to the electric field value at the focus point. The beam waist parameter
+describes the transverse width of the beam near the focus point. The angular resolution parameter is in angle units
+and determines how fine the plane wave expansion of the Gaussian beam is sampled (lower value means more accurate).
+
+More precisely, the beam is designed to fulfill
+
+.. math:: \mathbf{E}(\mathbf{r}) = \exp \left[\frac{(x-x_G)^2+(y-y_G)^2}{w^2}\right] \mathbf{A}_G
+
+for :math:`z=z_G`, where :math:`(x_G,y_G,z_G)` are the coordinates of the focus point, and :math:`w` is the beam waist
+parameter and :math:`\mathbf{A}_G` is the amplitude vector given by the amplitude parameter and the polarization.
 
 Numerical parameters
 ----------------------
@@ -184,29 +209,33 @@ Post procesing
 Define here, what output you want to generate. Currently, the following tasks can be defined for the post processing
 phase:
 
-  - evaluation of scattering and extinction cross sections
-  - evaluation of the electrical near field
+  - Evaluation of the far field. If the initial field is a plane wave, the far field is interpreted in terms of
+    the differential scattering cross section and the extinction cross section. For the case of an initial Gaussian
+    beam, the far field denotes the radiative intensity, and relative reflectivity as well as transmittivity figures
+    are displayed in the terminal. You can export images and raw data in ascii format.
+  - Evaluation of the electrical near field. You can export images, animations and raw data regarding field components
+    or the field modulus.
 
 Write for example::
 
-   post processing:
-   - task: evaluate cross sections
-     show plots: false
-     save plots: true
-     save data: false
-   - task: evaluate near field
-     show plots: false
-     save plots: true
-     save animations: true
-     save data: false
-     quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
-     xmin: -800
-     xmax: 800
-     zmin: -400
-     zmax: 900
-     spatial resolution: 50
-     interpolation spatial resolution: 5
-     maximal field strength: 1.2
+  post processing:
+  - task: evaluate far field
+    show plots: true
+    save plots: true
+    save data: false
+  - task: evaluate near field
+    show plots: true
+    save plots: true
+    save animations: true
+    save data: false
+    quantities to plot: [E_y, norm(E), E_scat_y, norm(E_scat), E_init_y, norm(E_init)]
+    xmin: -800
+    xmax: 800
+    zmin: -400
+    zmax: 900
+    spatial resolution: 50
+    interpolation spatial resolution: 5
+    maximal field strength: 1.2
 
 The :code:`show plots`, :code:`save plots` and :code:`save data` flags deterimine, if the respective output
 is plotted, if the plots are saved and if the raw data is exported to ascii files.
@@ -214,18 +243,16 @@ is plotted, if the plots are saved and if the raw data is exported to ascii file
 In the :code:`evaluate near field` task, the :code:`save animations` flags deterimines, if the near field figures are
 exported as gif animations.
 
-The :code:`quantities to plot` are a list of strings that can be:
-:code:`E_x`, :code:`E_y`, :code:`E_z` or :code:`norm(E)` for the x-, y- and z-component or the norm of the total
-electric field,
-:code:`E_scat_x`, :code:`E_scat_y`, :code:`E_scat_z` or :code:`norm(E_scat)` for the x-, y- and z-component or the norm
-of the scattered electric field,
-or :code:`E_init_x`, :code:`E_init_y`, :code:`E_init_z` or :code:`norm(E_init)` for the x-, y- and z-component or the norm
-of the initial electric field.
+The :code:`quantities to plot` are a list of strings that can be: :code:`E_x`, :code:`E_y`, :code:`E_z` or
+:code:`norm(E)` for the x-, y- and z-component or the norm of the total electric field, :code:`E_scat_x`,
+:code:`E_scat_y`, :code:`E_scat_z` or :code:`norm(E_scat)` for the x-, y- and z-component or the norm of the scattered
+electric field, or :code:`E_init_x`, :code:`E_init_y`, :code:`E_init_z` or :code:`norm(E_init)` for the x-, y- and
+z-component or the norm of the initial electric field.
 
 To specify the plane where the near field is computed, provide :code:`xmin`, :code:`xmax`, :code:`ymin`, :code:`ymax`,
 :code:`zmin` and :code:`zmax`. If any of these is not given, it is assumed to be 0.
-For exactly one of the coordinates x, y or z the min and max value should be identical, e.g. :code:`ymin` =
-:code:`ymax` as in the above example. In that case, the field is plotted in the xz-plane.
+For exactly one of the coordinates x, y or z the min and max value should be identical, e.g. :code:`ymin` = :code:`ymax`
+as in the above example. In that case, the field would be plotted in the xz-plane.
 
 :code:`spatial resolution` determines, how fine the grid of points is, where the near field is computed.
 As :code:`xmin` etc., this parameter is specified in length units. If :code:`interpolation spatial resolution` is
@@ -251,12 +278,10 @@ Finally, if::
 is specified, the simulation object will be saved as a binary data file from which it can be reimported at a later time.
 
 
-
 The particle specifications file
 ==================================
 
 The file containing the particle specifications needs to be written in the following format::
-
 
    # spheres
    # x, y, z, radius, refractive index, exctinction coefficient, l_max, m_max
