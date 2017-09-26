@@ -9,12 +9,15 @@ import smuthi.field_expansion as fldex
 def mie_coefficient(tau, l, k_medium, k_particle, radius):
     """Return the Mie coefficients of a sphere.
 
-    Input:
-    tau         integer: spherical polarization, 0 for spherical TE and 1 for spherical TM
-    l           integer: l=1,... multipole degree (polar quantum number)
-    k_medium    float or complex: wavenumber in surrounding medium (inverse length unit)
-    k_particle  float or complex: wavenumber inside sphere (inverse length unit)
-    radius      float: radius of sphere (length unit)
+    Args:
+        tau         integer: spherical polarization, 0 for spherical TE and 1 for spherical TM
+        l           integer: l=1,... multipole degree (polar quantum number)
+        k_medium    float or complex: wavenumber in surrounding medium (inverse length unit)
+        k_particle  float or complex: wavenumber inside sphere (inverse length unit)
+        radius      float: radius of sphere (length unit)
+
+    Returns:
+        Mie coefficients as complex
     """
     jlkr_medium = smuthi.spherical_functions.spherical_bessel(l, k_medium * radius)
     jlkr_particle = smuthi.spherical_functions.spherical_bessel(l, k_particle * radius)
@@ -62,8 +65,6 @@ def t_matrix_sphere(k_medium, k_particle, radius, l_max, m_max):
 
 def t_matrix(vacuum_wavelength, n_medium, particle):
     """Return the T-matrix of a particle.
-
-    ..todo:: testing
 
     Args:
         vacuum_wavelength(float)

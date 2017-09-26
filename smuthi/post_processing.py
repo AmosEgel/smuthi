@@ -52,23 +52,33 @@ class PostProcessing:
                                       tag='scattered_far_field', outputdir=outputdir, flip_downward=True, split=True)
                     
                     in_pow = sum(initial_field.initial_intensity(layer_system).integral()).real
-                    top_pow = sum(self.total_far_field.top().integral()).real
-                    bottom_pow = sum(self.total_far_field.bottom().integral()).real
-                    
+                    if self.total_far_field.top() is not None:
+                        top_pow = sum(self.total_far_field.top().integral()).real
+                    else:
+                        top_pow = 0
+                    if self.total_far_field.bottom() is not None:
+                        bottom_pow = sum(self.total_far_field.bottom().integral()).real
+                    else:
+                        bottom_pow = 0
+
                     print()
                     print('-------------------------------------------------------------------------')
                     print('Far field:')
                     print('Initial power:                                         ', in_pow)
                     if initial_field.polar_angle < np.pi / 2:
-                        print('Radiation into bottom layer (total reflection):        ', bottom_pow, 
-                              ' or ', round(bottom_pow / in_pow * 100, 2), '%')
-                        print('Radiation into top layer (total transmission):         ', top_pow,
-                              ' or ', round(top_pow / in_pow * 100, 2), '%') 
+                        if bottom_pow:
+                            print('Radiation into bottom layer (total reflection):        ', bottom_pow,
+                                  ' or ', round(bottom_pow / in_pow * 100, 2), '%')
+                        if top_pow:
+                            print('Radiation into top layer (total transmission):         ', top_pow,
+                                  ' or ', round(top_pow / in_pow * 100, 2), '%')
                     else:
-                        print('Radiation into bottom layer (total transmission):      ', bottom_pow, 
-                              ' or ', round(bottom_pow / in_pow * 100, 2), '%')
-                        print('Radiation into top layer (total reflection):           ', top_pow,
-                              ' or ', round(top_pow / in_pow * 100, 2), '%')
+                        if bottom_pow:
+                            print('Radiation into bottom layer (total transmission):      ', bottom_pow,
+                                  ' or ', round(bottom_pow / in_pow * 100, 2), '%')
+                        if top_pow:
+                            print('Radiation into top layer (total reflection):           ', top_pow,
+                                  ' or ', round(top_pow / in_pow * 100, 2), '%')
                     print('Absorption and incoupling into waveguide modes:        ', in_pow - top_pow - bottom_pow,
                           ' or ', round((in_pow - top_pow - bottom_pow) / in_pow * 100, 2), '%')
                     print('-------------------------------------------------------------------------')
