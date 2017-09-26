@@ -313,8 +313,13 @@ def scattered_field_piecewise_expansion(k_parallel, azimuthal_angles, vacuum_wav
                                                            layer_system, i, True)
             pwe_up = pwe_up + add_up
             pwe_down = pwe_down + add_down
-        sfld.expansion_list.append(pwe_up)
-        sfld.expansion_list.append(pwe_down)
+
+        # in bottom_layer, suppress upgoing waves, and in top layer, suppress downgoing waves
+        if i > 0:
+            sfld.expansion_list.append(pwe_up)
+        if i < layer_system.number_of_layers()-1:
+            sfld.expansion_list.append(pwe_down)
+
 
     # direct field ---------------------------------------------------------------------------------------------
     for particle in particle_list:
