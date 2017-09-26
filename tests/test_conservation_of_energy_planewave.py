@@ -47,10 +47,8 @@ ecs = sf.extinction_cross_section(initial_field=simulation.initial_field,particl
 
 
 def test_optical_theorem():
-    relerr = abs((scs[0].integral()[0] + scs[0].integral()[1] + scs[1].integral()[0] + scs[1].integral()[1]
-                  - ecs['top'] - ecs['bottom']) / (scs[0].integral()[0] + scs[0].integral()[1]
-                                                   + scs[1].integral()[0] + scs[1].integral()[1]))
-    # print(relerr)
+    relerr = abs((sum(scs.integral()) - ecs['top'] - ecs['bottom']) / sum(scs.integral()))
+    print(relerr)
     assert relerr < 1e-4
 
 
