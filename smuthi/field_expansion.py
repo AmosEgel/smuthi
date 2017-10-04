@@ -227,6 +227,10 @@ class SphericalWaveExpansion(FieldExpansion):
         Returns:
             Tuple of (E_x, E_y, E_z) numpy.ndarray objects with the Cartesian coordinates of complex electric field.
         """
+        x = np.array(x)
+        y = np.array(y)
+        z = np.array(z)
+
         xr = x[self.valid(x, y, z)] - self.reference_point[0]
         yr = y[self.valid(x, y, z)] - self.reference_point[1]
         zr = z[self.valid(x, y, z)] - self.reference_point[2]

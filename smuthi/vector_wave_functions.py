@@ -81,14 +81,26 @@ def spherical_vector_wave_function(x, y, z, k, nu, tau, l, m):
         - y-coordinate of SVWF electric field (numpy.ndarray)
         - z-coordinate of SVWF electric field (numpy.ndarray)
     """
+    x = np.array(x)
+    y = np.array(y)
+    z = np.array(z)
+
     r = np.sqrt(x**2 + y**2 + z**2)
-    theta = np.arccos(z / r)
+    if r == 0:
+        theta = np.zeros(x.shape)
+    else:
+        theta = np.arccos(z / r)
     phi = np.arctan2(y, x)
 
     # unit vector in r-direction
-    er_x = x / r
-    er_y = y / r
-    er_z = z / r
+    if r == 0:
+        er_x = np.zeros(x.shape)
+        er_y = np.zeros(x.shape)
+        er_z = np.ones(x.shape)
+    else:
+        er_x = x / r
+        er_y = y / r
+        er_z = z / r
 
     # unit vector in theta-direction
     eth_x = np.cos(theta) * np.cos(phi)
@@ -111,25 +123,30 @@ def spherical_vector_wave_function(x, y, z, k, nu, tau, l, m):
     if nu == 1:
         bes = sf.spherical_bessel(l, kr)
         dxxz = sf.dx_xj(l, kr)
+        if r == 0:
+            bes_kr = (l == 1) / 3
+            dxxz_kr =  (l == 1) * 2 / 3
+        else:
+            bes_kr = bes / kr
+            dxxz_kr = dxxz / kr
     elif nu == 3:
         bes = sf.spherical_hankel(l, kr)
         dxxz = sf.dx_xh(l, kr)
+        bes_kr = bes / kr
+        dxxz_kr = dxxz / kr
     else:
         raise ValueError('nu must be 1 (regular SVWF) or 3 (outgoing SVWF)')
 
     eimphi = np.exp(1j * m * phi)
-    prefac = 1/np.sqrt(2 * l * (l + 1))
+    prefac = 1 / np.sqrt(2 * l * (l + 1))
     if tau == 0:
         Ex = prefac * bes * (1j * m * pilm * eth_x - taulm * eph_x) * eimphi
         Ey = prefac * bes * (1j * m * pilm * eth_y - taulm * eph_y) * eimphi
         Ez = prefac * bes * (1j * m * pilm * eth_z - taulm * eph_z) * eimphi
     elif tau == 1:
-        Ex = prefac * (l * (l + 1) * bes / kr * plm * er_x +
-                       dxxz / kr * (taulm * eth_x + 1j * m * pilm * eph_x)) * eimphi
-        Ey = prefac * (l * (l + 1) * bes / kr * plm * er_y +
-                       dxxz / kr * (taulm * eth_y + 1j * m * pilm * eph_y)) * eimphi
-        Ez = prefac * (l * (l + 1) * bes / kr * plm * er_z +
-                       dxxz / kr * (taulm * eth_z + 1j * m * pilm * eph_z)) * eimphi
+        Ex = prefac * (l * (l + 1) * bes_kr * plm * er_x + dxxz_kr * (taulm * eth_x + 1j * m * pilm * eph_x)) * eimphi
+        Ey = prefac * (l * (l + 1) * bes_kr * plm * er_y + dxxz_kr * (taulm * eth_y + 1j * m * pilm * eph_y)) * eimphi
+        Ez = prefac * (l * (l + 1) * bes_kr * plm * er_z + dxxz_kr * (taulm * eth_z + 1j * m * pilm * eph_z)) * eimphi
     else:
         raise ValueError('tau must be 0 (spherical TE) or 1 (spherical TM)')
 

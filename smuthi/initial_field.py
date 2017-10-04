@@ -3,6 +3,9 @@
 import numpy as np
 import smuthi.coordinates as coord
 import smuthi.field_expansion as fldex
+import smuthi.vector_wave_functions as vwf
+import smuthi.particles as part
+import smuthi.particle_coupling as pc
 
 
 class InitialField:
@@ -274,3 +277,42 @@ class PlaneWave(InitialPropagatingWave):
                 pwe_down = pwe_down + pwe_exc
 
         return pwe_up, pwe_down
+
+
+class DipoleSource(InitialField):
+    def __init__(self, vacuum_wavelength, dipole_moment, position, contour):
+        InitialField.__init__(self, vacuum_wavelength)
+        self.dipole_moment = dipole_moment
+        self.position = position
+        self.contour = contour
+
+    def current(self):
+        return [- 1j * self.angular_frequency() * self.dipole_moment[i] for i in range(3)]
+
+    def outgoing_spherical_wave_expansion(self, layer_system):
+        laynum = layer_system.layer_number(self.position[2])
+        k = layer_system.refractive_indices[laynum] * self.angular_frequency()
+        swe_out = fldex.SphericalWaveExpansion(k=k, l_max=1, m_max=1, kind='outgoing', reference_point=self.position,
+                                               lower_z=layer_system.lower_zlimit(laynum),
+                                               upper_z=layer_system.upper_zlimit(laynum))
+        l = 1
+        for tau in range(2):
+            for m in range(-1, 2):
+                ex, ey, ez = vwf.spherical_vector_wave_function(0, 0, 0, k, 1, tau, l, -m)
+                b = 1j * k / np.pi * (ex * self.current()[0] + ey * self.current()[1] + ez * self.current()[2])
+                swe_out.coefficients[fldex.multi_to_single_index(tau, l, m, 1, 1)] = b
+
+        return swe_out
+
+    def spherical_wave_expansion(self, particle, layer_system):
+        virtual_particle = part.Particle(position=self.position, l_max=1, m_max=1)
+        wd = pc.direct_coupling_block(vacuum_wavelength=self.vacuum_wavelength, receiving_particle=particle,
+                                      emitting_particle=virtual_particle, layer_system=layer_system)
+        wr = pc.layer_mediated_coupling_block(vacuum_wavelength=self.vacuum_wavelength, receiving_particle=particle,
+                                              emitting_particle=virtual_particle, layer_system=layer_system,
+                                              neff_contour=self.contour)
+        k = self.angular_frequency() * layer_system.refractive_indices[layer_system.layer_number(particle.position[2])]
+        swe = fldex.SphericalWaveExpansion(k=k, l_max=particle.l_max, m_max=particle.m_max, kind='regular',
+                                           reference_point=particle.position)
+        swe.coefficients = np.dot(wd + wr, self.outgoing_spherical_wave_expansion(layer_system).coefficients)
+        return swe

@@ -39,6 +39,43 @@ def test_SVWF_against_prototype():
     np.testing.assert_almost_equal(Ey, -0.005209637449869 + 0.011576972110819j)
     np.testing.assert_almost_equal(Ez, 0.002553743847975 + 0.001361996718920j)
 
+
+def test_r_to_zero():
+    Ex, Ey, Ez = vwf.spherical_vector_wave_function(0, 0, 0, omega, 1, 0, 1, -1)
+    Ex2, Ey2, Ez2 = vwf.spherical_vector_wave_function(1e-3, 0, 0, omega, 1, 0, 1, -1)
+    Ex3, Ey3, Ez3 = vwf.spherical_vector_wave_function(0, 1e-3, 0, omega, 1, 0, 1, -1)
+    Ex4, Ey4, Ez4 = vwf.spherical_vector_wave_function(0, 0, 1e-3, omega, 1, 0, 1, -1)
+    diff1 = (abs(Ex - Ex2) ** 2 + abs(Ey - Ey2) ** 2 + abs(Ez - Ez2) ** 2)
+    diff2 = (abs(Ex - Ex3) ** 2 + abs(Ey - Ey3) ** 2 + abs(Ez - Ez3) ** 2)
+    diff3 = (abs(Ex - Ex4) ** 2 + abs(Ey - Ey4) ** 2 + abs(Ez - Ez4) ** 2)
+    assert diff1 < 1e-10
+    assert diff2 < 1e-10
+    assert diff3 < 1e-10
+
+    Ex, Ey, Ez = vwf.spherical_vector_wave_function(0, 0, 0, omega, 1, 1, 1, -1)
+    Ex2, Ey2, Ez2 = vwf.spherical_vector_wave_function(1e-3, 0, 0, omega, 1, 1, 1, -1)
+    Ex3, Ey3, Ez3 = vwf.spherical_vector_wave_function(0, 1e-3, 0, omega, 1, 1, 1, -1)
+    Ex4, Ey4, Ez4 = vwf.spherical_vector_wave_function(0, 0, 1e-3, omega, 1, 1, 1, -1)
+    d1 = (abs(Ex - Ex2)**2 + abs(Ey - Ey2)**2 + abs(Ez - Ez2)**2) / (abs(Ex)**2 + abs(Ey)**2 + abs(Ez)**2)
+    d2 = (abs(Ex - Ex3) ** 2 + abs(Ey - Ey3) ** 2 + abs(Ez - Ez3) ** 2) / (abs(Ex) ** 2 + abs(Ey) ** 2 + abs(Ez) ** 2)
+    d3 = (abs(Ex - Ex4) ** 2 + abs(Ey - Ey4) ** 2 + abs(Ez - Ez4) ** 2) / (abs(Ex) ** 2 + abs(Ey) ** 2 + abs(Ez) ** 2)
+    assert d1 < 1e-10
+    assert d2 < 1e-10
+    assert d3 < 1e-10
+
+    Ex, Ey, Ez = vwf.spherical_vector_wave_function(0, 0, 0, omega, 1, 1, 1, 0)
+    Ex2, Ey2, Ez2 = vwf.spherical_vector_wave_function(1e-3, 0, 0, omega, 1, 1, 1, 0)
+    Ex3, Ey3, Ez3 = vwf.spherical_vector_wave_function(0, 1e-3, 0, omega, 1, 1, 1, 0)
+    Ex4, Ey4, Ez4 = vwf.spherical_vector_wave_function(0, 0, 1e-3, omega, 1, 1, 1, 0)
+    d1 = (abs(Ex - Ex2)**2 + abs(Ey - Ey2)**2 + abs(Ez - Ez2)**2) / (abs(Ex)**2 + abs(Ey)**2 + abs(Ez)**2)
+    d2 = (abs(Ex - Ex3) ** 2 + abs(Ey - Ey3) ** 2 + abs(Ez - Ez3) ** 2) / (abs(Ex) ** 2 + abs(Ey) ** 2 + abs(Ez) ** 2)
+    d3 = (abs(Ex - Ex4) ** 2 + abs(Ey - Ey4) ** 2 + abs(Ez - Ez4) ** 2) / (abs(Ex) ** 2 + abs(Ey) ** 2 + abs(Ez) ** 2)
+    assert d1 < 1e-10
+    assert d2 < 1e-10
+    assert d3 < 1e-10
+
+
+
 # testing of VWF transformation happens in test_field_expansion_transformation.py
 #
 # def test_PVWF_in_SVWF():
@@ -97,3 +134,4 @@ if __name__ == '__main__':
     # test_PVWF_in_SVWF()
     test_SVWF_against_prototype()
     # test_SVWF_in_PVWF()
+    test_r_to_zero()
