@@ -6,6 +6,7 @@ import smuthi.field_expansion as fldex
 import smuthi.vector_wave_functions as vwf
 import smuthi.particles as part
 import smuthi.particle_coupling as pc
+import smuthi.scattered_field as sf
 
 
 class InitialField:
@@ -280,11 +281,12 @@ class PlaneWave(InitialPropagatingWave):
 
 
 class DipoleSource(InitialField):
-    def __init__(self, vacuum_wavelength, dipole_moment, position, contour):
+    def __init__(self, vacuum_wavelength, dipole_moment, position, contour, azimuthal_angles):
         InitialField.__init__(self, vacuum_wavelength)
         self.dipole_moment = dipole_moment
         self.position = position
         self.contour = contour
+        self.azimuthal_angles = azimuthal_angles
 
     def current(self):
         return [- 1j * self.angular_frequency() * self.dipole_moment[i] for i in range(3)]
@@ -299,7 +301,8 @@ class DipoleSource(InitialField):
         for tau in range(2):
             for m in range(-1, 2):
                 ex, ey, ez = vwf.spherical_vector_wave_function(0, 0, 0, k, 1, tau, l, -m)
-                b = 1j * k / np.pi * (ex * self.current()[0] + ey * self.current()[1] + ez * self.current()[2])
+                b = 1j * k / np.pi * 1j * self.angular_frequency() * (ex * self.current()[0] + ey * self.current()[1]
+                                                                      + ez * self.current()[2])
                 swe_out.coefficients[fldex.multi_to_single_index(tau, l, m, 1, 1)] = b
 
         return swe_out
@@ -316,3 +319,92 @@ class DipoleSource(InitialField):
                                            reference_point=particle.position)
         swe.coefficients = np.dot(wd + wr, self.outgoing_spherical_wave_expansion(layer_system).coefficients)
         return swe
+
+    def piecewise_field_expansion(self, layer_system, include_direct_field=True):
+        """Compute a piecewise field expansion of the dipole field.
+
+        Args:
+            layer_system (smuthi.layer.LayerSystem):    stratified medium
+            include_direct_field (bool):                if True (default), the direct dipole field is included.
+                                                        otherwise, only the layer response of the dipole field is
+                                                        returned.
+
+        Returns:
+            smuthi.field_expansion.PiecewiseWaveExpansion object
+        """
+        pfe = fldex.PiecewiseFieldExpansion()
+        if include_direct_field:
+            pfe.expansion_list.append(self.outgoing_spherical_wave_expansion(layer_system))
+        for i in range(layer_system.number_of_layers()):
+            # layer response as plane wave expansions
+            pwe_up, pwe_down = fldex.swe_to_pwe_conversion(swe=self.outgoing_spherical_wave_expansion(layer_system),
+                                                           k_parallel=self.angular_frequency() * self.contour.neff(),
+                                                           azimuthal_angles=self.azimuthal_angles,
+                                                           layer_system=layer_system, layer_number=i,
+                                                           layer_system_mediated=True)
+            if i > 0:
+                pfe.expansion_list.append(pwe_up)
+            if i < layer_system.number_of_layers() - 1:
+                pfe.expansion_list.append(pwe_down)
+
+        return pfe
+
+    def electric_field(self, x, y, z, layer_system, include_direct_field=True):
+        """Evaluate the complex electric field of the dipole source.
+
+        Args:
+            x (array like):     Array of x-values where to evaluate the field (length unit)
+            y (array like):     Array of y-values where to evaluate the field (length unit)
+            z (array like):     Array of z-values where to evaluate the field (length unit)
+            layer_system (smuthi.layer.LayerSystem):    Stratified medium
+            include_direct_field (bool):                if True (default), the direct dipole field is included.
+                                                        otherwise, only the layer response of the dipole field is
+                                                        returned.
+
+        Returns
+            Tuple (E_x, E_y, E_z) of electric field values
+        """
+        pfe = self.piecewise_field_expansion(layer_system=layer_system, include_direct_field=include_direct_field)
+        return pfe.electric_field(x, y, z)
+
+    def dissipated_power_homogeneous_background(self, layer_system):
+        laynum = layer_system.layer_number(self.position[2])
+        k = layer_system.refractive_indices[laynum] * self.angular_frequency()
+        mu2 = abs(self.dipole_moment[0])**2 + abs(self.dipole_moment[1])**2 + abs(self.dipole_moment[2])**2
+        p = mu2 * k * self.angular_frequency()**3 / (12 * np.pi)
+        return p
+
+    def check_dissipated_power_homogeneous_background(self, layer_system):
+        laynum = layer_system.layer_number(self.position[2])
+        e_x_in, e_y_in, e_z_in = self.electric_field(x=self.position[0]+10, y=self.position[1]+10, z=self.position[2]+10,
+                                                     layer_system=layer_system, include_direct_field=True)
+        k = layer_system.refractive_indices[laynum] * self.angular_frequency()
+        p = self.angular_frequency() / 2 * (np.conjugate(self.dipole_moment[0]) * (e_x_in)
+                                            + np.conjugate(self.dipole_moment[1]) * (e_y_in)
+                                            + np.conjugate(self.dipole_moment[2]) * (e_z_in)).imag
+        return p
+
+    def dissipated_power(self, particle_list, layer_system):
+        k_parallel = self.contour.neff() * self.angular_frequency()
+        azimuthal_angles = self.azimuthal_angles
+        scat_fld_exp = sf.scattered_field_piecewise_expansion(k_parallel, azimuthal_angles, self.vacuum_wavelength,
+                                                              particle_list, layer_system)
+        e_x_scat, e_y_scat, e_z_scat = scat_fld_exp.electric_field(self.position[0], self.position[1], self.position[2])
+        e_x_in, e_y_in, e_z_in = self.electric_field(x=self.position[0], y=self.position[1], z=self.position[2],
+                                                     layer_system=layer_system, include_direct_field=False)
+        power = self.angular_frequency() / 2 * (np.conjugate(self.dipole_moment[0]) * (e_x_scat + e_x_in)
+                                                + np.conjugate(self.dipole_moment[1]) * (e_y_scat + e_y_in)
+                                                + np.conjugate(self.dipole_moment[2]) * (e_z_scat + e_z_in)).imag
+        return self.dissipated_power_homogeneous_background(layer_system) + power
+
+    def plane_wave_expansion(self, layer_system, i, k_parallel_array=None, azimuthal_angles_array=None):
+        if k_parallel_array is None:
+            k_parallel = self.contour.neff() * self.angular_frequency()
+        if azimuthal_angles_array is None:
+            azimuthal_angles = self.azimuthal_angles
+
+        virtual_particle = part.Particle()
+        virtual_particle.scattered_field = self.outgoing_spherical_wave_expansion(layer_system)
+
+        return sf.scattered_field_pwe(self.vacuum_wavelength, [virtual_particle], layer_system, i, k_parallel_array,
+                                      azimuthal_angles_array, include_direct=True, include_layer_response=True)

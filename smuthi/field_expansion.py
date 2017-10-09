@@ -112,6 +112,7 @@ class PiecewiseFieldExpansion(FieldExpansion):
         Returns:
             Tuple of (E_x, E_y, E_z) numpy.ndarray objects with the Cartesian coordinates of complex electric field.
         """
+        x, y, z = np.array(x), np.array(y), np.array(z)
         ex = np.zeros(x.shape, dtype=complex)
         ey = np.zeros(x.shape, dtype=complex)
         ez = np.zeros(x.shape, dtype=complex)
@@ -601,6 +602,7 @@ class FarField:
         np.savetxt(output_directory + '/azimuthal_angles.dat', self.azimuthal_angles,
                    header='Azimuthal angles of the far field in radians.')
 
+
 def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
     """Convert plane wave expansion object to a spherical wave expansion object.
 
@@ -666,7 +668,7 @@ def swe_to_pwe_conversion(swe, k_parallel=None, azimuthal_angles=None, layer_sys
                                         it is the direct transform.
 
     Returns:
-        PlaneWaveExpansion object.
+        Tuple of two PlaneWaveExpansion objects, first upgoing, second downgoing.
     """
     # todo: manage diverging swe
     i_swe = layer_system.layer_number(swe.reference_point[2])

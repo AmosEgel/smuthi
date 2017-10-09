@@ -20,8 +20,8 @@ def total_far_field(initial_field, particle_list, layer_system, polar_angles=Non
         A tuple of three FarField objects for total, initial and scattered far field. Mind that the scattered far field
         has no physical meaning and is for illustration purposes only. 
     """ 
-    if not type(initial_field).__name__ == 'GaussianBeam':
-        raise ValueError('only for Gaussian beams')
+    if not (type(initial_field).__name__ == 'GaussianBeam' or type(initial_field).__name__ == 'DipoleSource'):
+        raise ValueError('only for Gaussian beams and dipole sources')
     omega = initial_field.angular_frequency()
     vacuum_wavelength = initial_field.vacuum_wavelength
     if polar_angles is None:
@@ -44,7 +44,7 @@ def total_far_field(initial_field, particle_list, layer_system, polar_angles=Non
                                               k_parallel=neff_top*omega, azimuthal_angles=azimuthal_angles,
                                               include_direct=True, include_layer_response=True)
         pwe_in_top, _ = initial_field.plane_wave_expansion(layer_system, i_top, k_parallel_array=neff_top*omega,
-                                                        azimuthal_angles_array=azimuthal_angles)
+                                                           azimuthal_angles_array=azimuthal_angles)
         pwe_top = pwe_scat_top + pwe_in_top
         top_far_field = fldex.pwe_to_ff_conversion(vacuum_wavelength=vacuum_wavelength, plane_wave_expansion=pwe_top)
         top_far_field_init = fldex.pwe_to_ff_conversion(vacuum_wavelength=vacuum_wavelength, 
@@ -61,7 +61,7 @@ def total_far_field(initial_field, particle_list, layer_system, polar_angles=Non
                                                  k_parallel=neff_bottom*omega, azimuthal_angles=azimuthal_angles,
                                                  include_direct=True, include_layer_response=True)
         _, pwe_in_bottom = initial_field.plane_wave_expansion(layer_system, 0, k_parallel_array=neff_bottom*omega,
-                                                           azimuthal_angles_array=azimuthal_angles)
+                                                              azimuthal_angles_array=azimuthal_angles)
         pwe_bottom = pwe_scat_bottom + pwe_in_bottom
         bottom_far_field = fldex.pwe_to_ff_conversion(vacuum_wavelength=vacuum_wavelength,
                                                       plane_wave_expansion=pwe_bottom)
@@ -319,7 +319,6 @@ def scattered_field_piecewise_expansion(k_parallel, azimuthal_angles, vacuum_wav
             sfld.expansion_list.append(pwe_up)
         if i < layer_system.number_of_layers()-1:
             sfld.expansion_list.append(pwe_down)
-
 
     # direct field ---------------------------------------------------------------------------------------------
     for particle in particle_list:
