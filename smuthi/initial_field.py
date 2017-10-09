@@ -281,6 +281,15 @@ class PlaneWave(InitialPropagatingWave):
 
 
 class DipoleSource(InitialField):
+    """Class for the representation of a single point dipole source.
+
+    Args:
+        vacuum_wavelength (float):      vacuum wavelength (length units)
+        dipole_moment (list or tuple):  (x, y, z)-coordinates of dipole moment vector
+        position (list or tuple):       (x, y, z)-coordinates of dipole position
+        contour (smuthi.coordinates.ComplexContour):    Contour object for Sommerfeld integrals
+        azimuthal_angles (numpy.ndarray):               Azimuthal angles for plane wave expansions
+    """
     def __init__(self, vacuum_wavelength, dipole_moment, position, contour, azimuthal_angles):
         InitialField.__init__(self, vacuum_wavelength)
         self.dipole_moment = dipole_moment
@@ -289,9 +298,29 @@ class DipoleSource(InitialField):
         self.azimuthal_angles = azimuthal_angles
 
     def current(self):
+        r"""The current density takes the form
+
+        .. math::
+            \mathbf{j}(\mathbf{r}) = \delta(\mathbf{r} - \mathbf{r}_D) \mathbf{j}_D,
+
+        where :math:`\mathbf{j}_D = -j \omega \mathbf{\mu}`, :math:`\mathbf{r}_D` is the location of the dipole, :math:`\omega`
+        is the angular frequency and :math:`\mathbf{\mu}` is the dipole moment.
+        For further details, see 'Principles of nano optics' by Novotny and Hecht.
+
+        Returns:
+            List of [x, y, z]-components of current density vector :math:`\mathbf{j}_D`
+        """
         return [- 1j * self.angular_frequency() * self.dipole_moment[i] for i in range(3)]
 
     def outgoing_spherical_wave_expansion(self, layer_system):
+        """The dipole field as an expansion in spherical vector wave functions.
+
+        Args:
+            layer_system (smuthi.layers.LayerSystem):   stratified medium
+
+        Returns:
+            outgoing smuthi.field_expansion.SphericalWaveExpansion object
+        """
         laynum = layer_system.layer_number(self.position[2])
         k = layer_system.refractive_indices[laynum] * self.angular_frequency()
         swe_out = fldex.SphericalWaveExpansion(k=k, l_max=1, m_max=1, kind='outgoing', reference_point=self.position,
@@ -308,6 +337,16 @@ class DipoleSource(InitialField):
         return swe_out
 
     def spherical_wave_expansion(self, particle, layer_system):
+        """Regular spherical wave expansion of the wave including layer system response, at the locations of the
+        particles.
+
+        Args:
+            particle (smuthi.particles.Particle):    particle relative to which the swe is computed
+            layer_system (smuthi.layer.LayerSystem): stratified medium
+
+        Returns:
+            regular smuthi.field_expansion.SphericalWaveExpansion object
+        """
         virtual_particle = part.Particle(position=self.position, l_max=1, m_max=1)
         wd = pc.direct_coupling_block(vacuum_wavelength=self.vacuum_wavelength, receiving_particle=particle,
                                       emitting_particle=virtual_particle, layer_system=layer_system)
@@ -368,6 +407,22 @@ class DipoleSource(InitialField):
         return pfe.electric_field(x, y, z)
 
     def dissipated_power_homogeneous_background(self, layer_system):
+        r"""Compute the power that the dipole would radiate in an infinite homogeneous medium of the same refractive
+        index as the layer that contains the dipole.
+
+        .. math::
+            P_0 = \frac{|\mathbf{\mu}| k \omega^3}{12 \pi}
+
+        where :math:
+            P = P_0 + \frac{\omega}{2} \mathrm{Im} (\mathbf{\mu}^* \cdot \mathbf{E}(\mathbf{r}_D))
+
+
+        Args:
+            layer_system (smuthi.layers.LayerSystem): stratified medium
+
+        Returns:
+            power (float)
+        """
         laynum = layer_system.layer_number(self.position[2])
         k = layer_system.refractive_indices[laynum] * self.angular_frequency()
         mu2 = abs(self.dipole_moment[0])**2 + abs(self.dipole_moment[1])**2 + abs(self.dipole_moment[2])**2
@@ -385,6 +440,26 @@ class DipoleSource(InitialField):
         return p
 
     def dissipated_power(self, particle_list, layer_system):
+        r"""Compute the power that the dipole feeds into the system.
+
+        It is computed according to
+
+        .. math::
+            P = P_0 + \frac{\omega}{2} \mathrm{Im} (\mathbf{\mu}^* \cdot \mathbf{E}(\mathbf{r}_D))
+
+        where :math:`P_0` is the power that the dipole would feed into an infinte homogeneous medium with the same
+        refractive index as the layer that contains the dipole, :math:`\mathbf{r}_D` is the location of the dipole,
+        :math:`\omega` is the angular frequency, :math:`\mathbf{\mu}` is the dipole moment and :math:`\mathbf{E}`
+        includes the reflections of the dipole field from the layer interfaces, as well as the scattered field from all
+        particles.
+
+        Args:
+            particle_list (list of smuthi.particles.Particle objects): scattering particles
+            layer_system (smuthi.layers.LayerSystem): stratified medium
+
+        Returns:
+            dissipated power as float
+        """
         k_parallel = self.contour.neff() * self.angular_frequency()
         azimuthal_angles = self.azimuthal_angles
         scat_fld_exp = sf.scattered_field_piecewise_expansion(k_parallel, azimuthal_angles, self.vacuum_wavelength,
@@ -398,10 +473,24 @@ class DipoleSource(InitialField):
         return self.dissipated_power_homogeneous_background(layer_system) + power
 
     def plane_wave_expansion(self, layer_system, i, k_parallel_array=None, azimuthal_angles_array=None):
+        """Plane wave expansion of the dipole field.
+
+        Args:
+            layer_system (smuthi.layer.LayerSystem):    stratified medium
+            i (int):                                    layer number in which to evaluate the expansion
+            k_parallel_array (numpy.ndarray):           in-plane wavenumber array for the expansion. if none specified,
+                                                        self.k_parallel_array is used
+            azimuthal_angles_array (numpy.ndarray):     azimuthal angles for the expansion. if none specified,
+                                                        self.azimuthal_angles_array is used
+
+        Returns:
+            tuple of to smuthi.field_expansion.PlaneWaveExpansion objects, one for upgoing and one for downgoing
+            component
+        """
         if k_parallel_array is None:
-            k_parallel = self.contour.neff() * self.angular_frequency()
+            k_parallel_array = self.contour.neff() * self.angular_frequency()
         if azimuthal_angles_array is None:
-            azimuthal_angles = self.azimuthal_angles
+            azimuthal_angles_array = self.azimuthal_angles
 
         virtual_particle = part.Particle()
         virtual_particle.scattered_field = self.outgoing_spherical_wave_expansion(layer_system)
