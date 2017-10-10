@@ -173,13 +173,14 @@ class Simulation:
         """Compute scattered field coefficients and store them in the particles' spherical wave expansion objects."""
         sys.stdout.write("Solve linear system ... ")
         sys.stdout.flush()
-        if self.solver == 'LU':
-            if self.LU_piv is None:
-                lu, piv = scipy.linalg.lu_factor(self.master_matrix(), overwrite_a=False)
-                self.LU_piv = (lu, piv)
-            b = scipy.linalg.lu_solve(self.LU_piv, self.right_hand_side())
-        else:
-            raise ValueError('This solver type is currently not implemented.')
+        if len(self.particle_list) > 0:
+            if self.solver == 'LU':
+                if self.LU_piv is None:
+                    lu, piv = scipy.linalg.lu_factor(self.master_matrix(), overwrite_a=False)
+                    self.LU_piv = (lu, piv)
+                b = scipy.linalg.lu_solve(self.LU_piv, self.right_hand_side())
+            else:
+                raise ValueError('This solver type is currently not implemented.')
 
         for iS, particle in enumerate(self.particle_list):
             i_iS = self.layer_system.layer_number(particle.position[2])

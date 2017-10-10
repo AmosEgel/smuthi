@@ -20,7 +20,8 @@ def total_far_field(initial_field, particle_list, layer_system, polar_angles=Non
         A tuple of three FarField objects for total, initial and scattered far field. Mind that the scattered far field
         has no physical meaning and is for illustration purposes only. 
     """ 
-    if not (type(initial_field).__name__ == 'GaussianBeam' or type(initial_field).__name__ == 'DipoleSource'):
+    if not (type(initial_field).__name__ == 'GaussianBeam' or type(initial_field).__name__ == 'DipoleSource'
+            or type(initial_field).__name__ == 'DipoleCollection'):
         raise ValueError('only for Gaussian beams and dipole sources')
     omega = initial_field.angular_frequency()
     vacuum_wavelength = initial_field.vacuum_wavelength
