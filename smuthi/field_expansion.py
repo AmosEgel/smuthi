@@ -2,11 +2,9 @@
 """Classes and functions to manage the expansion of the electric field in plane wave and spherical wave basis sets."""
 
 import numpy as np
-import sympy.physics.wigner
-import sympy
 import smuthi.coordinates as coord
-import smuthi.spherical_functions as sf
 import smuthi.vector_wave_functions as vwf
+import copy
 
 
 class FieldExpansion:
@@ -120,6 +118,48 @@ class PiecewiseFieldExpansion(FieldExpansion):
             dex, dey, dez = fex.electric_field(x, y, z)
             ex, ey, ez = ex + dex, ey + dey, ez + dez
         return ex, ey, ez
+
+    def compatible(self, other):
+        """Returns always true, because any field expansion can be added to a piecewise field expansion."""
+        return True
+
+    def __add__(self, other):
+        """Addition of expansion objects.
+
+        Args:
+            other (FieldExpansion):  expansion object to add to this object
+
+        Returns:
+            PiecewiseFieldExpansion object as the sum of this expansion and the other
+        """
+        # todo: testing
+        pfe_sum = PiecewiseFieldExpansion()
+
+        if type(other).__name__ == "PiecewiseFieldExpansion":
+            added = [False for other_fex in other.expansion_list]
+            for self_fex in self.expansion_list:
+                fex = copy.deepcopy(self_fex)
+                for i, other_fex in enumerate(other.expansion_list):
+                    if (not added[i]) and self_fex.compatible(other_fex):
+                        fex = fex + other_fex
+                        added[i] = True
+                pfe_sum.expansion_list.append(fex)
+            for i, other_fex in enumerate(other.expansion_list):
+                if not added[i]:
+                    pfe_sum.expansion_list.append(other_fex)
+        else:
+            added = False
+            for self_fex in self.expansion_list:
+                fex = copy.deepcopy(self_fex)
+                if (not added) and fex.compatible(other):
+                    pfe_sum.expansion_list.append(fex + other)
+                    added = True
+                else:
+                    pfe_sum.expansion_list.append(fex)
+            if not added:
+                pfe_sum.expansion_list.append(fex)
+
+        return pfe_sum
 
 
 class SphericalWaveExpansion(FieldExpansion):
@@ -251,6 +291,19 @@ class SphericalWaveExpansion(FieldExpansion):
                     ez[self.valid(x, y, z)] += b * Nz
         return ex, ey, ez
 
+    def compatible(self, other):
+        """Check if two spherical wave expansions are compatible in the sense that they can be added coefficient-wise
+
+        Args:
+            other (FieldExpansion):  expansion object to add to this object
+
+        Returns:
+            bool (true if compatible, false else)
+        """
+        return (type(other).__name__ == "SphericalWaveExpansion" and self.k == other.k and self.l_max == other.l_max
+                and self.m_max == other.m_max and self.kind == other.kind
+                and self.reference_point == other.reference_point)
+
     def __add__(self, other):
         """Addition of expansion objects (by coefficients).
         
@@ -260,8 +313,8 @@ class SphericalWaveExpansion(FieldExpansion):
         Returns:
             SphericalWaveExpansion object as the sum of this expansion and the other
         """
-        if not (self.k == other.k and self.l_max == other.l_max and self.m_max == other.m_max
-                and self.kind == other.kind and self.reference_point == other.reference_point):
+        # todo: allow different l_max
+        if not self.compatible(other):
             raise ValueError('SphericalWaveExpansions are inconsistent.')
         swe_sum = SphericalWaveExpansion(k=self.k, l_max=self.l_max, m_max=self.m_max, kind=self.kind,
                                          reference_point=self.reference_point, inner_r=max(self.inner_r, other.inner_r),
@@ -389,10 +442,22 @@ class PlaneWaveExpansion(FieldExpansion):
             raise ValueError('pwe type undefined')
         return kz
 
-    def __add__(self, other):
-        if not (np.isclose(self.k, other.k) and all(np.isclose(self.k_parallel, other.k_parallel))
+    def compatible(self, other):
+        """Check if two plane wave expansions are compatible in the sense that they can be added coefficient-wise
+
+        Args:
+            other (FieldExpansion):  expansion object to add to this object
+
+        Returns:
+            bool (true if compatible, false else)
+        """
+        return (type(other).__name__=="PlaneWaveExpansion" and np.isclose(self.k, other.k)
+                and all(np.isclose(self.k_parallel, other.k_parallel))
                 and all(np.isclose(self.azimuthal_angles, other.azimuthal_angles)) and self.kind == other.kind
-                and self.reference_point == other.reference_point):
+                and self.reference_point == other.reference_point)
+
+    def __add__(self, other):
+        if not self.compatible(other):
             raise ValueError('Plane wave expansion are inconsistent.')
         pwe_sum = PlaneWaveExpansion(k=self.k, k_parallel=self.k_parallel, azimuthal_angles=self.azimuthal_angles,
                                      kind=self.kind, reference_point=self.reference_point,
