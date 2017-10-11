@@ -726,14 +726,16 @@ def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
     return swe
 
 
-def swe_to_pwe_conversion(swe, k_parallel=None, azimuthal_angles=None, layer_system=None, layer_number=None,
+def swe_to_pwe_conversion(swe, k_parallel='default', azimuthal_angles='default', layer_system=None, layer_number=None,
                           layer_system_mediated=False):
     """Convert SphericalWaveExpansion object to a PlaneWaveExpansion object.
 
     Args:
         swe (SphericalWaveExpansion):   Spherical wave expansion to be converted
-        k_parallel (numpy array):       In-plane wavenumbers for the pwe object
-        azimuthal_angles (numpy array): Azimuthal angles for the pwe object
+        k_parallel (numpy array or str):       In-plane wavenumbers for the pwe object.
+                                               If 'default', use smuthi.coordinates.default_k_parallel
+        azimuthal_angles (numpy array or str): Azimuthal angles for the pwe object
+                                               If 'default', use smuthi.coordinates.default_azimuthal_angles
         layer_system (smuthi.layers.LayerSystem):   Stratified medium in which the origin of the SWE is located
         layer_number (int):             Layer number in which the PWE should be valid.
         layer_system_mediated (bool):   If True, the PWE refers to the layer system response of the SWE, otherwise
@@ -743,6 +745,11 @@ def swe_to_pwe_conversion(swe, k_parallel=None, azimuthal_angles=None, layer_sys
         Tuple of two PlaneWaveExpansion objects, first upgoing, second downgoing.
     """
     # todo: manage diverging swe
+    if type(k_parallel) == str and k_parallel == 'default':
+            k_parallel = coord.default_k_parallel
+    if type(azimuthal_angles) == str and azimuthal_angles == 'default':
+        azimuthal_angles = coord.default_azimuthal_angles
+    
     i_swe = layer_system.layer_number(swe.reference_point[2])
     if layer_number is None and not layer_system_mediated:
         layer_number = i_swe
@@ -758,7 +765,6 @@ def swe_to_pwe_conversion(swe, k_parallel=None, azimuthal_angles=None, layer_sys
 
     agrid = pwe_up.azimuthal_angle_grid()
     kpgrid = pwe_up.k_parallel_grid()
-
     kx = kpgrid * np.cos(agrid)
     ky = kpgrid * np.sin(agrid)
     kz_up = pwe_up.k_z_grid()

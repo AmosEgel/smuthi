@@ -302,7 +302,6 @@ def scattered_field_piecewise_expansion(vacuum_wavelength, particle_list, layer_
     """
 
     sfld = fldex.PiecewiseFieldExpansion()
-
     for i in range(layer_system.number_of_layers()):
         # layer mediated scattered field ---------------------------------------------------------------------------
         k = coord.angular_frequency(vacuum_wavelength) * layer_system.refractive_indices[i]

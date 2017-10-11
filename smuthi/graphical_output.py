@@ -96,7 +96,7 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
 
 def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, save_animations=False, save_data=False,
                     outputdir='.', xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution=25, interpolate=None,
-                    k_parallel=None, azimuthal_angles=None, simulation=None, max_field=None,
+                    k_parallel='default', azimuthal_angles='default', simulation=None, max_field=None,
                     max_particle_distance=float('inf')):
     """Plot the electric near field along a plane. To plot along the xy-plane, specify zmin=zmax and so on.
 
@@ -131,8 +131,10 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         zmax (float):       Plot up to that z (length unit)
         resolution (float):     Compute the field with that spatial resolution (length unit)
         interpolate (float):    Use spline interpolation with that resolution to plot a smooth field (length unit)
-        k_parallel (array):         1-D Numpy array of in-plane wavenumbers for the plane wave expansion
-        azimuthal_angles (array):   1-D Numpy array of azimuthal angles for the plane wave expansion
+        k_parallel (numpy.ndarray or str):         in-plane wavenumbers for the plane wave expansion
+                                                   if 'default', use smuthi.coordinates.default_k_parallel
+        azimuthal_angles (numpy.ndarray or str):   azimuthal angles for the plane wave expansion
+                                                   if 'default', use smuthi.coordinates.default_azimuthal_angles
         simulation (smuthi.simulation.Simulation):  Simulation object
         max_field (float):              If specified, truncate the color scale of the field plots at that value.
         max_particle_distance (float):  Show particles that are closer than that distance to the image plane (length
@@ -167,8 +169,8 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         dim1name = 'x (' + simulation.length_unit + ')'
         dim2name = 'y (' + simulation.length_unit + ')'
         
-    scat_fld_exp = sf.scattered_field_piecewise_expansion(k_parallel, azimuthal_angles, vacuum_wavelength,
-                                                          simulation.particle_list, simulation.layer_system)
+    scat_fld_exp = sf.scattered_field_piecewise_expansion(vacuum_wavelength, simulation.particle_list, 
+                                                          simulation.layer_system, k_parallel, azimuthal_angles)
     e_x_scat_raw, e_y_scat_raw, e_z_scat_raw = scat_fld_exp.electric_field(xarr, yarr, zarr) 
     
     e_x_init_raw, e_y_init_raw, e_z_init_raw = simulation.initial_field.electric_field(xarr, yarr, zarr,

@@ -1,10 +1,13 @@
 # ----------------------------------------------------------------------------------------------------------------------
-# Declare here the unit in which you want to specify all lengths. It has no influence on the calculations and can be
-# chosen arbitrarily. This field is mainly there to remind the user that all lengths have to be specified in consistent
-# units. In addition, it is used for the axis annotation of output plots.
+# Declare here the units in which you want to specify lengths and angles. The length unit has no influence on the
+# calculations and can be chosen arbitrarily. This field is mainly there to remind the user that all lengths have to be
+# specified in consistent units. In addition, it is used for the axis annotation of output plots.
+# The angle units can be 'degree', otherwise radians are assumed.
 # ----------------------------------------------------------------------------------------------------------------------
 
 length unit: nm
+
+angle unit: degree
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -91,16 +94,15 @@ scattering particles:
 # Currently, plane waves and beams with Gaussian transverse cross-section are implemented. 
 # ----------------------------------------------------------------------------------------------------------------------
 
-# comment if not using plane wave >>>>>>>>>>>>>>>>>>>>>
+# comment if not using plane wave >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 initial field:
   type: plane wave
-  angle units: degree
+  angle units: degree 
   polar angle: 0
   azimuthal angle: 0
   polarization: TE
   amplitude: 1
   reference point: [0, 0, 0]
-# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 # Polar and azimuthal angle refer to the corresponding spherical coordinates of the plane wave's wave vector. Angle
 # units can be 'degree' (otherwise, radians are used). If the polar is between 0 and 90 degree, the k-vector has a
@@ -108,6 +110,7 @@ initial field:
 # 90 and 180 degree, then the plane wave is incident from the top. For polarization, select either TE or TM. The
 # reference point specifies the location where the incident wave would have zero phase, i.e., the electric field of the
 # incident wave is proportional to E(r) = A * exp(j k.(r-r0)) where A is the amplitude and r0 is the reference point.
+
 
 # uncomment if using Gaussian beam >>>>>>>>>>>>>>>>>>>>
 #initial field:
@@ -119,29 +122,51 @@ initial field:
 #  amplitude: 1
 #  focus point: [0, 0, 0]
 #  beam waist: 1000
-#  angular resolution: 1
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 # The Gaussian beam amplitude corresponds to the electric field value at the focus point. The beam waist parameter 
-# describes the transverse width of the beam near the focus point. The angular resolution parameter is in angle units 
-# and determines how fine the plane wave expansion of the Gaussian beam is sampled (lower value means more accurate).  
+# describes the transverse width of the beam near the focus point.  
+
+
+# uncomment if using single dipole source >>>>>>>>>>>>>
+#initial field:
+#  type: dipole source
+#  position: [100, 10, 350]
+#  dipole moment: [3e7, 3e7, 0]
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+# uncomment if using multiple dipole sources >>>>>>>>>>
+#initial field:
+#  type: dipole collection
+#  dipoles:
+#  - position: [150, -100, 90]
+#    dipole moment: [1.5e7, 1.5e7, 0]
+#  - position: [-100, 100, 290]
+#    dipole moment: [0, 1.5e7, 1.5e7]
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Specify the contour of the Sommerfeld integral in the complex neff plane, where neff = k_parallel / omega refers to
-# the effective refractive index of the partial wave.
-# The Sommerfeld integral is performed using the trapezoidal rule along a contour. The contour is parameterized by its
-# waypoints and the discretization. The neff waypoints define a piecewise linear trajectory in the complex plane.
-# This trajectory should start at 0 and end at a suitable real truncation parameter (somewhere above the highest layer
-# refractive index).
-# A simple contour would be for example neff waypoints: [0, 4]. However, if the trajectory comes close to resonances of
-# the layered medium, the accuracy is affected. To improve, deflect the contour into the lower complex half plane such
-# that it does not come close to waveguide mode resonances of the layer system.
+# Specify the parameters that determine the resolution and the truncation of plane wave expansions, as well as complex 
+# Sommerfeld contour-integrals.
 # ----------------------------------------------------------------------------------------------------------------------
 
-neff waypoints: [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
+n_effective resolution: 1e-3
 
-neff discretization: 1e-3
+max n_effective: 3
+
+n_effective imaginary deflection: 5e-2 
+
+angular resolution: 1
+
+# 'n_effective resolution' determines the sampling of the expansion/contour, where n_effective = k_parallel / omega 
+# refers to the effective refractive index of the partial wave (default=1e-2). A smaller value leads to more precise 
+# results and to a longer computation time.
+# 'max n_effective' specifies where the expansion is truncated. It should be chosen somewhere above the maximal 
+# refractive index of the layers (default=max(refractive indices)+1).
+# 'n_effective imaginary deflection' determines how much the contour is deflected into the lower complex half plane to 
+# avoid the vicinity of waveguide or branch point singularities (default=5e-2).
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -173,14 +198,9 @@ post processing:
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Specify the output folder. This will create a new folder with a time stamp including a log file and all file output
-# from the simulation.
+# from the simulation. Tell smuthi also if the simulation object shall be saved after running.
 # ----------------------------------------------------------------------------------------------------------------------
 
 output folder: smuthi_output
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# Tell smuthi if the simulation object shall be saved after running.
-# ----------------------------------------------------------------------------------------------------------------------
 
 save simulation: true

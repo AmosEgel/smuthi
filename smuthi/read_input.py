@@ -22,13 +22,35 @@ def read_input_yaml(filename):
     print('\nReading ' + os.path.abspath(filename))
     with open(filename, 'r') as input_file:
         input_data = yaml.load(input_file.read())
-
-    simulation = smuthi.simulation.Simulation(input_file=filename, output_dir=input_data.get('output folder'),
+    
+    # wavelength
+    wl = float(input_data['vacuum wavelength'])
+    
+    # set default coordinate arrays
+    angle_unit = input_data.get('angle unit')
+    if angle_unit == 'degree':
+        angle_factor = np.pi / 180
+    else:
+        angle_factor = 1
+    angle_resolution = input_data.get('angular resolution', np.pi / 180 / angle_factor) * angle_factor
+    coord.default_azimuthal_angles = np.arange(0, 2 * np.pi + angle_resolution / 2, angle_resolution)
+    coord.default_polar_angles = np.arange(0, np.pi + angle_resolution / 2, angle_resolution)
+    
+    neff_resolution = input_data.get('neff resolution', 1e-2)
+    neff_max = input_data.get('neff max')
+    if neff_max is None:
+        ref_ind = [float(n) for n in input_data['layer system']['refractive indices']]
+        neff_max = max(np.array(ref_ind).real) + 1
+    neff_imag = input_data.get('neff imaginary deflection', 5e-2)
+    coord.set_default_k_parallel(vacuum_wavelength=wl, neff_resolution=neff_resolution, neff_max=neff_max, 
+                                 neff_imag=neff_imag)
+    
+    # initialize simulation
+    simulation = smuthi.simulation.Simulation(input_file=filename, length_unit=input_data.get('length unit'), 
+                                              output_dir=input_data.get('output folder'), 
                                               save_after_run=input_data.get('save simulation'))
 
-    simulation.length_unit = input_data.get('length unit')
-
-    # particle collection
+        # particle collection
     particle_list = []
     particle_input = input_data['scattering particles']
     if isinstance(particle_input, str):
@@ -116,7 +138,6 @@ def read_input_yaml(filename):
     simulation.layer_system = lay.LayerSystem(thicknesses=thick, refractive_indices=ref_ind)
 
     # initial field
-    wl = float(input_data['vacuum wavelength'])
     infld = input_data['initial field']
     if infld['type'] == 'plane wave':
         a = float(infld['amplitude'])
@@ -162,14 +183,19 @@ def read_input_yaml(filename):
         initial_field = init.GaussianBeam(vacuum_wavelength=wl, polar_angle=pol_ang, azimuthal_angle=az_ang,
                                           polarization=pol, beam_waist=wst, k_parallel_array=kparr,
                                           azimuthal_angles_array=aarr, amplitude=a, reference_point=ref)
-
+    elif infld['type'] == 'dipole source':
+        pos = [float(infld['position'][i]) for i in range(3)] 
+        mom = [float(infld['dipole moment'][i]) for i in range(3)]
+        initial_field = init.DipoleSource(vacuum_wavelength=wl, dipole_moment=mom, position=pos)
+    elif infld['type'] == 'dipole collection':
+        initial_field = init.DipoleCollection(vacuum_wavelength=wl)
+        dipoles = infld['dipoles']
+        for dipole in dipoles:
+            pos = [float(dipole['position'][i]) for i in range(3)] 
+            mom = [float(dipole['dipole moment'][i]) for i in range(3)]
+            dip = init.DipoleSource(vacuum_wavelength=wl, dipole_moment=mom, position=pos)
+            initial_field.append(dip)
     simulation.initial_field = initial_field
-
-    # contour
-    neff_waypoints = [complex(nf) for nf in input_data['neff waypoints']]
-    neff_discretization = float(input_data['neff discretization'])
-    simulation.wr_neff_contour = coord.ComplexContour(neff_waypoints=neff_waypoints,
-                                                      neff_discretization=neff_discretization)
 
     # post processing
     simulation.post_processing = pp.PostProcessing()
@@ -177,8 +203,6 @@ def read_input_yaml(filename):
         for item in input_data['post processing']:
             if item['task'] == 'evaluate far field':
                 simulation.post_processing.tasks.append(item)
-#            if item['task'] == 'evaluate cross sections':
-#                simulation.post_processing.tasks.append(item)
             elif item['task'] == 'evaluate near field':
                 simulation.post_processing.tasks.append(item)
 

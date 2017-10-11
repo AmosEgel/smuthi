@@ -26,20 +26,16 @@ class PostProcessing:
                     ang_fac = np.pi / 180
                 else:
                     ang_fac = 1
-                ang_res = item.get('angular resolution', np.pi / 180 / ang_fac) * ang_fac
-                polar_angles = np.concatenate([np.arange(0, np.pi/2, ang_res),   # exclude pi/2 as it is singular
-                                               np.arange(np.pi/2 + ang_res, np.pi, ang_res), [np.pi]])
-                azimuthal_angles = np.concatenate([np.arange(0, 2 * np.pi, ang_res), [2 * np.pi]])
                 
                 if type(initial_field).__name__ == 'PlaneWave':
                     self.scattering_cross_section, self.extinction_cross_section = evaluate_cross_section(
-                        polar_angles, azimuthal_angles, initial_field, particle_list, layer_system, outputdir,
-                        show_plots=item.get('show plots', False), save_plots=item.get('save plots', False),
+                        initial_field=initial_field, particle_list=particle_list, layer_system=layer_system, 
+                        outputdir=outputdir, show_plots=item.get('show plots', False), 
+                        save_plots=item.get('save plots', False),
                         save_data=item.get('save data', False), length_unit=simulation.length_unit)
                 elif type(initial_field).__name__ == 'GaussianBeam':
                     self.total_far_field, self.initial_far_field, self.scattered_far_field = sf.total_far_field(
-                        initial_field=initial_field, particle_list=particle_list, layer_system=layer_system, 
-                        polar_angles=polar_angles, azimuthal_angles=azimuthal_angles)    
+                        initial_field=initial_field, particle_list=particle_list, layer_system=layer_system)    
                 
                     go.show_far_field(far_field=self.total_far_field, save_plots=item.get('save plots', False),
                                       show_plots=item.get('show plots', False), save_data=item.get('save data', False),
@@ -82,6 +78,52 @@ class PostProcessing:
                     print('Absorption and incoupling into waveguide modes:        ', in_pow - top_pow - bottom_pow,
                           ' or ', round((in_pow - top_pow - bottom_pow) / in_pow * 100, 2), '%')
                     print('-------------------------------------------------------------------------')
+                elif (type(initial_field).__name__ == 'DipoleSource' 
+                      or type(initial_field).__name__ == 'DipoleCollection'):
+                    self.total_far_field, self.initial_far_field, self.scattered_far_field = sf.total_far_field(
+                        initial_field=initial_field, particle_list=particle_list, layer_system=layer_system)    
+                
+                    go.show_far_field(far_field=self.total_far_field, save_plots=item.get('save plots', False),
+                                      show_plots=item.get('show plots', False), save_data=item.get('save data', False),
+                                      tag='total_far_field', outputdir=outputdir, flip_downward=True, split=True)
+                    go.show_far_field(far_field=self.initial_far_field, save_plots=item.get('save plots', False),
+                                      show_plots=item.get('show plots', False), save_data=item.get('save data', False),
+                                      tag='initial_far_field', outputdir=outputdir, flip_downward=True, split=True)
+                    go.show_far_field(far_field=self.scattered_far_field, save_plots=item.get('save plots', False),
+                                      show_plots=item.get('show plots', False), save_data=item.get('save data', False),
+                                      tag='scattered_far_field', outputdir=outputdir, flip_downward=True, split=True)
+                    
+                    if type(initial_field).__name__ == 'DipoleSource':
+                        diss_pow = initial_field.dissipated_power(particle_list, layer_system)
+                    else:
+                        diss_pow = sum(initial_field.dissipated_power(particle_list, layer_system))
+                    
+                    assert abs(diss_pow.imag / diss_pow) < 1e-8 
+                    diss_pow = diss_pow.real
+                    
+                    if self.total_far_field.top() is not None:
+                        top_pow = sum(self.total_far_field.top().integral()).real
+                    else:
+                        top_pow = 0
+                    if self.total_far_field.bottom() is not None:
+                        bottom_pow = sum(self.total_far_field.bottom().integral()).real
+                    else:
+                        bottom_pow = 0
+
+                    print()
+                    print('-------------------------------------------------------------------------')
+                    print('Dissipated power:                                  ', diss_pow)
+                    print()
+                    print('Far field:')
+                    if bottom_pow:
+                        print('Radiation into bottom layer (bottom outcoupling):  ', bottom_pow,
+                              ' or ', round(bottom_pow / diss_pow * 100, 2), '%')
+                    if top_pow:
+                        print('Radiation into top layer (top outcoupling):        ', top_pow,
+                              ' or ', round(top_pow / diss_pow * 100, 2), '%')
+                    print('Absorption and incoupling into waveguide modes:    ', diss_pow - top_pow - bottom_pow,
+                          ' or ', round((diss_pow - top_pow - bottom_pow) / diss_pow * 100, 2), '%')
+                    print('-------------------------------------------------------------------------')
                     
             elif item['task'] == 'evaluate near field':
                 sys.stdout.write("\nEvaluate near fields ... ")
@@ -94,35 +136,30 @@ class PostProcessing:
                 else:
                     outputdir = '.'
 
-                neff_max = item.get('maximal n_effective',
-                                    max([n.real for n in simulation.layer_system.refractive_indices]) + 0.5)
-                neff_resol = item.get('n_effective resolution', 1e-2)
-                n_effective = np.linspace(0, neff_max, neff_max / neff_resol + 2, endpoint=True)
-                k_parallel = n_effective * simulation.initial_field.angular_frequency()
-                azimuthal_angles_resol = item.get('azimuthal angles resolution', np.pi / 100)
-                azimuthal_angles = np.linspace(0, 2 * np.pi, 2 * np.pi / azimuthal_angles_resol + 1)
                 go.show_near_field(quantities_to_plot=quantities_to_plot, show_plots=item.get('show plots', False),
                                    save_plots=item.get('save plots', False), save_data=item.get('save data', False),
                                    save_animations=item.get('save animations', False), outputdir=outputdir,
                                    xmin=item.get('xmin', 0), xmax=item.get('xmax', 0), ymin=item.get('ymin', 0),
                                    ymax=item.get('ymax', 0), zmin=item.get('zmin', 0), zmax=item.get('zmax', 0),
-                                   k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, simulation=simulation,
-                                   max_field=item.get('maximal field strength'),
+                                   simulation=simulation, max_field=item.get('maximal field strength'),
                                    resolution=item.get('spatial resolution', 25),
                                    max_particle_distance=item.get('maximal particle distance', float('inf')),
-                                   interpolate=item.get('interpolation spatial resolution', 5))
+                                   interpolate=item.get('interpolation spatial resolution'))
 
                 sys.stdout.write("done. \n")
                 sys.stdout.flush()
 
 
-def evaluate_cross_section(polar_angles, azimuthal_angles, initial_field, particle_list, layer_system, outputdir, 
-                           show_plots, save_plots, save_data, length_unit):
+def evaluate_cross_section(polar_angles='default', azimuthal_angles='default', initial_field=None, particle_list=None, 
+                           layer_system=None, outputdir=None, show_plots=None, save_plots=None, save_data=None, 
+                           length_unit=None):
     """Compute differential scattering cross section as well as extinction cross sections.
 
     Args:
-        polar_angles (numpy.ndarray):   array of polar angles for differential cross section
-        azimuthal_angles (numpy.ndarray):   array of azimuthal angles for differential cross section
+        polar_angles (numpy.ndarray or str):  array of polar angles for differential cross section.
+                                              if 'default', use smuthi.coordinates.default_polar_angles
+        azimuthal_angles (numpy.ndarray or str):    array of azimuthal angles for differential cross section
+                                                    if 'default', use smuthi.coordinates.default_azimuthal_angles
         initial_field (smuthi.initial.InitialField):    initial field object
         particle_list (list):   list of smuthi.particles.Particle objects
         layer_system (smuthi.layers.LayerSystem): stratified medium

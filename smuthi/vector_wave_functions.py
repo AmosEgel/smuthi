@@ -86,21 +86,21 @@ def spherical_vector_wave_function(x, y, z, k, nu, tau, l, m):
     z = np.array(z)
 
     r = np.sqrt(x**2 + y**2 + z**2)
-    if r == 0:
-        theta = np.zeros(x.shape)
-    else:
-        theta = np.arccos(z / r)
+    non0 = np.logical_not(r == 0)
+    
+    theta = np.zeros(x.shape)
+    theta[non0] = np.arccos(z[non0] / r[non0])
     phi = np.arctan2(y, x)
 
     # unit vector in r-direction
-    if r == 0:
-        er_x = np.zeros(x.shape)
-        er_y = np.zeros(x.shape)
-        er_z = np.ones(x.shape)
-    else:
-        er_x = x / r
-        er_y = y / r
-        er_z = z / r
+
+    er_x = np.zeros(x.shape)
+    er_y = np.zeros(x.shape)
+    er_z = np.ones(x.shape)
+
+    er_x[non0] = x[non0] / r[non0]
+    er_y[non0] = y[non0] / r[non0]
+    er_z[non0] = z[non0] / r[non0]
 
     # unit vector in theta-direction
     eth_x = np.cos(theta) * np.cos(phi)

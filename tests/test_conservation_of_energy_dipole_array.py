@@ -15,10 +15,11 @@ D2 = [3e7, -2e7, 1e7]
 rD3 = [-100, 100, -100]
 D3 = [-2e7, 3e7, 1e7]
 
-waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 3]
+# waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 3]
+neff_max = 3
 neff_discr = 2e-2
 
-coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr)
+coord.set_default_k_parallel(vacuum_wavelength = ld, neff_resolution=neff_discr, neff_max=neff_max)
 
 # initialize particle object
 sphere1 = part.Sphere(position=[200, 200, 300], refractive_index=2.4 + 0.0j, radius=110, l_max=3, m_max=3)
