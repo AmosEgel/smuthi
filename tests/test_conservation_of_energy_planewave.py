@@ -17,8 +17,9 @@ plane_wave_polarization = 0
 plane_wave_amplitude = 1
 neff_waypoints = [0, 0.5, 0.8-0.01j, 2-0.01j, 2.5, 5]
 neff_discr = 5e-3
-
 # --------------------------------------------
+
+coord.set_default_k_parallel(vacuum_wavelength, neff_waypoints, neff_discr)
 
 # initialize particle object
 sphere1 = part.Sphere(position=[100, 100, 150], refractive_index=2.4 + 0.0j, radius=110, l_max=4, m_max=4)
@@ -35,8 +36,7 @@ init_fld = init.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=plane
                           amplitude=plane_wave_amplitude, reference_point=[0, 0, 400])
 
 # initialize simulation object
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                              wr_neff_contour=coord.ComplexContour(neff_waypoints, neff_discr))
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld)
 simulation.run()
 
 scs = sf.scattering_cross_section(initial_field=simulation.initial_field, particle_list=simulation.particle_list,
@@ -48,7 +48,7 @@ ecs = sf.extinction_cross_section(initial_field=simulation.initial_field,particl
 
 def test_optical_theorem():
     relerr = abs((sum(scs.integral()) - ecs['top'] - ecs['bottom']) / sum(scs.integral()))
-    print(relerr)
+    print('error: ', relerr)
     assert relerr < 1e-4
 
 

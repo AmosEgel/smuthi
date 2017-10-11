@@ -18,12 +18,11 @@ nS = 1.5
 RS = 100
 # --------------------------------------------
 
-ctr = coord.ComplexContour(neff_waypoints=waypoints, neff_discretization=neff_discr)
-dipole = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D, position=rD, contour=ctr,
-                           azimuthal_angles=np.arange(0, 361, 1) * np.pi / 180)
+coord.set_default_k_parallel(vacuum_wavelength=ld, neff_waypoints=waypoints, neff_resolution=neff_discr)
+dipole = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D, position=rD)
 laysys = lay.LayerSystem(thicknesses=thick, refractive_indices=n)
 particle = smuthi.particles.Sphere(position=rS, l_max=3, m_max=3, refractive_index=nS, radius=RS)
-simulation = simul.Simulation(layer_system=laysys, particle_list=[particle], initial_field=dipole, wr_neff_contour=ctr)
+simulation = simul.Simulation(layer_system=laysys, particle_list=[particle], initial_field=dipole)
 
 aI = dipole.spherical_wave_expansion(particle, laysys)
 
@@ -41,7 +40,7 @@ def test_SWE_coefficients_against_prototype():
     aI29 = -0.801326990127563 - 0.706078171730042j
     err29 = abs((aI.coefficients[29] - aI29) / aI29)
 
-    # print(err0, err10, err20, err29)
+    print(err0, err10, err20, err29)
 
     assert err0 < 1e-4
     assert err10 < 1e-4

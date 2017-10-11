@@ -23,9 +23,9 @@ class Simulation:
         layer_system (smuthi.layers.LayerSystem):               stratified medium
         particle_list (list):                                   list of smuthi.particles.Particle objects
         initial_field (smuthi.initial_field.InitialField):      initial field object
-        wr_neff_contour (smuthi.coordinates.ComplexContour):    contour for Sommerfeld integrals in the computation of
-                                                                the layer system mediated particle coupling
         post_processing (smuthi.post_processing.PostProcessing): object managing post processing tasks
+        k_parallel (numpy.ndarray or str):    in-plane wavenumber for Sommerfeld integrals. if 'default', keep what is
+                                              in smuthi.coordinates.default_k_parallel
         solver (str):           what solver type to use? currently only 'LU' possible, for LU factorization
         length_unit (str):      what is the physical length unit? has no influence on the computations
         input_file (str):       path and filename of input file (for logging purposes)
@@ -33,18 +33,20 @@ class Simulation:
         save_after_run(bool):   if true, the simulation object is exported to disc when over
     """
 
-    def __init__(self, layer_system=None, particle_list=None, initial_field=None, wr_neff_contour=None,
-                 post_processing=None, solver='LU', length_unit='length unit', input_file=None,
+    def __init__(self, layer_system=None, particle_list=None, initial_field=None, post_processing=None, 
+                 k_parallel = 'default', solver='LU', length_unit='length unit', input_file=None, 
                  output_dir='smuthi_output', save_after_run=False):
 
         # initialize attributes
         self.layer_system = layer_system
         self.particle_list = particle_list
         self.initial_field = initial_field
-        self.wr_neff_contour = wr_neff_contour
         self.post_processing = post_processing
         self.length_unit = length_unit
         self.save_after_run = save_after_run
+        if type(k_parallel) == str and k_parallel == 'default':
+            k_parallel = coord.default_k_parallel
+        self.k_parallel = k_parallel
 
         # linear system
         self.solver = solver # solve with what algorithm?
@@ -96,7 +98,7 @@ class Simulation:
 
     def prepare_linear_system(self):
         """Computes particle coupling matrices, T-matrices and initial field coefficients."""
-
+        
         # compute initial field coefficients
         sys.stdout.write("Compute initial field coefficients ... ")
         sys.stdout.flush()
@@ -123,7 +125,7 @@ class Simulation:
         sys.stdout.flush()
         self.coupling_matrix += coup.layer_mediated_coupling_matrix(self.initial_field.vacuum_wavelength,
                                                                     self.particle_list, self.layer_system,
-                                                                    self.wr_neff_contour)
+                                                                    self.k_parallel)
         sys.stdout.write("done. \n")
 
     def number_of_unknowns(self):

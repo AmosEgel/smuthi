@@ -18,11 +18,11 @@ plane_wave_polarization = 0
 plane_wave_amplitude = 1
 lmax = 3
 neff_waypoints = [0, 0.5, 0.8-0.01j, 2-0.01j, 2.5, 20]
-neff_discr = 5e-3
-farfield_neff_waypoints = [0, 1]
-farfield_neff_discr = 1e-2
+neff_discr = 1e-3
 
 # --------------------------------------------
+
+coord.set_default_k_parallel(vacuum_wavelength, neff_waypoints, neff_discr)
 
 # initialize particle object
 part1 = part.Sphere(position=[100,100,150], refractive_index=2.4+0.0j, radius=120, l_max=lmax)
@@ -38,12 +38,10 @@ plane_wave = init.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=pla
                             amplitude=plane_wave_amplitude, reference_point=[0, 0, 400])
 
 # initialize simulation object
-simulation1 = simul.Simulation(layer_system=lay_sys1, particle_list=[part1,part2], initial_field=plane_wave,
-                               wr_neff_contour=coord.ComplexContour(neff_waypoints, neff_discr))
+simulation1 = simul.Simulation(layer_system=lay_sys1, particle_list=[part1,part2], initial_field=plane_wave)
 simulation1.run()
 
-simulation2 = simul.Simulation(layer_system=lay_sys2, particle_list=[part1,part2], initial_field=plane_wave,
-                               wr_neff_contour=coord.ComplexContour(neff_waypoints, neff_discr))
+simulation2 = simul.Simulation(layer_system=lay_sys2, particle_list=[part1,part2], initial_field=plane_wave)
 simulation2.run()
 
 ff = sf.scattered_far_field(vacuum_wavelength=vacuum_wavelength, particle_list=simulation1.particle_list,
@@ -53,6 +51,7 @@ ff = sf.scattered_far_field(vacuum_wavelength=vacuum_wavelength, particle_list=s
 def test_equivalent_layer_systems():
     relerr = (np.linalg.norm(simulation1.coupling_matrix - simulation2.coupling_matrix)
               / np.linalg.norm(simulation1.coupling_matrix))
+    print(relerr)
     assert relerr < 1e-3
 
 

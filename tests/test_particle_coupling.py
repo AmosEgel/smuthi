@@ -13,13 +13,13 @@ wl = 550
 part1 = part.Sphere(position=[100, -100, 200], refractive_index=1.7, radius=100, l_max=2, m_max=2)
 part2 = part.Sphere(position=[-100, 200, 300], refractive_index=1.7, radius=100, l_max=2, m_max=2)
 
-def test_wr_against_prototype():
-    neff_contour = coord.ComplexContour([0, 0.8, 0.8 - 0.1j, 2.1 - 0.1j, 2.1, 5], 2e-3)
+coord.set_default_k_parallel(wl, [0, 0.8, 0.8 - 0.1j, 2.1 - 0.1j, 2.1, 3], 2e-3)
 
+def test_wr_against_prototype():
     laysys_substrate = lay.LayerSystem(thicknesses=[0, 0], refractive_indices=[2 + 0.1j, 1])
 
-    wr_sub00 = coup.layer_mediated_coupling_block(wl, part1, part1, laysys_substrate, neff_contour)
-    wr_sub01 = coup.layer_mediated_coupling_block(wl, part1, part2, laysys_substrate, neff_contour)
+    wr_sub00 = coup.layer_mediated_coupling_block(wl, part1, part1, laysys_substrate)
+    wr_sub01 = coup.layer_mediated_coupling_block(wl, part1, part2, laysys_substrate)
 
     wr_sub_0000 = -0.116909038698419 - 0.013001770175717j
     assert abs((wr_sub00[0, 0] - wr_sub_0000) / wr_sub_0000) < 1e-5
@@ -29,8 +29,8 @@ def test_wr_against_prototype():
     assert abs((wr_sub01[1, 0] - wr_sub_0110) / wr_sub_0110) < 1e-5
 
     laysys_waveguide = lay.LayerSystem(thicknesses=[0, 500, 0], refractive_indices=[1, 2, 1])
-    wr_wg00 = coup.layer_mediated_coupling_block(wl, part1, part1, laysys_waveguide, neff_contour)
-    wr_wg01 = coup.layer_mediated_coupling_block(wl, part1, part2, laysys_waveguide, neff_contour)
+    wr_wg00 = coup.layer_mediated_coupling_block(wl, part1, part1, laysys_waveguide)
+    wr_wg01 = coup.layer_mediated_coupling_block(wl, part1, part2, laysys_waveguide)
 
     wr_wg_0000 = -0.058321374924359 - 0.030731607595288j
     assert (abs(wr_wg00[0, 0] - wr_wg_0000) / wr_wg_0000) < 1e-5
@@ -41,7 +41,6 @@ def test_wr_against_prototype():
 
 
 def test_w_against_prototype():
-
     part1 = part.Sphere(position=[100, -100, 200], refractive_index=1.7, radius=100, l_max=2, m_max=2)
     part2 = part.Sphere(position=[-100, 200, 300], refractive_index=1.7, radius=100, l_max=2, m_max=2)
     part3 = part.Sphere(position=[200, 200, -300], refractive_index=1.7, radius=100, l_max=2, m_max=2)
@@ -66,8 +65,7 @@ def test_w_against_prototype():
 
 
 def test_w_against_wr():
-    neff_contour = coord.ComplexContour([0, 0.8, 0.8 - 0.1j, 2.1 - 0.1j, 2.1, 10], 2e-3)
-
+    coord.set_default_k_parallel(wl, [0, 0.8, 0.8 - 0.1j, 2.1 - 0.1j, 2.1, 7], 2e-3)
     laysys_air_1 = lay.LayerSystem(thicknesses=[0, 0], refractive_indices=[1, 1])
     laysys_air_2 = lay.LayerSystem(thicknesses=[0, 250, 0], refractive_indices=[1, 1, 1])
 
@@ -75,9 +73,10 @@ def test_w_against_wr():
     part2 = part.Sphere(position=[-100, 200, 400], refractive_index=1.7, radius=100, l_max=2, m_max=2)
 
     w_air_1 = coup.direct_coupling_block(wl, part1, part2, laysys_air_1)
-    wr_air_2 = coup.layer_mediated_coupling_block(wl, part1, part2, laysys_air_2, neff_contour)
-
-    np.testing.assert_almost_equal(wr_air_2, w_air_1, decimal=5)
+    wr_air_2 = coup.layer_mediated_coupling_block(wl, part1, part2, laysys_air_2)
+    
+    error = wr_air_2 - w_air_1
+    np.testing.assert_almost_equal(wr_air_2, w_air_1, decimal=4)
 
 
 if __name__ == '__main__':

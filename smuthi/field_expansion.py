@@ -352,7 +352,9 @@ class PlaneWaveExpansion(FieldExpansion):
     Args:
         k (float):                                  wavenumber in layer where expansion is valid
         k_parallel (numpy ndarray):                 array of in-plane wavenumbers (can be float or complex)
+                                                    If 'default', use smuthi.coordinates.default_k_parallel
         azimuthal_angles (numpy ndarray):           :math:`\alpha`, from 0 to :math:`2\pi`
+                                                    If 'default', use smuthi.coordinates.default_azimuthal_angles 
         kind (str):                                 'upgoing' for :math:`g^+` and 'downgoing' for :math:`g^-` type 
                                                     expansions 
         reference_point (list or tuple):            [x, y, z]-coordinates of point relative to which the plane waves are 
@@ -364,14 +366,19 @@ class PlaneWaveExpansion(FieldExpansion):
     Attributes:
         coefficients (numpy ndarray): coefficients[j, k, l] contains :math:`g^\pm_{j}(\kappa_{k}, \alpha_{l})`
     """
-    def __init__(self, k, k_parallel=None, azimuthal_angles=None, kind=None, reference_point=None, lower_z=-np.inf,
-                 upper_z=np.inf):
+    def __init__(self, k, k_parallel='default', azimuthal_angles='default', kind=None, reference_point=None, 
+                 lower_z=-np.inf, upper_z=np.inf):
 
         self.k = k
+        if type(k_parallel) == str and k_parallel == 'default':
+            k_parallel = coord.default_k_parallel
         if hasattr(k_parallel, '__len__'):
             self.k_parallel = np.array(k_parallel)
         else:
             self.k_parallel = np.array([k_parallel])
+            
+        if type(azimuthal_angles) == str and azimuthal_angles == 'default':
+            azimuthal_angles = coord.default_azimuthal_angles
         if hasattr(azimuthal_angles, '__len__'):
             self.azimuthal_angles = np.array(azimuthal_angles)
         else:
@@ -536,11 +543,11 @@ class FarField:
         azimuthal_angles (numpy.ndarray):   Azimuthal angles (default: from 0 to 360 degree in steps of 1 degree)
         signal_type (str):                  Type of the signal (e.g., 'intensity' for power flux far fields).
     """
-    def __init__(self, polar_angles=None, azimuthal_angles=None, signal_type='intensity'):
-        if polar_angles is None:
-            polar_angles = np.arange(0, 181, 1, dtype=float) * np.pi / 180
-        if azimuthal_angles is None:
-            azimuthal_angles = np.arange(0, 361, 1, dtype=float) * np.pi / 180
+    def __init__(self, polar_angles='default', azimuthal_angles='default', signal_type='intensity'):
+        if type(polar_angles) == str and polar_angles == 'default':
+            polar_angles = coord.default_polar_angles
+        if type(azimuthal_angles) == str and azimuthal_angles == 'default':
+            azimuthal_angles = coord.default.azimuthal_angles
         self.polar_angles = polar_angles
         self.azimuthal_angles = azimuthal_angles
 

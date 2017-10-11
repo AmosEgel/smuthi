@@ -28,6 +28,8 @@ farfield_neff_discr = 1e-2
 
 # --------------------------------------------
 
+coord.set_default_k_parallel(vacuum_wavelength, neff_waypoints, neff_discr)
+
 # initialize particle object
 part1 = part.Sphere(position=[0, 0, distance_sphere_substrate + sphere_radius],
                     refractive_index=sphere_refractive_index, radius=sphere_radius, l_max=lmax, m_max=lmax)
@@ -41,12 +43,8 @@ init_fld = init.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=plane
                           azimuthal_angle=plane_wave_azimuthal_angle, polarization=plane_wave_polarization,
                           amplitude=plane_wave_amplitude, reference_point=[0, 0, 0])
 
-# complex contour
-neff_contour = coord.ComplexContour(neff_waypoints, neff_discr)
-
 # simulation
-simulation = sim.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                            wr_neff_contour=neff_contour)
+simulation = sim.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld)
 
 simulation.run()
 

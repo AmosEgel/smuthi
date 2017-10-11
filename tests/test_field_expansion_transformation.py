@@ -46,9 +46,7 @@ def test_swe2pwe():
     ex2, ey2, ez2 = pwe_up.electric_field(x, y, z)
     err2 = abs(ex - ex2) ** 2 + abs(ey - ey2) ** 2 + abs(ez - ez2) ** 2
     norme2 = abs(ex) ** 2 + abs(ey) ** 2 + abs(ez) ** 2
-    # print(ex, ey, ez)
-    # print(ex2, ey2, ez2)
-    # print(np.sqrt(err2 / norme2))
+    print('relative error:', np.sqrt(err2 / norme2))
     assert np.sqrt(err2 / norme2) < 5e-3
 
 
@@ -58,9 +56,7 @@ def test_pwe2swe():
     ex5, ey5, ez5 = swe_reg.electric_field(x, y, z)
     err2 = abs(ex4 - ex5)**2 + abs(ey4 - ey5)**2 + abs(ez4 - ez5)**2
     norme2 = abs(ex4)**2 + abs(ey4)**2 + abs(ez4)**2
-    # print(ex4,  ey4, ez4)
-    # print(ex5,  ey5, ez5)
-    # print(np.sqrt(err2/norme2))
+    print('relative error:', np.sqrt(err2/norme2))
     assert np.sqrt(err2 / norme2) < 5e-3
 
 

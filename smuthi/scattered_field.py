@@ -4,7 +4,7 @@ import smuthi.coordinates as coord
 import smuthi.field_expansion as fldex
 
 
-def total_far_field(initial_field, particle_list, layer_system, polar_angles=None, azimuthal_angles=None):
+def total_far_field(initial_field, particle_list, layer_system, polar_angles='default', azimuthal_angles='default'):
     """
     Evaluate the total far field, the initial far field and the scattered far field. Cannot be used if initial field
     is a plane wave.
@@ -13,8 +13,10 @@ def total_far_field(initial_field, particle_list, layer_system, polar_angles=Non
         initial_field (smuthi.initial_field.InitialField): represents the initial field
         particle_list (list):                       list of smuthi.Particle objects
         layer_system (smuthi.layers.LayerSystem):   represents the stratified medium
-        polar_angles (numpy.ndarray):               polar angles values (radian)
-        azimuthal_angles (numpy.ndarray):           azimuthal angle values (radian)
+        polar_angles (numpy.ndarray or str):        polar angles values (radian). 
+                                                    if 'default', use smuthi.coordinates.default_polar_angles
+        azimuthal_angles (numpy.ndarray or str):    azimuthal angle values (radian)
+                                                    if 'default', use smuthi.coordinates.default_azimuthal_angles
 
     Returns:
         A tuple of three FarField objects for total, initial and scattered far field. Mind that the scattered far field
@@ -25,17 +27,16 @@ def total_far_field(initial_field, particle_list, layer_system, polar_angles=Non
         raise ValueError('only for Gaussian beams and dipole sources')
     omega = initial_field.angular_frequency()
     vacuum_wavelength = initial_field.vacuum_wavelength
-    if polar_angles is None:
-        polar_angles = (np.concatenate([np.arange(0, 90, 1, dtype=float), np.arange(91, 181, 1, dtype=float)])
-                        * np.pi / 180)
-    if azimuthal_angles is None:
-        azimuthal_angles = np.arange(0, 361, 1, dtype=float) * np.pi / 180
+    if type(polar_angles) == str and polar_angles == 'default':
+        polar_angles = coord.default_polar_angles
+    if type(azimuthal_angles) == str and azimuthal_angles == 'default':
+        azimuthal_angles = coord.default_azimuthal_angles
 
     if any(polar_angles.imag):
         raise ValueError("complex angles not allowed in far field")
 
     i_top = layer_system.number_of_layers() - 1
-    top_polar_angles = polar_angles[polar_angles <= (np.pi / 2)]
+    top_polar_angles = polar_angles[polar_angles < (np.pi / 2)]
     bottom_polar_angles = polar_angles[polar_angles > (np.pi / 2)]
     neff_top = np.sort(np.sin(top_polar_angles) * layer_system.refractive_indices[i_top])
     neff_bottom = np.sort(np.sin(bottom_polar_angles) * layer_system.refractive_indices[0])
@@ -94,7 +95,8 @@ def total_far_field(initial_field, particle_list, layer_system, polar_angles=Non
     return far_field, far_field_init, far_field_scat
 
 
-def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_angles=None, azimuthal_angles=None):
+def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_angles='default', 
+                        azimuthal_angles='default'):
     """
     Evaluate the scattered far field.
 
@@ -102,24 +104,25 @@ def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_an
         vacuum_wavelength (float):                  in length units
         particle_list (list):                       list of smuthi.Particle objects
         layer_system (smuthi.layers.LayerSystem):   represents the stratified medium
-        polar_angles (numpy.ndarray):               polar angles values (radian)
-        azimuthal_angles (numpy.ndarray):           azimuthal angle values (radian)
+        polar_angles (numpy.ndarray or str):        polar angles values (radian). 
+                                                    if 'default', use smuthi.coordinates.default_polar_angles
+        azimuthal_angles (numpy.ndarray or str):    azimuthal angle values (radian)
+                                                    if 'default', use smuthi.coordinates.default_azimuthal_angles
 
     Returns:
         A FarField object of the scattered field.
     """
     omega = coord.angular_frequency(vacuum_wavelength)
-    if polar_angles is None:
-        polar_angles = (np.concatenate([np.arange(0, 90, 1, dtype=float), np.arange(91, 181, 1, dtype=float)])
-                        * np.pi / 180)
-    if azimuthal_angles is None:
-        azimuthal_angles = np.arange(0, 361, 1, dtype=float) * np.pi / 180
+    if type(polar_angles) == str and polar_angles == 'default':
+        polar_angles = coord.default_polar_angles
+    if type(azimuthal_angles) == str and azimuthal_angles == 'default':
+        azimuthal_angles = coord.default_azimuthal_angles
 
     if any(polar_angles.imag):
         raise ValueError("complex angles not allowed in far field")
 
     i_top = layer_system.number_of_layers() - 1
-    top_polar_angles = polar_angles[polar_angles <= (np.pi / 2)]
+    top_polar_angles = polar_angles[polar_angles < (np.pi / 2)]
     bottom_polar_angles = polar_angles[polar_angles > (np.pi / 2)]
     neff_top = np.sort(np.sin(top_polar_angles) * layer_system.refractive_indices[i_top])
     neff_bottom = np.sort(np.sin(bottom_polar_angles) * layer_system.refractive_indices[0])
@@ -152,16 +155,18 @@ def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_an
     return far_field
 
 
-def scattering_cross_section(initial_field, particle_list, layer_system, polar_angles=None, azimuthal_angles=None):
+def scattering_cross_section(initial_field, particle_list, layer_system, polar_angles='default', 
+                             azimuthal_angles='default'):
     """Evaluate and display the differential scattering cross section as a function of solid angle.
 
     Args:
         initial_field (smuthi.initial.PlaneWave): Initial Plane wave
         particle_list (list):                     scattering particles
         layer_system (smuthi.layers.LayerSystem): stratified medium
-        polar_angles (numpy.ndarray):             polar angles (radian), default: from 0 to pi in steps of 1 degree
-        azimuthal_angles (numpy.ndarray):         azimuthal angles (radian), default: from 0 to 2*pi in steps of 
-                                                  1 degree
+        polar_angles (numpy.ndarray or str):        polar angles values (radian). 
+                                                    if 'default', use smuthi.coordinates.default_polar_angles
+        azimuthal_angles (numpy.ndarray or str):    azimuthal angle values (radian)
+                                                    if 'default', use smuthi.coordinates.default_azimuthal_angles
 
     Returns:
         A tuple of FarField objects, one for forward scattering (i.e., into the top hemisphere) and one for backward
@@ -169,12 +174,6 @@ def scattering_cross_section(initial_field, particle_list, layer_system, polar_a
     """
     if not type(initial_field).__name__ == 'PlaneWave':
         raise ValueError('Cross section only defined for plane wave excitation.')
-
-    if polar_angles is None:
-        polar_angles = (np.concatenate([np.arange(0, 90, 1, dtype=float), np.arange(91, 181, 1, dtype=float)])
-                        * np.pi / 180)
-    if azimuthal_angles is None:
-        azimuthal_angles = np.arange(0, 361, 1, dtype=float) * np.pi / 180
 
     i_top = layer_system.number_of_layers() - 1
     vacuum_wavelength = initial_field.vacuum_wavelength
@@ -283,15 +282,19 @@ def extinction_cross_section(initial_field, particle_list, layer_system):
     return extinction_cs
 
 
-def scattered_field_piecewise_expansion(k_parallel, azimuthal_angles, vacuum_wavelength, particle_list, layer_system):
+def scattered_field_piecewise_expansion(vacuum_wavelength, particle_list, layer_system, k_parallel='default', 
+                                        azimuthal_angles='default'):
     """Compute a piecewise field expansion of the scattered field.
 
     Args:
-        k_parallel (numpy.ndarray):                 in-plane wavenumbers array
-        azimuthal_angles (numpy.ndarray):           azimuthal angles array
         vacuum_wavelength (float):                  vacuum wavelength
         particle_list (list):                       list of smuthi.particles.Particle objects
         layer_system (smuthi.layers.LayerSystem):   stratified medium
+        k_parallel (numpy.ndarray or str):          in-plane wavenumbers array. 
+                                                    if 'default', use smuthi.coordinates.default_k_parallel
+        azimuthal_angles (numpy.ndarray or str):    azimuthal angles array
+                                                    if 'default', use smuthi.coordinates.default_azimuthal_angles
+        
 
     Returns:
         scattered field as smuthi.field_expansion.PiecewiseFieldExpansion object
@@ -328,8 +331,8 @@ def scattered_field_piecewise_expansion(k_parallel, azimuthal_angles, vacuum_wav
     return sfld
 
 
-def scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, layer_number, k_parallel=None,
-                        azimuthal_angles=None, include_direct=True, include_layer_response=True):
+def scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, layer_number, k_parallel='default',
+                        azimuthal_angles='default', include_direct=True, include_layer_response=True):
     """Calculate the plane wave expansion of the scattered field of a set of particles.
 
     Args:
@@ -337,8 +340,10 @@ def scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, layer_nu
         particle_list (list):               List of Particle objects
         layer_system (smuthi.layers.LayerSystem):  Stratified medium
         layer_number (int):                 Layer number in which the plane wave expansion should be valid
-        k_parallel (numpy.ndarray):         In-plane wavenumbers for the plane wave expansion (inverse length unit)
-        azimuthal_angles (numpy.ndarray):   Azimuthal angles of the wave vector for the plane wave expansion (radian)
+        k_parallel (numpy.ndarray or str):          in-plane wavenumbers array. 
+                                                    if 'default', use smuthi.coordinates.default_k_parallel
+        azimuthal_angles (numpy.ndarray or str):    azimuthal angles array
+                                                    if 'default', use smuthi.coordinates.default_azimuthal_angles
         include_direct (bool):              If True, include the direct scattered field
         include_layer_response (bool):      If True, include the layer system response
 

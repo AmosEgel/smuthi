@@ -110,11 +110,15 @@ class InitialPropagatingWave(InitialField):
     
 class GaussianBeam(InitialPropagatingWave):
     """Class for the representation of a Gaussian beam as initial field."""
-    def __init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, beam_waist, k_parallel_array,
-                 azimuthal_angles_array, amplitude=1, reference_point=None):
+    def __init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, beam_waist, 
+                 k_parallel_array='default', azimuthal_angles_array='default', amplitude=1, reference_point=None):
         InitialPropagatingWave.__init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, amplitude,
                                         reference_point)
         self.beam_waist = beam_waist
+        if type(k_parallel_array) == str and k_parallel_array == 'default':
+            k_parallel_array = coord.default_k_parallel
+        if type(azimuthal_angles_array) == str and azimuthal_angles_array == 'default':
+            azimuthal_angles_array = coord.default_azimuthal_angles
         self.k_parallel_array = k_parallel_array
         self.azimuthal_angles_array = azimuthal_angles_array
         
@@ -287,14 +291,16 @@ class DipoleSource(InitialField):
         vacuum_wavelength (float):      vacuum wavelength (length units)
         dipole_moment (list or tuple):  (x, y, z)-coordinates of dipole moment vector
         position (list or tuple):       (x, y, z)-coordinates of dipole position
-        contour (smuthi.coordinates.ComplexContour):    Contour object for Sommerfeld integrals
-        azimuthal_angles (numpy.ndarray):               Azimuthal angles for plane wave expansions
+        k_parallel (numpy.ndarray or str):          In-plane wavenumber. 
+                                                    If 'default', use smuthi.coordinates.default_k_parallel
+        azimuthal_angles (numpy.ndarray or str):    Azimuthal angles for plane wave expansions
+                                                    If 'default', use smuthi.coordinates.default_azimuthal_angles
     """
-    def __init__(self, vacuum_wavelength, dipole_moment, position, contour, azimuthal_angles):
+    def __init__(self, vacuum_wavelength, dipole_moment, position, k_parallel='default', azimuthal_angles='default'):
         InitialField.__init__(self, vacuum_wavelength)
         self.dipole_moment = dipole_moment
         self.position = position
-        self.contour = contour
+        self.k_parallel = k_parallel
         self.azimuthal_angles = azimuthal_angles
 
     def current(self):
@@ -352,7 +358,7 @@ class DipoleSource(InitialField):
                                       emitting_particle=virtual_particle, layer_system=layer_system)
         wr = pc.layer_mediated_coupling_block(vacuum_wavelength=self.vacuum_wavelength, receiving_particle=particle,
                                               emitting_particle=virtual_particle, layer_system=layer_system,
-                                              neff_contour=self.contour)
+                                              k_parallel=self.k_parallel)
         k = self.angular_frequency() * layer_system.refractive_indices[layer_system.layer_number(particle.position[2])]
         swe = fldex.SphericalWaveExpansion(k=k, l_max=particle.l_max, m_max=particle.m_max, kind='regular',
                                            reference_point=particle.position)
@@ -377,7 +383,7 @@ class DipoleSource(InitialField):
         for i in range(layer_system.number_of_layers()):
             # layer response as plane wave expansions
             pwe_up, pwe_down = fldex.swe_to_pwe_conversion(swe=self.outgoing_spherical_wave_expansion(layer_system),
-                                                           k_parallel=self.angular_frequency() * self.contour.neff(),
+                                                           k_parallel=self.k_parallel,
                                                            azimuthal_angles=self.azimuthal_angles,
                                                            layer_system=layer_system, layer_number=i,
                                                            layer_system_mediated=True)
@@ -460,10 +466,8 @@ class DipoleSource(InitialField):
         Returns:
             dissipated power as float
         """
-        k_parallel = self.contour.neff() * self.angular_frequency()
-        azimuthal_angles = self.azimuthal_angles
-        scat_fld_exp = sf.scattered_field_piecewise_expansion(k_parallel, azimuthal_angles, self.vacuum_wavelength,
-                                                              particle_list, layer_system)
+        scat_fld_exp = sf.scattered_field_piecewise_expansion(self.vacuum_wavelength, particle_list, layer_system, 
+                                                              self.k_parallel, self.azimuthal_angles)
         e_x_scat, e_y_scat, e_z_scat = scat_fld_exp.electric_field(self.position[0], self.position[1], self.position[2])
         e_x_in, e_y_in, e_z_in = self.electric_field(x=self.position[0], y=self.position[1], z=self.position[2],
                                                      layer_system=layer_system, include_direct_field=False)
@@ -488,7 +492,7 @@ class DipoleSource(InitialField):
             component
         """
         if k_parallel_array is None:
-            k_parallel_array = self.contour.neff() * self.angular_frequency()
+            k_parallel_array = self.k_parallel * self.angular_frequency()
         if azimuthal_angles_array is None:
             azimuthal_angles_array = self.azimuthal_angles
 
@@ -570,10 +574,8 @@ class DipoleCollection(InitialField):
         """
         power_list = []
         for dipole in self.dipole_list:
-            k_parallel = dipole.contour.neff() * dipole.angular_frequency()
-            azimuthal_angles = dipole.azimuthal_angles
-            scat_fld_exp = sf.scattered_field_piecewise_expansion(k_parallel, azimuthal_angles,
-                                                                  dipole.vacuum_wavelength, particle_list, layer_system)
+            scat_fld_exp = sf.scattered_field_piecewise_expansion(dipole.vacuum_wavelength, particle_list, layer_system, 
+                                                                  dipole.k_parallel, dipole.azimuthal_angles)
             e_x_scat, e_y_scat, e_z_scat = scat_fld_exp.electric_field(dipole.position[0], dipole.position[1],
                                                                        dipole.position[2])
             e_x_in, e_y_in, e_z_in = dipole.electric_field(x=dipole.position[0], y=dipole.position[1],
