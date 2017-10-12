@@ -12,6 +12,10 @@ Author: Amos Egel. Mail to amos.egel@kit.edu for support or to report a problem.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
 
+What's new in version 0.6
+--------------------------
+Dipole sources are supported as initial field.
+
 What's new in version 0.5
 --------------------------
 Gaussian beams (more precisely: beams with transverse Gaussian footprint) are supported as initial field.
@@ -43,4 +47,4 @@ Planned updates for future versions
 Things to be implemented next:
 
  - faster evaluation of particle coupling
- - dipole excitation
+ - faster (and less memory intense) evaluation of near field

@@ -9,12 +9,16 @@ In the following, the parameters which can be specified in the input file are li
 
 Length unit
 ------------
-Declare here the unit in which you want to specify all lengths. 
-It has no influence on the calculations and can be chosen arbitrarily. 
-This field is mainly there to remind the user that all lengths have to be specified in consistent units. 
-In addition, it is used for the axis annotation of output plots::
+Declare here the units in which you want to specify lengths and angles. The length unit has no influence on the
+calculations and can be chosen arbitrarily. This field is mainly there to remind the user that all lengths have to be
+specified in consistent units. In addition, it is used for the axis annotation of output plots.
+The angle units can be 'degree', otherwise radians are assumed.
+
 
    length unit: nm
+
+   angle unit: degree
+
 
 Vacuum wavelength
 ------------------
@@ -127,8 +131,8 @@ The format of the particle specifications file is described below, see `The part
 Initial field
 ---------------
 
-Currently, plane waves and Gaussian beams (more precisely: beams with Gaussian transverse cross-section) are implemented
-as the initial excitation.
+Currently, plane waves and beams with Gaussian transverse cross-section are implemented, as well as single or multiple
+electric point dipole sources.
 
 For plane waves, specify the initial field in the following format::
 
@@ -172,11 +176,9 @@ For Gaussian beams, specify the input in this format::
     amplitude: 1
     focus point: [0, 0, 0]
     beam waist: 1000
-    angular resolution: 1
 
 The Gaussian beam amplitude corresponds to the electric field value at the focus point. The beam waist parameter
-describes the transverse width of the beam near the focus point. The angular resolution parameter is in angle units
-and determines how fine the plane wave expansion of the Gaussian beam is sampled (lower value means more accurate).
+describes the transverse width of the beam near the focus point.
 
 More precisely, the beam is designed to fulfill
 
@@ -185,22 +187,60 @@ More precisely, the beam is designed to fulfill
 for :math:`z=z_G`, where :math:`(x_G,y_G,z_G)` are the coordinates of the focus point, and :math:`w` is the beam waist
 parameter and :math:`\mathbf{A}_G` is the amplitude vector given by the amplitude parameter and the polarization.
 
+
+For a single electric point dipole source, use an input of the format::
+
+   initial field:
+     type: dipole source
+     position: [100, 10, 350]
+     dipole moment: [3e7, 3e7, 0]
+
+The dipole moment vector :math:`\mathbf{\mu}` specifies the amplitude and the orientation of the dipole oscillation.
+It corresponds to a current density of
+
+.. math:: \mathbf{j}(\mathbf{r}) = -j \omega \mathbf{\mu} \delta(\mathbf{r} - \mathbf{r}_D),
+
+where :math:`\mathbf{r}_D` is the dipole position.
+
+For multiple point dipole sources, specify the parameters in this format::
+
+   initial field:
+     type: dipole collection
+     dipoles:
+     - position: [150, -100, 90]
+       dipole moment: [1.5e7, 1.5e7, 0]
+     - position: [-100, 100, 290]
+       dipole moment: [0, 1.5e7, 1.5e7]
+
+
 Numerical parameters
 ----------------------
 
-Specify the contour of the sommerfeld integral in the complex :code:`neff` plane where :code:`neff = k_parallel / omega` refers to the effective refractive index of the partial wave. The contour is parameterized by its waypoints::
+The radial wavevector component of a plane wave expansion is defined by a sequence :code:`n_effective` in the complex
+plane, where :code:`n_effective = k_parallel / omega` refers to the effective refractive index of the partial wave::
+
+   n_effective resolution: 1e-3
+
+   max n_effective: 3
+
+   n_effective imaginary deflection: 5e-2
+
+'n_effective resolution' determines the sampling of the expansion/contour, where n_effective = k_parallel / omega
+refers to the effective refractive index of the partial wave (default=1e-2). A smaller value leads to more precise
+results and to a longer computation time.
+'max n_effective' specifies where the expansion is truncated. It should be chosen somewhere above the maximal
+refractive index of the layers (default=max(refractive indices)+1).
+'n_effective imaginary deflection' determines how much the contour is deflected into the lower complex half plane to
+avoid the vicinity of waveguide or branch point singularities (default=5e-2).
+
+In addition, specify the resolution (in angle units) of the azimuthal angle coordinate of plane wave expansions, as well
+as polar and azimuthal angle coordinates of far field evaluations::
+
+   angular resolution: 1
+
+
 
    neff waypoints: [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
-
-as well as its discretization scale::
-
-   neff discretization: 1e-3
-
-The :code:`neff waypoints` define a piecewise linear trajectory in the complex plane. This trajectory should start at
-:code:`0` and end at a suitable real truncation parameter (somewhere above the highest layer refractive index).
-A simple contour would be for example :code:`neff waypoints: [0, 4]`. However
-The trajectory can be deflected into the lower complex half plaen such that it does not come close to waveguide mode
-resonances of the layer system.
 
 
 Post procesing

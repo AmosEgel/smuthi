@@ -91,7 +91,8 @@ scattering particles:
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Specify the initial field in the following section by modifying the examplary initial field specs.
-# Currently, plane waves and beams with Gaussian transverse cross-section are implemented. 
+# Currently, plane waves and beams with Gaussian transverse cross-section are implemented, as well as single or multiple
+# electric point dipole sources.
 # ----------------------------------------------------------------------------------------------------------------------
 
 # comment if not using plane wave >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
