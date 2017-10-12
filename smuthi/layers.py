@@ -3,7 +3,6 @@
 
 import numpy as np
 import mpmath
-from functools import lru_cache
 import smuthi.memoizing as memo
 import smuthi.field_expansion as fldex
 import smuthi.coordinates as coord
