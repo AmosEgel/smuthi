@@ -52,8 +52,9 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
     ziss2 = rs2[2] - layer_system.reference_z(is2)
 
     # wave numbers
+    kis1 = omega * layer_system.refractive_indices[is1]
     kis2 = omega * layer_system.refractive_indices[is2]
-    kzis1 = coord.k_z(k_parallel=k_parallel, omega=omega, refractive_index=layer_system.refractive_indices[is1])
+    kzis1 = coord.k_z(k_parallel=k_parallel, k=kis1)
     kzis2 = coord.k_z(k_parallel=k_parallel, k=kis2)
 
     # phase factors
@@ -75,26 +76,41 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
     # list index: particle, np indices: pol, plus/minus, n, kpar_idx
 
     m_vec = [np.zeros(blocksize1, dtype=int), np.zeros(blocksize2, dtype=int)]
-    plmn_tup = (1, -1)
-
+    
+    # precompute spherical functions
+    ct = kzis1 / kis1
+    st = k_parallel / kis1
+    _, pilm_list_pl, taulm_list_pl = sf.legendre_normalized(ct, st, lmax1)
+    _, pilm_list_mn, taulm_list_mn = sf.legendre_normalized(-ct, st, lmax1)
+    pilm = (pilm_list_pl, pilm_list_mn)
+    taulm = (taulm_list_pl, taulm_list_mn)
+    
     for tau in range(2):
         for m in range(-mmax1, mmax1 + 1):
             for l in range(max(1, abs(m)), lmax1 + 1):
                 n = fldex.multi_to_single_index(tau, l, m, lmax1, mmax1)
                 m_vec[0][n] = m
-                for iplmn, plmn in enumerate(plmn_tup):
+                for iplmn in range(2):
                     for pol in range(2):
-                        B[0][pol, iplmn, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, k_parallel, 
-                                                                                     plmn*kzis1, dagger=True)
-
+                        B[0][pol, iplmn, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm[iplmn],
+                                                                                     taulm_list=taulm[iplmn], dagger=True)
+    
+    ct = kzis2 / kis2
+    st = k_parallel / kis2
+    _, pilm_list_pl, taulm_list_pl = sf.legendre_normalized(ct, st, lmax2)
+    _, pilm_list_mn, taulm_list_mn = sf.legendre_normalized(-ct, st, lmax2)
+    pilm = (pilm_list_pl, pilm_list_mn)
+    taulm = (taulm_list_pl, taulm_list_mn)
+                        
+    for tau in range(2):
         for m in range(-mmax2, mmax2 + 1):
             for l in range(max(1, abs(m)), lmax2 + 1):
                 n = fldex.multi_to_single_index(tau, l, m, lmax2, mmax2)
                 m_vec[1][n] = m
-                for iplmn, plmn in enumerate(plmn_tup):
+                for iplmn in range(2):
                     for pol in range(2):
-                        B[1][pol, iplmn, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, k_parallel, 
-                                                                                     plmn*kzis2, dagger=False)
+                        B[1][pol, iplmn, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm[iplmn],
+                                                                                     taulm_list=taulm[iplmn], dagger=False)
 
     BeL = np.zeros((2, 2, blocksize1, len(k_parallel)), dtype=complex)  # indices are: pol, plmn2, n1, kpar_idx
     for iplmn1 in range(2):

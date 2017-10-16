@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 import scipy.special
 import warnings
+import functools
 
 
 def legendre_normalized(ct, st, lmax):
@@ -133,6 +133,7 @@ def dx_xh(n, x):
     return res
 
 
+@functools.lru_cache(maxsize=64)
 def factorial(n):
     """Return factorial.
 
@@ -149,6 +150,7 @@ def factorial(n):
         return n * factorial(n-1)
 
 
+@functools.lru_cache(maxsize=64)
 def double_factorial(n):
     """Return double factorial.
 
