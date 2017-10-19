@@ -21,7 +21,8 @@ class Simulation:
         post_processing (smuthi.post_processing.PostProcessing): object managing post processing tasks
         k_parallel (numpy.ndarray or str):      in-plane wavenumber for Sommerfeld integrals. if 'default', keep what is
                                                 in smuthi.coordinates.default_k_parallel
-        solver_type (str):                      What solver type to use? currently only 'LU' possible, for LU factorization
+        solver_type (str):                      What solver type to use? 
+                                                Options: 'LU' for LU factorization, 'gmres' for GMRES iterative solver
         coupling_matrix_lookup_resolution (float or None): If type float, compute particle coupling by interpolation of
                                                            a lookup table with that spacial resolution. If None
                                                            (default), don't use a lookup table but compute the coupling
@@ -89,11 +90,8 @@ class Simulation:
 
         # post processing
         if self.post_processing:
-            sys.stdout.write("Post processing ... ")
-            sys.stdout.flush()
             self.post_processing.run(self)
-            sys.stdout.write("done. \n")
-
+            
         if self.save_after_run:
             self.save(self.output_dir + '/simulation.p')
 

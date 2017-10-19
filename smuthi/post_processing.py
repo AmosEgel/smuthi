@@ -16,6 +16,9 @@ class PostProcessing:
         Args:
             simulation (smuthi.simulation.Simulation):  simulation object containing input and solution of the problem
         """
+        sys.stdout.write("Post processing ... ")
+        sys.stdout.flush()
+            
         particle_list = simulation.particle_list
         layer_system = simulation.layer_system
         initial_field = simulation.initial_field
@@ -261,4 +264,5 @@ def evaluate_cross_section(polar_angles='default', azimuthal_angles='default', i
     go.show_far_field(far_field=scattering_cross_section, save_plots=save_plots, show_plots=show_plots, tag='dsc', 
                       outputdir=outputdir, flip_downward=True, split=True)
         
-    return scattering_cross_section, extinction_cross_section
+    return scattering_cross_section, extinction_cross_section    
+    

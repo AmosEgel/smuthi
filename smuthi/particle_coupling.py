@@ -10,37 +10,9 @@ import smuthi.field_expansion as fldex
 import smuthi.vector_wave_functions as vwf
 import matplotlib.pyplot as plt
 
-
 radial_distance_array = None
 radial_distance_table = None
 radial_particle_coupling_lookup = None
-
-
-class CouplingMatrix:
-    def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', store_matrix=True,
-                 lookup_resolution=None):
-        self.store_matrix = store_matrix
-        self.lookup_resolution = lookup_resolution
-        self.prepare(vacuum_wavelength, particle_list, layer_system, k_parallel)
-
-    def prepare(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default'):
-        if self.store_matrix:
-            if self.lookup_resolution is None:
-                blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in particle_list]
-                self.matrix = np.zeros((sum(blocksizes), sum(blocksizes)), dtype=complex)
-                for s1, particle1 in enumerate(particle_list):
-                    idx1 = np.array(range(sum(blocksizes[:s1]), sum(blocksizes[:s1+1])))
-                    for s2, particle2 in enumerate(particle_list):
-                        idx2 = range(sum(blocksizes[:s2]), sum(blocksizes[:s2]) + blocksizes[s2])
-                        self.matrix[idx1[:, None], idx2] = (layer_mediated_coupling_block(vacuum_wavelength, particle1,
-                                                                                          particle2, layer_system,
-                                                                                          k_parallel)
-                                                            + direct_coupling_block(vacuum_wavelength, particle1,
-                                                                                    particle2, layer_system))
-
-    def multiply(self, vector):
-        if self.store_matrix:
-            return self.matrix.dot(vector)
 
 
 def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emitting_particle, layer_system,

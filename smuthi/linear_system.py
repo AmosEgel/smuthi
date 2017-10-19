@@ -5,15 +5,16 @@ import smuthi.coordinates as coord
 import numpy as np
 import sys
 import scipy.linalg
+import scipy.sparse.linalg
 
 
 class LinearSystem:
-    def __init__(self, particle_list, initial_field, layer_system, k_parallel='default', solver_type='LU', store_coupling_matrix=True,
-                 coupling_matrix_lookup_resolution=None):
+    def __init__(self, particle_list, initial_field, layer_system, k_parallel='default', solver_type='LU', 
+                 store_coupling_matrix=True, coupling_matrix_lookup_resolution=None):
+        
         self.k_parallel = k_parallel
         self.solver_type = solver_type
-        self.LU_piv = None
-
+        
         self.particle_list = particle_list
         self.initial_field = initial_field
         self.layer_system = layer_system
@@ -33,10 +34,16 @@ class LinearSystem:
 
         sys.stdout.write("Prepare particle coupling ... ")
         sys.stdout.flush()
-        self.coupling_matrix = coup.CouplingMatrix(vacuum_wavelength=initial_field.vacuum_wavelength,
-                                                   particle_list=particle_list, layer_system=layer_system,
-                                                   k_parallel=self.k_parallel, store_matrix=store_coupling_matrix,
-                                                   lookup_resolution=coupling_matrix_lookup_resolution)
+        self.coupling_matrix = CouplingMatrix(vacuum_wavelength=initial_field.vacuum_wavelength, 
+                                              particle_list=particle_list, layer_system=layer_system, 
+                                              k_parallel=self.k_parallel, store_matrix=store_coupling_matrix, 
+                                              lookup_resolution=coupling_matrix_lookup_resolution)
+        sys.stdout.write("done. \n")
+        
+        sys.stdout.write("Prepare master matrix ... ")
+        sys.stdout.flush()
+        self.system_t_matrix = SystemTMatrix(particle_list=particle_list)
+        self.master_matrix = MasterMatrix(system_t_matrix=self.system_t_matrix, coupling_matrix=self.coupling_matrix)
         sys.stdout.write("done. \n")
 
     def number_of_unknowns(self):
@@ -63,16 +70,14 @@ class LinearSystem:
         sys.stdout.write("Solve linear system ... ")
         sys.stdout.flush()
         if len(self.particle_list) > 0:
-            if self.solver_type == 'LU' and self.coupling_matrix.store_matrix:
-                if self.LU_piv is None:
-                    tw = np.copy(self.coupling_matrix.matrix)
-                    for iS, particle in enumerate(self.particle_list):
-                        idx_block = self.index_block(iS)
-                        tw[idx_block, :] = particle.t_matrix.dot(tw[idx_block, :])
-                    mm = np.eye(self.number_of_unknowns(), dtype=complex) - tw
-                    lu, piv = scipy.linalg.lu_factor(mm, overwrite_a=False)
-                    self.LU_piv = (lu, piv)
-                b = scipy.linalg.lu_solve(self.LU_piv, self.right_hand_side())
+            if self.solver_type == 'LU' and hasattr(self.master_matrix.linear_operator, 'A'):
+                if not hasattr(self.master_matrix, 'LU_piv'):
+                    lu, piv = scipy.linalg.lu_factor(self.master_matrix.linear_operator.A, overwrite_a=False)
+                    self.master_matrix.LU_piv = (lu, piv)
+                b = scipy.linalg.lu_solve(self.master_matrix.LU_piv, self.right_hand_side())
+            elif self.solver_type == 'gmres':
+                b, info = scipy.sparse.linalg.gmres(self.master_matrix.linear_operator, self.right_hand_side(),
+                                                    self.right_hand_side())
             else:
                 raise ValueError('This solver type is currently not implemented.')
 
@@ -98,3 +103,53 @@ class LinearSystem:
         for iS, particle in enumerate(self.particle_list):
             tai[self.index_block(iS)] = particle.t_matrix.dot(particle.initial_field.coefficients)
         return tai
+
+
+class CouplingMatrix:
+    def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', store_matrix=True,
+                 lookup_resolution=None):
+        if store_matrix:
+            if lookup_resolution is None:
+                blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in particle_list]
+                coup_mat = np.zeros((sum(blocksizes), sum(blocksizes)), dtype=complex)
+                for s1, particle1 in enumerate(particle_list):
+                    idx1 = np.array(range(sum(blocksizes[:s1]), sum(blocksizes[:s1+1])))[:, None]
+                    for s2, particle2 in enumerate(particle_list):
+                        idx2 = range(sum(blocksizes[:s2]), sum(blocksizes[:s2]) + blocksizes[s2])
+                        coup_mat[idx1, idx2] = (coup.layer_mediated_coupling_block(vacuum_wavelength, particle1,
+                                                                                   particle2, layer_system, k_parallel)
+                                                + coup.direct_coupling_block(vacuum_wavelength, particle1, particle2,
+                                                                             layer_system))
+            else:
+                raise NotImplementedError('lookups not yet implemtned')
+            self.linear_operator = scipy.sparse.linalg.aslinearoperator(coup_mat)
+        else:
+            raise NotImplementedError('on-the-fly not yet implemtned')
+
+
+class SystemTMatrix:
+    def __init__(self, particle_list):
+        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in particle_list]
+        def apply_t_matrix(vector):
+            tv = np.zeros(vector.shape, dtype=complex)
+            for i_s, particle in enumerate(particle_list):
+                idx_block = range(sum(blocksizes[:i_s]), sum(blocksizes[:(i_s + 1)]))
+                tv[idx_block] = particle.t_matrix.dot(vector[idx_block])
+            return tv
+        self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=(sum(blocksizes), sum(blocksizes)), 
+                                                                  matvec=apply_t_matrix, matmat=apply_t_matrix
+                                                                  , dtype=complex)
+
+        
+class MasterMatrix:
+    def __init__(self, system_t_matrix, coupling_matrix):
+        if type(coupling_matrix.linear_operator).__name__ == 'MatrixLinearOperator':
+            M = (np.eye(system_t_matrix.linear_operator.shape[0], dtype=complex) 
+                 - system_t_matrix.linear_operator.matmat(coupling_matrix.linear_operator.A))
+            self.linear_operator = scipy.sparse.linalg.aslinearoperator(M)
+        else:
+            def apply_master_matrix(vector):
+                return vector - system_t_matrix.linear_operator.dot(coupling_matrix.linear_operator.matvec(vector))                
+            self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=system_t_matrix.shape, 
+                                                                      matvec=apply_master_matrix, dtype=complex)
+        
