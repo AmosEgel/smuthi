@@ -49,8 +49,9 @@ ff = sf.scattered_far_field(vacuum_wavelength=vacuum_wavelength, particle_list=s
 
 
 def test_equivalent_layer_systems():
-    relerr = (np.linalg.norm(simulation1.coupling_matrix - simulation2.coupling_matrix)
-              / np.linalg.norm(simulation1.coupling_matrix))
+    relerr = (np.linalg.norm(simulation1.linear_system.coupling_matrix.matrix
+                             - simulation2.linear_system.coupling_matrix.matrix)
+              / np.linalg.norm(simulation1.linear_system.coupling_matrix.matrix))
     print(relerr)
     assert relerr < 1e-3
 

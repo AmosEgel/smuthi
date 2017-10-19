@@ -16,7 +16,34 @@ radial_distance_table = None
 radial_particle_coupling_lookup = None
 
 
-def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emitting_particle, layer_system, 
+class CouplingMatrix:
+    def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', store_matrix=True,
+                 lookup_resolution=None):
+        self.store_matrix = store_matrix
+        self.lookup_resolution = lookup_resolution
+        self.prepare(vacuum_wavelength, particle_list, layer_system, k_parallel)
+
+    def prepare(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default'):
+        if self.store_matrix:
+            if self.lookup_resolution is None:
+                blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in particle_list]
+                self.matrix = np.zeros((sum(blocksizes), sum(blocksizes)), dtype=complex)
+                for s1, particle1 in enumerate(particle_list):
+                    idx1 = np.array(range(sum(blocksizes[:s1]), sum(blocksizes[:s1+1])))
+                    for s2, particle2 in enumerate(particle_list):
+                        idx2 = range(sum(blocksizes[:s2]), sum(blocksizes[:s2]) + blocksizes[s2])
+                        self.matrix[idx1[:, None], idx2] = (layer_mediated_coupling_block(vacuum_wavelength, particle1,
+                                                                                          particle2, layer_system,
+                                                                                          k_parallel)
+                                                            + direct_coupling_block(vacuum_wavelength, particle1,
+                                                                                    particle2, layer_system))
+
+    def multiply(self, vector):
+        if self.store_matrix:
+            return self.matrix.dot(vector)
+
+
+def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emitting_particle, layer_system,
                                   k_parallel='default', show_integrand=False):
     """Layer-system mediated particle coupling matrix :math:`W^R` for two particles. This routine is explicit, but slow.
 
@@ -308,7 +335,7 @@ def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_par
 
     ct = 0
     st = 1
-    bessel_h = [sf.spherical_hankel(n, k * radial_distance_array) for n in range(2* l_max + 1)]
+    bessel_h = [sf.spherical_hankel(n, k_is * radial_distance_array) for n in range(2* l_max + 1)]
     legendre, _, _ = sf.legendre_normalized(ct, st, 2 * l_max)
 
     for m1 in range(-m_max, m_max + 1):
@@ -338,7 +365,7 @@ def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_par
     wr_lookup_integrand = np.ones((n_max, n_max, len(radial_distance_array), len_kp), dtype=complex)
     
     # phase factors
-    ejkz = np.zeros((2, len_k), dtype=complex)  # pl/mn, kp
+    ejkz = np.zeros((2, len_kp), dtype=complex)  # pl/mn, kp
     ejkz[0, :] = np.exp(1j * kz_is * dz)
     ejkz[1, :] = np.exp(- 1j * kz_is * dz)
         
@@ -347,18 +374,17 @@ def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_par
     for pol in range(2):
         L[pol, :, :, :] = lay.layersystem_response_matrix(pol, layer_system.thicknesses, 
                                                           layer_system.refractive_indices, k_parallel,
-                                                          coord.angular_frequency(vacuum_wavelength), is2, is1)
+                                                          coord.angular_frequency(vacuum_wavelength), i_s, i_s)
     
     # transformation coefficients
     B_dag = np.zeros((2, 2, n_max, len_kp), dtype=complex)  # pol, pl/mn, n, kp
     B = np.zeros((2, 2, n_max, len_kp), dtype=complex)  # pol, pl/mn, n, kp
     ct = kz_is / k_is
     st = k_parallel / k_is
-    _, pilm_pl, taulm_pl = sf.legendre_normalized(ct, st, lmax1)
-    _, pilm_mn, taulm_mn = sf.legendre_normalized(-ct, st, lmax1)
-    pilm = (pilm_list_pl, pilm_list_mn)
-    taulm = (taulm_list_pl, taulm_list_mn)
-    
+    _, pilm_pl, taulm_pl = sf.legendre_normalized(ct, st, l_max)
+    _, pilm_mn, taulm_mn = sf.legendre_normalized(-ct, st, l_max)
+
+    m_vec = np.zeros(n_max)
     for tau in range(2):
         for m in range(-m_max, m_max + 1):
             for l in range(max(1, abs(m)), l_max + 1):
@@ -374,12 +400,12 @@ def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_par
                     B[pol, 1, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn, 
                                                                              taulm_list=taulm_mn, dagger=False)
                     
-    bel = np.zeros((2, 2, n_max, len_k), dtype=complex)  # pol, pl/mn2, n1, kp
+    bel = np.zeros((2, 2, n_max, len_kp), dtype=complex)  # pol, pl/mn2, n1, kp
     for pm1 in range(2):
         for pol in range(2):
-            bl[pol, :, :, :] += L[pol, pm1,  :, None, :] * B_dag[pol, pm1, None, :, :] * ejkz[pm1, None, None, :]
+            bel[pol, :, :, :] += L[pol, pm1,  :, None, :] * B_dag[pol, pm1, None, :, :] * ejkz[pm1, None, None, :]
                                   
-    belbe = np.zeros((n_max, n_max, len_k), dtype=complex)  # n1, n2, kp
+    belbe = np.zeros((n_max, n_max, len_kp), dtype=complex)  # n1, n2, kp
     for pm2 in range(2):
         for pol in range(2):
             belbe += bel[pol, pm2, :, None, :] * B[pol, pm2, None, :, :] * ejkz[1 - pm2, None, None, :] 

@@ -6,6 +6,7 @@ import smuthi.coordinates as coord
 import smuthi.particles as part
 import smuthi.initial_field as init
 import smuthi.layers as lay
+import smuthi.linear_system as lsys
 import smuthi.post_processing as pp
 import os
 
@@ -50,7 +51,7 @@ def read_input_yaml(filename):
                                               output_dir=input_data.get('output folder'), 
                                               save_after_run=input_data.get('save simulation'))
 
-        # particle collection
+    # particle collection
     particle_list = []
     particle_input = input_data['scattering particles']
     if isinstance(particle_input, str):
