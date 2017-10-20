@@ -14,8 +14,8 @@ def legendre_normalized(ct, st, lmax):
     cuts are defined by the user already in the definition of st.
 
     Args:
-        ct (array): cosine of theta (or kz/k)
-        st (array): sine of theta (or kp/k), need to have same dimension as ct, and st**2+ct**2=1 is assumed
+        ct (ndarray): cosine of theta (or kz/k)
+        st (ndarray): sine of theta (or kp/k), need to have same dimension as ct, and st**2+ct**2=1 is assumed
         lmax (int): maximal multipole order
 
     Returns:

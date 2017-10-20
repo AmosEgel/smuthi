@@ -3,16 +3,13 @@
 
 import numpy as np
 import scipy.special
+import scipy.interpolate
 import smuthi.coordinates as coord
 import smuthi.layers as lay
 import smuthi.spherical_functions as sf
 import smuthi.field_expansion as fldex
 import smuthi.vector_wave_functions as vwf
 import matplotlib.pyplot as plt
-
-radial_distance_array = None
-radial_distance_table = None
-radial_particle_coupling_lookup = None
 
 
 def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emitting_particle, layer_system,
@@ -274,39 +271,28 @@ def direct_coupling_matrix(vacuum_wavelength, particle_list, layer_system):
 
 def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None):
     
-    global radial_distance_array
-    global radial_distance_table
-    global particle_coupling_lookup_2D
-    
     if resolution is None:
         resolution = vacuum_wavelength / 100
     
     l_max = max([particle.l_max for particle in particle_list])
     m_max = max([particle.m_max for particle in particle_list])
     n_max = fldex.blocksize(l_max, m_max)
-    max_rho = max([np.sqrt(particle.position[0] ** 2 + particle.position[1] ** 2) for particle in particle_list])
-    
-    radial_distance_array = np.arange(0, 2 * (max_rho + resolution), resolution)
-    
-    radial_distance_table = []
-    for i1, particle1 in enumerate(particle_list):
-        radial_distance_table.append([])
-        for i2, particle2 in enumerate(particle_list):
-            radial_distance_table[i1].append(np.sqrt((particle1.position[0] - particle2.position[0])**2 
-                                                     + (particle1.position[1] - particle2.position[1])**2))
+    x_array = np.array([particle.position[0] for particle in particle_list])
+    y_array = np.array([particle.position[1] for particle in particle_list])
+    rho_array = np.sqrt((x_array[:, None] - x_array[None, :]) ** 2 + (y_array[:, None] - y_array[None, :]) ** 2)
+
+    radial_distance_array = np.arange(0, 2 * (rho_array.max() + resolution), resolution)
     
     z = particle_list[0].position[2]
     i_s = layer_system.layer_number(z)
     k_is = layer_system.wavenumber(i_s, vacuum_wavelength)
     dz = z - layer_system.reference_z(i_s) 
         
-    lookup_table = np.zeros((n_max, n_max, len(radial_distance_array)), dtype=complex)
-    
     # direct -----------------------------------------------------------------------------------------------------------
     w = np.zeros((n_max, n_max, len(radial_distance_array)), dtype=complex)
 
-    ct = 0
-    st = 1
+    ct = np.array([0.0])
+    st = np.array([1.0])
     bessel_h = [sf.spherical_hankel(n, k_is * radial_distance_array) for n in range(2* l_max + 1)]
     legendre, _, _ = sf.legendre_normalized(ct, st, 2 * l_max)
 
@@ -328,21 +314,22 @@ def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_par
                                 w[n1, n2, :] = A  # remember that w = A.T
                             else:
                                 w[n1, n2, :] = B
-    
+
+    w[:, :, radial_distance_array < rho_array[~np.eye(rho_array.shape[0],dtype=bool)].min() / 2] = 0  # switch off direct coupling contribution near rho=0
+
     # layer mediated ---------------------------------------------------------------------------------------------------
     if type(k_parallel) == str and k_parallel == 'default':
         k_parallel = coord.default_k_parallel
     kz_is = coord.k_z(k_parallel=k_parallel, k=k_is)
     len_kp = len(k_parallel)
-    wr_lookup_integrand = np.ones((n_max, n_max, len(radial_distance_array), len_kp), dtype=complex)
-    
+
     # phase factors
     ejkz = np.zeros((2, len_kp), dtype=complex)  # pl/mn, kp
     ejkz[0, :] = np.exp(1j * kz_is * dz)
     ejkz[1, :] = np.exp(- 1j * kz_is * dz)
         
     # layer response
-    L = np.zeros((2, 2, 2, 1, 1, len_kp), dtype=complex)  # pol, pl/mn1, pl/mn2, kp
+    L = np.zeros((2, 2, 2, len_kp), dtype=complex)  # pol, pl/mn1, pl/mn2, kp
     for pol in range(2):
         L[pol, :, :, :] = lay.layersystem_response_matrix(pol, layer_system.thicknesses, 
                                                           layer_system.refractive_indices, k_parallel,
@@ -386,11 +373,21 @@ def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_par
     bessel_list = []
     for dm in range(2 * l_max + 1):
         bessel_list.append(scipy.special.jv(dm, k_parallel[None, :] * radial_distance_array[:, None]))
-    bessel_full = np.array([[bessel_list[abs(m_vec[n1] - m_vec[n2])] for n2 in range(n_max)] for n1 in range(n_max)])
     jacobi_vector = k_parallel / (kz_is * k_is)
-    integrand = bessel_full * jacobi_vector[None, None, None, :] * belbe[:, :, None, :]  # n1, n2, rho, kp
-    integral = np.trapz(integrand, x=k_parallel, axis=-1)  # n1, n2, rho
-    m2_minus_m1 = m_vec[None, :, None] - m_vec[:, None, None]
-    wr = 4 * (1j) ** abs(m2_minus_m1) * integral
-    
-    return w + wr
+
+    lookup_table = [[None for i in range(n_max)] for i2 in range(n_max)]
+    for m1 in range(-m_max, m_max + 1):
+        for l1 in range(max(1, abs(m1)), l_max + 1):
+            for tau1 in range(2):
+                n1 = fldex.multi_to_single_index(tau1, l1, m1, l_max, m_max)
+                for m2 in range(-m_max, m_max + 1):
+                    for l2 in range(max(1, abs(m2)), l_max + 1):
+                        for tau2 in range(2):
+                            n2 = fldex.multi_to_single_index(tau2, l2, m2, l_max, m_max)
+                            bes = bessel_list[abs(m1 - m2)]
+                            integrand = bes * jacobi_vector[None, :] * belbe[n1, n2, None, :]  # rho, kp
+                            wr = 4 * (1j) ** abs(m2 - m1) * np.trapz(integrand, x=k_parallel, axis=-1)  # rho
+                            w_sum = wr + w[n1, n2, :]
+                            lookup_table[n1][n2] = scipy.interpolate.interp1d(x=radial_distance_array, y=w_sum,
+                                                                              kind='cubic', axis=-1, assume_sorted=True)
+    return lookup_table

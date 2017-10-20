@@ -171,6 +171,25 @@ angular resolution: 1
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+# Define the strategy for the solution of the linear system.
+# ----------------------------------------------------------------------------------------------------------------------
+
+coupling matrix lookup resolution: 0
+
+store coupling matrix: true
+
+solver type: LU
+
+# If 'coupling matrix lookup resolution' is set to a positive number, the particle coupling coefficients are computed by
+# cubic spline interpolation from a lookup table with a spatial resolution of that number (length units). Otherwise
+# (default), the coefficients are computed directly for each pair of particles.
+# If 'store coupling matrix ' is set to true (default), the coupling matrix and the master matrix defining the linear
+# system are calculated explicitly and stored in memory. Otherwise, compute matrix-vector products "on the fly".
+# 'solver type' can be 'LU' (default) for LU factorization or 'gmres' for the iterative GMRES algorithm.
+# Note that the LU solver requires that the coupling matrix is stored.
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 # Define what output you want to generate by modifying the following example output specs.
 # ----------------------------------------------------------------------------------------------------------------------
 

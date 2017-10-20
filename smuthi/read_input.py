@@ -47,7 +47,14 @@ def read_input_yaml(filename):
                                  neff_imag=neff_imag)
     
     # initialize simulation
-    simulation = smuthi.simulation.Simulation(input_file=filename, length_unit=input_data.get('length unit'), 
+    lookup_resolution = input_data.get('coupling matrix lookup resolution', None)
+    if lookup_resolution <= 0:
+        lookup_resolution = None
+    simulation = smuthi.simulation.Simulation(solver_type=input_data.get('solver type', 'LU'),
+                                              store_coupling_matrix=input_data.get('store coupling matrix', True),
+                                              coupling_matrix_lookup_resolution=lookup_resolution,
+                                              input_file=filename,
+                                              length_unit=input_data.get('length unit'),
                                               output_dir=input_data.get('output folder'), 
                                               save_after_run=input_data.get('save simulation'))
 
