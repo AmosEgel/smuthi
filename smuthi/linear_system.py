@@ -57,28 +57,9 @@ class LinearSystem:
         
         sys.stdout.write("Prepare master matrix ... ")
         sys.stdout.flush()
-        self.system_t_matrix = SystemTMatrix(particle_list=particle_list)
-        self.master_matrix = MasterMatrix(system_t_matrix=self.system_t_matrix, coupling_matrix=self.coupling_matrix)
+        self.t_matrix = TMatrix(particle_list=particle_list)
+        self.master_matrix = MasterMatrix(t_matrix=self.t_matrix, coupling_matrix=self.coupling_matrix)
         sys.stdout.write("done. \n")
-
-    def number_of_unknowns(self):
-        """
-        Returns:
-            total number of complex unknowns parameterizing the scattered field (int)
-        """
-        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list]
-        return sum(blocksizes)
-
-    def index_block(self, i_s):
-        """
-        Args:
-            i_s (int): number of particle
-
-        Returns:
-            indices that correspond to the coefficients for that particle
-        """
-        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list]
-        return range(sum(blocksizes[:i_s]), sum(blocksizes[:(i_s + 1)]))
 
     def solve(self):
         """Compute scattered field coefficients and store them in the particles' spherical wave expansion objects."""
@@ -91,10 +72,10 @@ class LinearSystem:
                 if not hasattr(self.master_matrix, 'LU_piv'):
                     lu, piv = scipy.linalg.lu_factor(self.master_matrix.linear_operator.A, overwrite_a=False)
                     self.master_matrix.LU_piv = (lu, piv)
-                b = scipy.linalg.lu_solve(self.master_matrix.LU_piv, self.right_hand_side())
+                b = scipy.linalg.lu_solve(self.master_matrix.LU_piv, self.t_matrix.right_hand_side())
             elif self.solver_type == 'gmres':
-                b, info = scipy.sparse.linalg.gmres(self.master_matrix.linear_operator, self.right_hand_side(),
-                                                    self.right_hand_side())
+                b, info = scipy.sparse.linalg.gmres(self.master_matrix.linear_operator, self.t_matrix.right_hand_side(),
+                                                    self.t_matrix.right_hand_side())
             else:
                 raise ValueError('This solver type is currently not implemented.')
 
@@ -106,23 +87,49 @@ class LinearSystem:
             particle.scattered_field = fldex.SphericalWaveExpansion(k=k, l_max=particle.l_max, m_max=particle.m_max,
                                                                     kind='outgoing', reference_point=particle.position,
                                                                     lower_z=loz, upper_z=upz)
-            particle.scattered_field.coefficients = b[self.index_block(iS)]
+            particle.scattered_field.coefficients = b[self.master_matrix.index_block(iS)]
 
         sys.stdout.write("done. \n")
 
-    def right_hand_side(self):
-        r"""The right hand side of the linear system is given by :math:`\sum_{\tau l m} T^i_{\tau l m} a^i_{\tau l m }`
+
+class SystemMatrix:
+    """A system matrix is an abstract linear operator that operates on a system coefficient vector, i.e. a vector 
+    :math:`c = c_{\tau,l,m}^i`, where :math:`(\tau, l, m)` are the multipole indices and :math:`i` indicates the 
+    particle number.
+    """
+    def __init__(self, particle_list):
+        self.particle_list = particle_list
+        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list]
+        self.shape = (sum(blocksizes), sum(blocksizes))
+    
+    def index_block(self, i):
+        """
+        Args:
+            i (int): number of particle
 
         Returns:
-            right hand side as a complex numpy.ndarray
+            indices that correspond to the coefficients for that particle
         """
-        tai = np.zeros(self.number_of_unknowns(), dtype=complex)
-        for iS, particle in enumerate(self.particle_list):
-            tai[self.index_block(iS)] = particle.t_matrix.dot(particle.initial_field.coefficients)
-        return tai
+        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list[:(i + 1)]]
+        return range(sum(blocksizes[:i]), sum(blocksizes))
+    
+    def index(self, i, tau, l, m):
+        """
+        Args:
+            i (int):    particle number
+            tau (int):    spherical polarization index
+            l (int):    multipole degree
+            m (int):    multipole order
+        
+        Returns:
+            Position in a system vector that corresponds to the :math:`(\tau, l, m)` coefficient of the i-th particle. 
+        """
+        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list[:i]]
+        return sum(blocksizes) + fldex.multi_to_single_index(tau, l, m, self.particle_list[i].l_max, 
+                                                             self.particle_list[i].m_max)
 
 
-class CouplingMatrix:
+class CouplingMatrix(SystemMatrix):
     """The direct and layer mediated particle coupling coefficients represented as a linear operator.
 
     Args:
@@ -139,9 +146,9 @@ class CouplingMatrix:
     """
     def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', store_matrix=True,
                  lookup_resolution=None):
-
-        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in particle_list]
-
+        
+        SystemMatrix.__init__(self, particle_list)
+        
         if lookup_resolution is not None:
             x_array = np.array([particle.position[0] for particle in particle_list])
             y_array = np.array([particle.position[1] for particle in particle_list])
@@ -160,33 +167,32 @@ class CouplingMatrix:
                 self.l_max = max([particle.l_max for particle in particle_list])
                 self.m_max = max([particle.m_max for particle in particle_list])
                 self.n_max = fldex.blocksize(self.l_max, self.m_max)
-                self.global_index_list = [[] for i in range(self.n_max)]  # contains for each n all positions in the large system arrays that correspond to n
-                self.particle_index_list = [[] for i in range(self.n_max)]  # same size as global_index_list, contains the according particle numbers
+                
+                self.system_vector_index_list = [[] for i in range(self.n_max)]  # contains for each n all positions in the large system arrays that correspond to n
+                self.particle_number_list = [[] for i in range(self.n_max)]  # same size as system_vector_index_list, contains the according particle numbers
                 self.m_list = [None for i in range(self.n_max)]
-                counter = 0
                 for i, particle in enumerate(particle_list):
                     for m in range(-particle.m_max, particle.m_max + 1):
                         for l in range(max(1, abs(m)), particle.l_max + 1):
                             for tau in range(2):
-                                n = fldex.multi_to_single_index(tau=tau, l=l, m=m, l_max=particle.l_max,
-                                                                m_max=particle.m_max)
-                                self.global_index_list[n].append(counter)
-                                self.particle_index_list[n].append(i)
-                                self.m_list[n] = m
-                                counter += 1
+                                n_lookup = fldex.multi_to_single_index(tau=tau, l=l, m=m, l_max=self.l_max, 
+                                                                       m_max=self.m_max)
+                                self.system_vector_index_list[n_lookup].append(self.index(i, tau, l, m))
+                                self.particle_number_list[n_lookup].append(i)
+                                self.m_list[n_lookup] = m
                 for n in range(self.n_max):
-                    self.global_index_list[n] = np.array(self.global_index_list[n])
-                    self.particle_index_list[n] = np.array(self.particle_index_list[n])
+                    self.system_vector_index_list[n] = np.array(self.system_vector_index_list[n])
+                    self.particle_number_list[n] = np.array(self.particle_number_list[n])
             else:
                 raise NotImplementedError('3D lookup not yet implemented')
 
         if store_matrix:
             if lookup_resolution is None:
-                coup_mat = np.zeros((sum(blocksizes), sum(blocksizes)), dtype=complex)
+                coup_mat = np.zeros(self.shape, dtype=complex)
                 for s1, particle1 in enumerate(particle_list):
-                    idx1 = np.array(range(sum(blocksizes[:s1]), sum(blocksizes[:s1+1])))[:, None]
+                    idx1 = np.array(self.index_block(s1))[:, None]
                     for s2, particle2 in enumerate(particle_list):
-                        idx2 = range(sum(blocksizes[:s2]), sum(blocksizes[:s2]) + blocksizes[s2])
+                        idx2 = self.index_block(s2)
                         coup_mat[idx1, idx2] = (coup.layer_mediated_coupling_block(vacuum_wavelength, particle1,
                                                                                    particle2, layer_system, k_parallel)
                                                 + coup.direct_coupling_block(vacuum_wavelength, particle1, particle2,
@@ -198,57 +204,66 @@ class CouplingMatrix:
             def evaluate_coupling_matrix(in_vec):
                 out_vec = np.zeros(shape=in_vec.shape, dtype=complex)
                 for n1 in range(self.n_max):
-                    i1 = self.particle_index_list[n1]
-                    idx1 = self.global_index_list[n1]
+                    i1 = self.particle_number_list[n1]
+                    idx1 = self.system_vector_index_list[n1]
                     m1 = self.m_list[n1]
                     for n2 in range(self.n_max):
-                        i2 = self.particle_index_list[n2]
-                        idx2 = self.global_index_list[n2]
+                        i2 = self.particle_number_list[n2]
+                        idx2 = self.system_vector_index_list[n2]
                         m2 = self.m_list[n2]
                         rho = self.particle_rho_array[i1[:, None], i2[None, :]]
                         phi = self.particle_phi_array[i1[:, None], i2[None, :]]
                         M = self.lookup[n1][n2](rho) * np.exp(1j * (m2 - m1) * phi)
                         out_vec[idx1] += M.dot(in_vec[idx2])
                 return out_vec
-            self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=(sum(blocksizes), sum(blocksizes)),
-                                                                      matvec=evaluate_coupling_matrix,
+            self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=self.shape, matvec=evaluate_coupling_matrix,
                                                                       dtype=complex)
 
 
-class SystemTMatrix:
+class TMatrix(SystemMatrix):
     """Collect the particle T-matrices in a global lienear operator.
 
     Args:
         particle_list (list):   List of smuthi.particles.Particle objects containing a t_matrix attribute.
     """
     def __init__(self, particle_list):
-        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in particle_list]
+        SystemMatrix.__init__(self, particle_list)
         def apply_t_matrix(vector):
             tv = np.zeros(vector.shape, dtype=complex)
             for i_s, particle in enumerate(particle_list):
-                idx_block = range(sum(blocksizes[:i_s]), sum(blocksizes[:(i_s + 1)]))
-                tv[idx_block] = particle.t_matrix.dot(vector[idx_block])
+                tv[self.index_block(i_s)] = particle.t_matrix.dot(vector[self.index_block(i_s)])
             return tv
-        self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=(sum(blocksizes), sum(blocksizes)), 
-                                                                  matvec=apply_t_matrix, matmat=apply_t_matrix,
-                                                                  dtype=complex)
+        self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=self.shape, matvec=apply_t_matrix, 
+                                                                  matmat=apply_t_matrix, dtype=complex)
+    
+    def right_hand_side(self):
+        r"""The right hand side of the linear system is given by :math:`\sum_{\tau l m} T^i_{\tau l m} a^i_{\tau l m }`
+
+        Returns:
+            right hand side as a complex numpy.ndarray
+        """
+        tai = np.zeros(self.shape[0], dtype=complex)
+        for i_s, particle in enumerate(self.particle_list):
+            tai[self.index_block(i_s)] = particle.t_matrix.dot(particle.initial_field.coefficients)
+        return tai
 
         
-class MasterMatrix:
+class MasterMatrix(SystemMatrix):
     r"""Represent the master matrix :math:`M = 1 - TW` as a linear operator.
 
     Args:
-        system_t_matrix (SystemTMatrix):    T-matrix object
+        t_matrix (SystemTMatrix):    T-matrix object
         coupling_matrix (CouplingMatrix):   Coupling matrix object
     """
-    def __init__(self, system_t_matrix, coupling_matrix):
+    def __init__(self, t_matrix, coupling_matrix):
+        SystemMatrix.__init__(self, t_matrix.particle_list)
         if type(coupling_matrix.linear_operator).__name__ == 'MatrixLinearOperator':
-            M = (np.eye(system_t_matrix.linear_operator.shape[0], dtype=complex) 
-                 - system_t_matrix.linear_operator.matmat(coupling_matrix.linear_operator.A))
+            M = (np.eye(self.shape[0], dtype=complex) 
+                 - t_matrix.linear_operator.matmat(coupling_matrix.linear_operator.A))
             self.linear_operator = scipy.sparse.linalg.aslinearoperator(M)
         else:
             def apply_master_matrix(vector):
-                return vector - system_t_matrix.linear_operator.dot(coupling_matrix.linear_operator.matvec(vector))                
-            self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=system_t_matrix.linear_operator.shape,
-                                                                      matvec=apply_master_matrix, dtype=complex)
+                return vector - t_matrix.linear_operator.dot(coupling_matrix.linear_operator.matvec(vector))                
+            self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=self.shape, matvec=apply_master_matrix, 
+                                                                      dtype=complex)
         
