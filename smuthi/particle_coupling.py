@@ -10,6 +10,8 @@ import smuthi.spherical_functions as sf
 import smuthi.field_expansion as fldex
 import smuthi.vector_wave_functions as vwf
 import matplotlib.pyplot as plt
+import sys
+from tqdm import tqdm
 
 
 def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emitting_particle, layer_system,
@@ -376,7 +378,9 @@ def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_par
     jacobi_vector = k_parallel / (kz_is * k_is)
 
     lookup_table = [[None for i in range(n_max)] for i2 in range(n_max)]
-    for m1 in range(-m_max, m_max + 1):
+    
+    for m1 in tqdm(range(-m_max, m_max + 1), desc='Prepare particle coupling ', file=sys.stdout,
+                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
         for l1 in range(max(1, abs(m1)), l_max + 1):
             for tau1 in range(2):
                 n1 = fldex.multi_to_single_index(tau1, l1, m1, l_max, m_max)
