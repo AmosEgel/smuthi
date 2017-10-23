@@ -19,7 +19,7 @@ beam_waist = 1000
 beam_focal_point = [200, 200, 200]
 neff_waypoints = [0, 0.5, 0.8-0.01j, 2-0.01j, 2.5, 5]
 neff_discr = 1e-2
-lookup_resol = 5
+lookup_resol = 1
 # --------------------------------------------
 
 coord.set_default_k_parallel(vacuum_wavelength, neff_waypoints, neff_discr)

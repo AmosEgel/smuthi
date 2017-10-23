@@ -5,7 +5,15 @@ import smuthi.coordinates as coord
 import numpy as np
 import sys
 import scipy.linalg
+import scipy.interpolate
 import scipy.sparse.linalg
+import pycuda.autoinit
+import pycuda.driver as drv
+from pycuda import gpuarray
+from pycuda.compiler import SourceModule
+import pycuda.cumath
+
+use_gpu = True
 
 
 class LinearSystem:
@@ -160,9 +168,10 @@ class CouplingMatrix(SystemMatrix):
                                                   + (y_array[:, None] - y_array[None, :])**2)
                 self.particle_phi_array = np.arctan2(y_array[:, None] - y_array[None, :],
                                                      x_array[:, None] - x_array[None, :])
-                self.lookup = coup.radial_coupling_lookup(vacuum_wavelength=vacuum_wavelength,
-                                                          particle_list=particle_list, layer_system=layer_system,
-                                                          k_parallel=k_parallel, resolution=lookup_resolution)
+                self.lookup_table, self.radial_distance_array = coup.radial_coupling_lookup_table(
+                    vacuum_wavelength=vacuum_wavelength, particle_list=particle_list, layer_system=layer_system,
+                    k_parallel=k_parallel, resolution=lookup_resolution)
+                self.lookup_resolution = lookup_resolution
 
                 self.l_max = max([particle.l_max for particle in particle_list])
                 self.m_max = max([particle.m_max for particle in particle_list])
@@ -201,24 +210,89 @@ class CouplingMatrix(SystemMatrix):
                 raise NotImplementedError('lookups not yet implemtned')
             self.linear_operator = scipy.sparse.linalg.aslinearoperator(coup_mat)
         else:
-            def evaluate_coupling_matrix(in_vec):
-                out_vec = np.zeros(shape=in_vec.shape, dtype=complex)
+            if use_gpu:
+                re_lookup_d = [[None for n2 in range(self.n_max)] for n1 in range(self.n_max)]
+                im_lookup_d = [[None for n2 in range(self.n_max)] for n1 in range(self.n_max)]
                 for n1 in range(self.n_max):
-                    i1 = self.particle_number_list[n1]
-                    idx1 = self.system_vector_index_list[n1]
-                    m1 = self.m_list[n1]
                     for n2 in range(self.n_max):
-                        i2 = self.particle_number_list[n2]
-                        idx2 = self.system_vector_index_list[n2]
-                        m2 = self.m_list[n2]
-                        rho = self.particle_rho_array[i1[:, None], i2[None, :]]
-                        phi = self.particle_phi_array[i1[:, None], i2[None, :]]
-                        M = self.lookup[n1][n2](rho) * np.exp(1j * (m2 - m1) * phi)
-                        out_vec[idx1] += M.dot(in_vec[idx2])
-                return out_vec
+                        re_lookup_d[n1][n2] = gpuarray.to_gpu(np.float32(self.lookup_table[n1][n2].real))
+                        im_lookup_d[n1][n2] = gpuarray.to_gpu(np.float32(self.lookup_table[n1][n2].imag))
+                
+                normalized_rho_array = np.float32(self.particle_rho_array / self.lookup_resolution)
+                interp1_cuda = SourceModule("""
+                __global__ void coupling_kernel(const float *rho, const float *phi, const int N, 
+                                                const float dm, const float *re_lookup, 
+                                                const float *im_lookup, float  *re_result, float  *im_result)
+                {
+                    unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+                    if(x >= N) return;
+                    const int idx = (int) floor(rho[x]);
+                    const float w = rho[x] - floor(rho[x]);
+                    const float re_si = re_lookup[idx] + w * (re_lookup[idx + 1] - re_lookup[idx]);
+                    const float im_si = im_lookup[idx] + w * (im_lookup[idx + 1] - im_lookup[idx]);
+                    const float re_eimphi = cosf(dm * phi[x]);
+                    const float im_eimphi = sinf(dm * phi[x]);
+                    re_result[x] = re_eimphi * re_si - im_eimphi * im_si;
+                    im_result[x] = im_eimphi * re_si + re_eimphi * im_si;
+                }
+                """).get_function("coupling_kernel")
+                
+                def evaluate_coupling_matrix(in_vec):
+                    out_vec = np.zeros(shape=in_vec.shape, dtype=complex)
+                    for n1 in range(self.n_max):
+                        i1 = self.particle_number_list[n1]
+                        idx1 = self.system_vector_index_list[n1]
+                        m1 = self.m_list[n1]
+                        for n2 in range(self.n_max):
+                            i2 = self.particle_number_list[n2]
+                            idx2 = self.system_vector_index_list[n2]
+                            m2 = self.m_list[n2]
+                            
+                            rho_array_d = gpuarray.to_gpu(normalized_rho_array[i1[:, None], i2[None, :]])
+                            phi_array_d = gpuarray.to_gpu(np.float32(self.particle_phi_array[i1[:, None], i2[None, :]]))
+                            
+                            re_w_d = gpuarray.empty_like(rho_array_d)
+                            im_w_d = gpuarray.empty_like(rho_array_d)
+                            
+                            dm = np.float32(m2 - m1)
+                            
+                            blocksize = 128
+                            gridsize = int(np.ceil(len(i1) * len(i2) / blocksize))
+                
+                            interp1_cuda(rho_array_d.gpudata, phi_array_d.gpudata, np.uint32(len(i1) * len(i2)), dm, 
+                                         re_lookup_d[n1][n2].gpudata, im_lookup_d[n1][n2].gpudata, 
+                                         re_w_d.gpudata, im_w_d.gpudata, block=(blocksize,1,1), grid=(gridsize,1))
+                            w = re_w_d.get() + 1j * im_w_d.get()
+                            out_vec[idx1] += w.dot(in_vec[idx2])
+                    return out_vec
+                    
+                    
+            
+            else:
+                lookup = [[None for i in range(self.n_max)] for i2 in range(self.n_max)]
+                for n1 in range(self.n_max):
+                    for n2 in range(self.n_max):
+                        lookup[n1][n2] = scipy.interpolate.interp1d(x=self.radial_distance_array, y=self.lookup_table[n1][n2], 
+                                                                    kind='linear', axis=-1, assume_sorted=True)
+#                @profile
+                def evaluate_coupling_matrix(in_vec):
+                    out_vec = np.zeros(shape=in_vec.shape, dtype=complex)
+                    for n1 in range(self.n_max):
+                        i1 = self.particle_number_list[n1]
+                        idx1 = self.system_vector_index_list[n1]
+                        m1 = self.m_list[n1]
+                        for n2 in range(self.n_max):
+                            i2 = self.particle_number_list[n2]
+                            idx2 = self.system_vector_index_list[n2]
+                            m2 = self.m_list[n2]
+                            rho = self.particle_rho_array[i1[:, None], i2[None, :]]
+                            phi = self.particle_phi_array[i1[:, None], i2[None, :]]
+                            M = lookup[n1][n2](rho)
+                            M = M * np.exp(1j * (m2 - m1) * phi)
+                            out_vec[idx1] += M.dot(in_vec[idx2])
+                    return out_vec
             self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=self.shape, matvec=evaluate_coupling_matrix,
                                                                       dtype=complex)
-
 
 class TMatrix(SystemMatrix):
     """Collect the particle T-matrices in a global lienear operator.

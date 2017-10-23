@@ -269,7 +269,7 @@ def direct_coupling_matrix(vacuum_wavelength, particle_list, layer_system):
     return w
 
 
-def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None):
+def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None):
     
     if resolution is None:
         resolution = vacuum_wavelength / 100
@@ -374,7 +374,7 @@ def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_par
     for dm in range(2 * l_max + 1):
         bessel_list.append(scipy.special.jv(dm, k_parallel[None, :] * radial_distance_array[:, None]))
     jacobi_vector = k_parallel / (kz_is * k_is)
-
+    
     lookup_table = [[None for i in range(n_max)] for i2 in range(n_max)]
     for m1 in range(-m_max, m_max + 1):
         for l1 in range(max(1, abs(m1)), l_max + 1):
@@ -387,7 +387,24 @@ def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_par
                             bes = bessel_list[abs(m1 - m2)]
                             integrand = bes * jacobi_vector[None, :] * belbe[n1, n2, None, :]  # rho, kp
                             wr = 4 * (1j) ** abs(m2 - m1) * np.trapz(integrand, x=k_parallel, axis=-1)  # rho
-                            w_sum = wr + w[n1, n2, :]
-                            lookup_table[n1][n2] = scipy.interpolate.interp1d(x=radial_distance_array, y=w_sum,
-                                                                              kind='cubic', axis=-1, assume_sorted=True)
-    return lookup_table
+                            lookup_table[n1][n2] = wr + w[n1, n2, :]
+    return lookup_table, radial_distance_array
+
+
+def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None):
+    
+    lookup_table, radial_distance_array = radial_coupling_lookup_table(vacuum_wavelength, particle_list, 
+                                                                       layer_system, k_parallel, resolution)
+    
+    l_max = max([particle.l_max for particle in particle_list])
+    m_max = max([particle.m_max for particle in particle_list])
+    n_max = fldex.blocksize(l_max, m_max)
+    
+    
+    lookup = [[None for i in range(n_max)] for i2 in range(n_max)]
+    for n1 in range(n_max + 1):
+        for n2 in range(n_max + 1):
+            lookup[n1][n2] = scipy.interpolate.interp1d(x=radial_distance_array, y=lookup_table[n1][n2], kind='linear', 
+                                                        axis=-1, assume_sorted=True)
+    return lookup
+
