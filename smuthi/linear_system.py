@@ -42,48 +42,52 @@ class LinearSystem:
         self.initial_field = initial_field
         self.layer_system = layer_system
 
-        sys.stdout.write("Compute initial field coefficients ... ")
-        sys.stdout.flush()
-        for particle in particle_list:
+        #sys.stdout.write("Compute initial field coefficients ... \n")
+        #sys.stdout.flush()
+        for particle in tqdm(particle_list, desc='Initial field coefficients', file=sys.stdout,
+                             bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
             particle.initial_field = initial_field.spherical_wave_expansion(particle, layer_system)
-        sys.stdout.write("done. \n")
-
-        sys.stdout.write("Compute T-matrices ... ")
-        sys.stdout.flush()
-        for particle in particle_list:
+        
+        for particle in tqdm(particle_list, desc='T-matrices                ', file=sys.stdout,
+                             bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
             niS = layer_system.refractive_indices[layer_system.layer_number(particle.position[2])]
             particle.t_matrix = tmt.t_matrix(initial_field.vacuum_wavelength, niS, particle)
-        sys.stdout.write("done. \n")
-
-        sys.stdout.write("Prepare particle coupling ... ")
-        sys.stdout.flush()
+        
         self.coupling_matrix = CouplingMatrix(vacuum_wavelength=initial_field.vacuum_wavelength, 
                                               particle_list=particle_list, layer_system=layer_system, 
                                               k_parallel=self.k_parallel, store_matrix=store_coupling_matrix, 
                                               lookup_resolution=coupling_matrix_lookup_resolution)
-        sys.stdout.write("done. \n")
         
-        sys.stdout.write("Prepare master matrix ... ")
         sys.stdout.flush()
         self.t_matrix = TMatrix(particle_list=particle_list)
         self.master_matrix = MasterMatrix(t_matrix=self.t_matrix, coupling_matrix=self.coupling_matrix)
-        sys.stdout.write("done. \n")
+        
 
     def solve(self):
         """Compute scattered field coefficients and store them in the particles' spherical wave expansion objects."""
-        sys.stdout.write("Solve linear system ... ")
         sys.stdout.flush()
         if len(self.particle_list) > 0:
             if self.solver_type == 'LU':
+                sys.stdout.write('Solve (LU decomposition)  : ...')
                 if not hasattr(self.master_matrix.linear_operator, 'A'):
                     raise ValueError('LU factorization only possible with the option "store coupling matrix".')
                 if not hasattr(self.master_matrix, 'LU_piv'):
                     lu, piv = scipy.linalg.lu_factor(self.master_matrix.linear_operator.A, overwrite_a=False)
                     self.master_matrix.LU_piv = (lu, piv)
                 b = scipy.linalg.lu_solve(self.master_matrix.LU_piv, self.t_matrix.right_hand_side())
+                sys.stdout.write(' done\n')
             elif self.solver_type == 'gmres':
-                b, info = scipy.sparse.linalg.gmres(self.master_matrix.linear_operator, self.t_matrix.right_hand_side(),
-                                                    self.t_matrix.right_hand_side())
+                rhs = self.t_matrix.right_hand_side()
+                start_time = time.time()
+                def status_msg(rk):
+                    global iter_num
+                    iter_msg = ('Solve (GMRES)             : Iter ' + str(iter_num) + ' | Rel. residual: '
+                                + "{:.2e}".format(np.linalg.norm(rk) / np.linalg.norm(rhs)) + ' | elapsed: ' 
+                                + str(int(time.time() - start_time)) + 's')
+                    sys.stdout.write('\r' + iter_msg)
+                    iter_num += 1
+                b, info = scipy.sparse.linalg.gmres(self.master_matrix.linear_operator, rhs, rhs, callback=status_msg)
+                sys.stdout.write('\n')
             else:
                 raise ValueError('This solver type is currently not implemented.')
 
@@ -96,8 +100,6 @@ class LinearSystem:
                                                                     kind='outgoing', reference_point=particle.position,
                                                                     lower_z=loz, upper_z=upz)
             particle.scattered_field.coefficients = b[self.master_matrix.index_block(iS)]
-
-        sys.stdout.write("done. \n")
 
 
 class SystemMatrix:
@@ -162,8 +164,6 @@ class CouplingMatrix(SystemMatrix):
             y_array = np.array([particle.position[1] for particle in particle_list])
             z_list = [particle.position[2] for particle in particle_list]
             if z_list.count(z_list[0]) == len(z_list):
-                sys.stdout.write("Initialize radial particle coupling lookup ... ")
-                sys.stdout.flush()
                 self.particle_rho_array = np.sqrt((x_array[:, None] - x_array[None, :])**2
                                                   + (y_array[:, None] - y_array[None, :])**2)
                 self.particle_phi_array = np.arctan2(y_array[:, None] - y_array[None, :],
@@ -198,7 +198,9 @@ class CouplingMatrix(SystemMatrix):
         if store_matrix:
             if lookup_resolution is None:
                 coup_mat = np.zeros(self.shape, dtype=complex)
-                for s1, particle1 in enumerate(particle_list):
+                for s1, particle1 in enumerate(tqdm(particle_list, desc='Particle coupling matrix  ', file=sys.stdout,
+                                                    bar_format='{l_bar}{bar}| elapsed: {elapsed} '
+                                                    'remaining: {remaining}')):
                     idx1 = np.array(self.index_block(s1))[:, None]
                     for s2, particle2 in enumerate(particle_list):
                         idx2 = self.index_block(s2)
