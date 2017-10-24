@@ -7,13 +7,21 @@ import sys
 import scipy.linalg
 import scipy.interpolate
 import scipy.sparse.linalg
-import pycuda.autoinit
-import pycuda.driver as drv
-from pycuda import gpuarray
-from pycuda.compiler import SourceModule
-import pycuda.cumath
+try:
+    import pycuda.autoinit
+    import pycuda.driver as drv
+    from pycuda import gpuarray
+    from pycuda.compiler import SourceModule
+    import pycuda.cumath
+    use_gpu = True
+except ImportError:
+    import warnings
+    warnings.warn("Unable to import PyCuda module - fall back to CPU mode")
+    use_gpu = False
+from tqdm import tqdm
+import time
 
-use_gpu = True
+iter_num = 0
 
 
 class LinearSystem:

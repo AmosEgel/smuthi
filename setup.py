@@ -18,7 +18,8 @@ setup(
     package_data={'smuthi.nfmds': ['NFM-DS/*.txt', 'NFM-DS/TMATSOURCES/*', 'NFM-DS/TMATFILES/*',
                                    'NFM-DS/INPUTFILES/*.dat', 'NFM-DS/OUTPUTFILES/*'],
                   'smuthi': ['data/*']},
-    install_requires=['numpy', 'scipy', 'mpmath', 'matplotlib', 'pyyaml', 'argparse', 'imageio', 'sympy'],
+    install_requires=['numpy', 'scipy', 'mpmath', 'matplotlib', 'pyyaml', 'argparse', 'imageio', 'sympy', 'tqdm'],
+    extras_require={'cuda':  ['PyCuda']},
     entry_points={'console_scripts': ['smuthi = smuthi.__main__:main']},
     license='MIT',
 )

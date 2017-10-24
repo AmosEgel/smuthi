@@ -273,6 +273,8 @@ def direct_coupling_matrix(vacuum_wavelength, particle_list, layer_system):
 
 def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None):
     
+    sys.stdout.write('Prepare particle coupling ...')
+    
     if resolution is None:
         resolution = vacuum_wavelength / 100
     
