@@ -273,7 +273,7 @@ def direct_coupling_matrix(vacuum_wavelength, particle_list, layer_system):
 
 def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None):
     
-    sys.stdout.write('Prepare particle coupling ...')
+    sys.stdout.write('Particle coupling lookup  ...\n')
     
     if resolution is None:
         resolution = vacuum_wavelength / 100
@@ -300,7 +300,8 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     bessel_h = [sf.spherical_hankel(n, k_is * radial_distance_array) for n in range(2* l_max + 1)]
     legendre, _, _ = sf.legendre_normalized(ct, st, 2 * l_max)
 
-    for m1 in range(-m_max, m_max + 1):
+    for m1 in tqdm(range(-m_max, m_max + 1), desc='Direct coupling           ', file=sys.stdout,
+                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
         for m2 in range(-m_max, m_max + 1):
             for l1 in range(max(1, abs(m1)), l_max + 1):
                 for l2 in range(max(1, abs(m2)), l_max + 1):
@@ -322,6 +323,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     w[:, :, radial_distance_array < rho_array[~np.eye(rho_array.shape[0],dtype=bool)].min() / 2] = 0  # switch off direct coupling contribution near rho=0
 
     # layer mediated ---------------------------------------------------------------------------------------------------
+    sys.stdout.write('Layer mediated  coupling ...')
     if type(k_parallel) == str and k_parallel == 'default':
         k_parallel = coord.default_k_parallel
     kz_is = coord.k_z(k_parallel=k_parallel, k=k_is)
@@ -381,7 +383,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     
     lookup_table = [[None for i in range(n_max)] for i2 in range(n_max)]
     
-    for m1 in tqdm(range(-m_max, m_max + 1), desc='Prepare particle coupling ', file=sys.stdout,
+    for m1 in tqdm(range(-m_max, m_max + 1), desc='Layer mediated coupling   ', file=sys.stdout,
                    bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
         for l1 in range(max(1, abs(m1)), l_max + 1):
             for tau1 in range(2):

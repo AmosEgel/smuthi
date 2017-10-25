@@ -7,6 +7,7 @@ import sys
 import scipy.linalg
 import scipy.interpolate
 import scipy.sparse.linalg
+import warnings
 try:
     import pycuda.autoinit
     import pycuda.driver as drv
@@ -15,7 +16,6 @@ try:
     import pycuda.cumath
     use_gpu = True
 except ImportError:
-    import warnings
     warnings.warn("Unable to import PyCuda module - fall back to CPU mode")
     use_gpu = False
 from tqdm import tqdm
@@ -39,9 +39,13 @@ class LinearSystem:
                                                            a lookup table with that spacial resolution. If None
                                                            (default), don't use a lookup table but compute the coupling
                                                            directly. This is more suitable for a small particle number.
+        interpolator_kind (str): interpolation order to be used, e.g. 'linear' or 'cubic'. This argument is ignored if
+                                 coupling_matrix_lookup_resolution is None. 
+                                                            
     """
     def __init__(self, particle_list, initial_field, layer_system, k_parallel='default', solver_type='LU', 
-                 store_coupling_matrix=True, coupling_matrix_lookup_resolution=None):
+                 store_coupling_matrix=True, coupling_matrix_lookup_resolution=None, interpolator_kind='linear', 
+                 cuda_blocksize=128):
         
         self.k_parallel = k_parallel
         self.solver_type = solver_type
@@ -61,16 +65,32 @@ class LinearSystem:
             niS = layer_system.refractive_indices[layer_system.layer_number(particle.position[2])]
             particle.t_matrix = tmt.t_matrix(initial_field.vacuum_wavelength, niS, particle)
         
-        self.coupling_matrix = CouplingMatrix(vacuum_wavelength=initial_field.vacuum_wavelength, 
-                                              particle_list=particle_list, layer_system=layer_system, 
-                                              k_parallel=self.k_parallel, store_matrix=store_coupling_matrix, 
-                                              lookup_resolution=coupling_matrix_lookup_resolution)
-        
-        sys.stdout.flush()
+        if coupling_matrix_lookup_resolution is None:
+            self.coupling_matrix = CouplingMatrixExplicit(vacuum_wavelength=initial_field.vacuum_wavelength,
+                                                          particle_list=particle_list, layer_system=layer_system, 
+                                                          k_parallel=self.k_parallel)
+        else:
+            if interpolator_kind!='linear' and use_gpu:
+                warnings.warn(interpolator_kind 
+                              + " interpolator kind is not implemented for CUDA, using 'linear' instead.")
+            z_list = [particle.position[2] for particle in particle_list]
+            if z_list.count(z_list[0]) == len(z_list):
+                if use_gpu:
+                    self.coupling_matrix = CouplingMatrixRadialLookupCUDA(
+                        vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list, 
+                        layer_system=layer_system, k_parallel=self.k_parallel, 
+                        resolution=coupling_matrix_lookup_resolution, cuda_blocksize=cuda_blocksize)
+                else:
+                    self.coupling_matrix = CouplingMatrixRadialLookupCPU(
+                        vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list, 
+                        layer_system=layer_system, k_parallel=self.k_parallel, 
+                        resolution=coupling_matrix_lookup_resolution, kind=interpolator_kind)
+            else:
+                raise NotImplementedError('3d lookup not yet implemented')
+            
         self.t_matrix = TMatrix(particle_list=particle_list)
         self.master_matrix = MasterMatrix(t_matrix=self.t_matrix, coupling_matrix=self.coupling_matrix)
         
-
     def solve(self):
         """Compute scattered field coefficients and store them in the particles' spherical wave expansion objects."""
         sys.stdout.flush()
@@ -147,162 +167,261 @@ class SystemMatrix:
                                                              self.particle_list[i].m_max)
 
 
-class CouplingMatrix(SystemMatrix):
-    """The direct and layer mediated particle coupling coefficients represented as a linear operator.
+class CouplingMatrixExplicit(SystemMatrix):
+    """Class for an explicit representation of the coupling matrix. Recommended for small particle numbers.
 
     Args:
         vacuum_wavelength (float):  Vacuum wavelength in length units
         particle_list (list):   List of smuthi.particles.Particle objects
         layer_system (smuthi.layers.LayerSystem):   Stratified medium
         k_parallell (numpy.ndarray or str): In-plane wavenumber. If 'default', use smuthi.coordinates.default_k_parallel
-        store_matrix (bool):    If True (default), the coupling matrix is stored. Otherwise it is recomputed on the fly
-                                during each iteration of the solver.
-        lookup_resolution (float or None): If type float, compute particle coupling by interpolation of a lookup table
-                                            with that spacial resolution. If None (default), don't use a lookup table
-                                            but compute the coupling directly. This is more suitable for a small
-                                            particle number.
     """
-    def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', store_matrix=True,
-                 lookup_resolution=None):
+    def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default'):
+        
+        SystemMatrix.__init__(self, particle_list)
+        coup_mat = np.zeros(self.shape, dtype=complex)
+        for s1, particle1 in enumerate(tqdm(particle_list, desc='Particle coupling matrix  ', file=sys.stdout,
+                                            bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}')):
+            idx1 = np.array(self.index_block(s1))[:, None]
+            for s2, particle2 in enumerate(particle_list):
+                idx2 = self.index_block(s2)
+                coup_mat[idx1, idx2] = (coup.layer_mediated_coupling_block(vacuum_wavelength, particle1, particle2, 
+                                                                           layer_system, k_parallel)
+                                        + coup.direct_coupling_block(vacuum_wavelength, particle1, particle2, 
+                                                                     layer_system))
+        self.linear_operator = scipy.sparse.linalg.aslinearoperator(coup_mat)
+        
+        
+class CouplingMatrixRadialLookup(SystemMatrix):
+    """Base class for radial lookup based coupling matrix either on CPU or on GPU (CUDA).
+    
+    Args:
+        vacuum_wavelength (float): vacuum wavelength in length units
+        particle_list (list): list of sumthi.particles.Particle objects
+        layer_system (smuthi.layers.LayerSystem): stratified medium
+        k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
+        resolution (float or None): spatial resolution of the lookup in the radial direction
+    """
+    def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None):
+        
+        z_list = [particle.position[2] for particle in particle_list]
+        assert z_list.count(z_list[0]) == len(z_list)
         
         SystemMatrix.__init__(self, particle_list)
         
-        if lookup_resolution is not None:
-            x_array = np.array([particle.position[0] for particle in particle_list])
-            y_array = np.array([particle.position[1] for particle in particle_list])
-            z_list = [particle.position[2] for particle in particle_list]
-            if z_list.count(z_list[0]) == len(z_list):
-                self.particle_rho_array = np.sqrt((x_array[:, None] - x_array[None, :])**2
-                                                  + (y_array[:, None] - y_array[None, :])**2)
-                self.particle_phi_array = np.arctan2(y_array[:, None] - y_array[None, :],
-                                                     x_array[:, None] - x_array[None, :])
-                self.lookup_table, self.radial_distance_array = coup.radial_coupling_lookup_table(
-                    vacuum_wavelength=vacuum_wavelength, particle_list=particle_list, layer_system=layer_system,
-                    k_parallel=k_parallel, resolution=lookup_resolution)
-                self.lookup_resolution = lookup_resolution
+        self.l_max = max([particle.l_max for particle in particle_list])
+        self.m_max = max([particle.m_max for particle in particle_list])
+        self.blocksize = fldex.blocksize(self.l_max, self.m_max)
+        self.resolution = resolution
+        self.lookup_table, self.radial_distance_array = coup.radial_coupling_lookup_table(
+            vacuum_wavelength=vacuum_wavelength, particle_list=particle_list, layer_system=layer_system, 
+            k_parallel=k_parallel, resolution=resolution)
 
-                self.l_max = max([particle.l_max for particle in particle_list])
-                self.m_max = max([particle.m_max for particle in particle_list])
-                self.n_max = fldex.blocksize(self.l_max, self.m_max)
-                
-                self.system_vector_index_list = [[] for i in range(self.n_max)]  # contains for each n all positions in the large system arrays that correspond to n
-                self.particle_number_list = [[] for i in range(self.n_max)]  # same size as system_vector_index_list, contains the according particle numbers
-                self.m_list = [None for i in range(self.n_max)]
-                for i, particle in enumerate(particle_list):
-                    for m in range(-particle.m_max, particle.m_max + 1):
-                        for l in range(max(1, abs(m)), particle.l_max + 1):
-                            for tau in range(2):
-                                n_lookup = fldex.multi_to_single_index(tau=tau, l=l, m=m, l_max=self.l_max, 
-                                                                       m_max=self.m_max)
-                                self.system_vector_index_list[n_lookup].append(self.index(i, tau, l, m))
-                                self.particle_number_list[n_lookup].append(i)
-                                self.m_list[n_lookup] = m
-                for n in range(self.n_max):
-                    self.system_vector_index_list[n] = np.array(self.system_vector_index_list[n])
-                    self.particle_number_list[n] = np.array(self.particle_number_list[n])
-            else:
-                raise NotImplementedError('3D lookup not yet implemented')
 
-        if store_matrix:
-            if lookup_resolution is None:
-                coup_mat = np.zeros(self.shape, dtype=complex)
-                for s1, particle1 in enumerate(tqdm(particle_list, desc='Particle coupling matrix  ', file=sys.stdout,
-                                                    bar_format='{l_bar}{bar}| elapsed: {elapsed} '
-                                                    'remaining: {remaining}')):
-                    idx1 = np.array(self.index_block(s1))[:, None]
-                    for s2, particle2 in enumerate(particle_list):
-                        idx2 = self.index_block(s2)
-                        coup_mat[idx1, idx2] = (coup.layer_mediated_coupling_block(vacuum_wavelength, particle1,
-                                                                                   particle2, layer_system, k_parallel)
-                                                + coup.direct_coupling_block(vacuum_wavelength, particle1, particle2,
-                                                                             layer_system))
-            else:
-                raise NotImplementedError('lookups not yet implemtned')
-            self.linear_operator = scipy.sparse.linalg.aslinearoperator(coup_mat)
-        else:
-            if use_gpu:
-                re_lookup_d = [[None for n2 in range(self.n_max)] for n1 in range(self.n_max)]
-                im_lookup_d = [[None for n2 in range(self.n_max)] for n1 in range(self.n_max)]
-                for n1 in range(self.n_max):
-                    for n2 in range(self.n_max):
-                        re_lookup_d[n1][n2] = gpuarray.to_gpu(np.float32(self.lookup_table[n1][n2].real))
-                        im_lookup_d[n1][n2] = gpuarray.to_gpu(np.float32(self.lookup_table[n1][n2].imag))
+class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
+    """Radial lookup based coupling matrix either on GPU (CUDA).
+    
+    Args:
+        vacuum_wavelength (float): vacuum wavelength in length units
+        particle_list (list): list of sumthi.particles.Particle objects
+        layer_system (smuthi.layers.LayerSystem): stratified medium
+        k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
+        resolution (float or None): spatial resolution of the lookup in the radial direction
+        cuda_blocksize (int): threads per block when calling CUDA kernel
+    """
+    def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None, 
+                 cuda_blocksize=128):
+        
+        z_list = [particle.position[2] for particle in particle_list]
+        assert z_list.count(z_list[0]) == len(z_list)
+        
+        CouplingMatrixRadialLookup.__init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel, resolution)
+        
+        sys.stdout.write('Prepare CUDA kernel and device lookup data ...\n')
+        # This cuda kernel multiplies the coupling matrix to a vector. It is based on linear interpolation of the lookup 
+        # table.
+        #
+        # input arguments of the cuda kernel:
+        # n (np.uint32):  n[i] contains the mutlipole multi-index with regard to self.l_max and self.m_max of the i-th 
+        #                 entry of a system vector
+        # m (np.float32): m[i] contains the multipole order with regard to particle.l_max and particle.m_max
+        # x_pos (np.float32): x_pos[i] contains the respective particle x-position
+        # y_pos (np.float32): y_pos[i] contains the respective particle y-position
+        # re_lookup (np.float32): the real part of the lookup table, in the format [r, n1, n2]
+        # im_lookup (np.float32): the imaginary part of the lookup table, in the format [r, n1, n2]
+        # re_in_vec (np.float32): the real part of the vector to be multiplied with the coupling matrix
+        # im_in_vec (np.float32): the imaginary part of the vector to be multiplied with the coupling matrix
+        # re_result_vec (np.float32): the real part of the vector into which the result is written
+        # im_result_vec (np.float32): the imaginary part of the vector into which the result is written
+        coupling_function = SourceModule("""
+            #define BLOCKSIZE %i
+            #define NUMBER_OF_UNKNOWNS %i
+            __global__ void coupling_kernel(const int *n, const float *m, const float *x_pos, const float *y_pos,
+                                            const float *re_lookup, const float *im_lookup, const float *re_in_vec, 
+                                            const float *im_in_vec, float  *re_result, float  *im_result)
+            {
+                unsigned int i1 = blockIdx.x * blockDim.x + threadIdx.x;
+                if(i1 >= NUMBER_OF_UNKNOWNS) return;
                 
-                normalized_rho_array = np.float32(self.particle_rho_array / self.lookup_resolution)
-                interp1_cuda = SourceModule("""
-                __global__ void coupling_kernel(const float *rho, const float *phi, const int N, 
-                                                const float dm, const float *re_lookup, 
-                                                const float *im_lookup, float  *re_result, float  *im_result)
+                const float x1 = x_pos[i1];
+                const float y1 = y_pos[i1];
+                
+                const int n1 = n[i1];
+                const float m1 = m[i1];
+    
+                re_result[i1] = 0.0;
+                im_result[i1] = 0.0;
+                
+                for (int i2=0; i2<NUMBER_OF_UNKNOWNS; i2++)
                 {
-                    unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
-                    if(x >= N) return;
-                    const int idx = (int) floor(rho[x]);
-                    const float w = rho[x] - floor(rho[x]);
-                    const float re_si = re_lookup[idx] + w * (re_lookup[idx + 1] - re_lookup[idx]);
-                    const float im_si = im_lookup[idx] + w * (im_lookup[idx + 1] - im_lookup[idx]);
-                    const float re_eimphi = cosf(dm * phi[x]);
-                    const float im_eimphi = sinf(dm * phi[x]);
-                    re_result[x] = re_eimphi * re_si - im_eimphi * im_si;
-                    im_result[x] = im_eimphi * re_si + re_eimphi * im_si;
+                    float x21 = x1 - x_pos[i2];
+                    float y21 = y1 - y_pos[i2];
+                    
+                    const int n2 = n[i2];
+                    const float m2 = m[i2];
+                    
+                    float r = sqrt(x21*x21+y21*y21);
+                    float phi = atan2(y21,x21);
+                
+                    int r_idx = (int) floor(r);
+                    float w = r - floor(r);
+                    
+                    int idx = r_idx * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
+                    int idx_pl_1 = (r_idx + 1) * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
+                    
+                    float re_si = re_lookup[idx] + w * (re_lookup[idx_pl_1] - re_lookup[idx]);
+                    float im_si = im_lookup[idx] + w * (im_lookup[idx_pl_1] - im_lookup[idx]);
+                    
+                    float re_eimphi = cosf((m2 - m1) * phi);
+                    float im_eimphi = sinf((m2 - m1) * phi);
+                
+                    float re_w = re_eimphi * re_si - im_eimphi * im_si;
+                    float im_w = im_eimphi * re_si + re_eimphi * im_si;
+                    
+                    re_result[i1] += re_w * re_in_vec[i2] - im_w * im_in_vec[i2];
+                    im_result[i1] += re_w * im_in_vec[i2] + im_w * re_in_vec[i2];
+                    
                 }
-                """).get_function("coupling_kernel")
-                
-                def evaluate_coupling_matrix(in_vec):
-                    out_vec = np.zeros(shape=in_vec.shape, dtype=complex)
-                    for n1 in range(self.n_max):
-                        i1 = self.particle_number_list[n1]
-                        idx1 = self.system_vector_index_list[n1]
-                        m1 = self.m_list[n1]
-                        for n2 in range(self.n_max):
-                            i2 = self.particle_number_list[n2]
-                            idx2 = self.system_vector_index_list[n2]
-                            m2 = self.m_list[n2]
-                            
-                            rho_array_d = gpuarray.to_gpu(normalized_rho_array[i1[:, None], i2[None, :]])
-                            phi_array_d = gpuarray.to_gpu(np.float32(self.particle_phi_array[i1[:, None], i2[None, :]]))
-                            
-                            re_w_d = gpuarray.empty_like(rho_array_d)
-                            im_w_d = gpuarray.empty_like(rho_array_d)
-                            
-                            dm = np.float32(m2 - m1)
-                            
-                            blocksize = 128
-                            gridsize = int(np.ceil(len(i1) * len(i2) / blocksize))
-                
-                            interp1_cuda(rho_array_d.gpudata, phi_array_d.gpudata, np.uint32(len(i1) * len(i2)), dm, 
-                                         re_lookup_d[n1][n2].gpudata, im_lookup_d[n1][n2].gpudata, 
-                                         re_w_d.gpudata, im_w_d.gpudata, block=(blocksize,1,1), grid=(gridsize,1))
-                            w = re_w_d.get() + 1j * im_w_d.get()
-                            out_vec[idx1] += w.dot(in_vec[idx2])
-                    return out_vec
-                    
-                    
+            }"""%(self.blocksize, self.shape[0])).get_function("coupling_kernel")
             
-            else:
-                lookup = [[None for i in range(self.n_max)] for i2 in range(self.n_max)]
-                for n1 in range(self.n_max):
-                    for n2 in range(self.n_max):
-                        lookup[n1][n2] = scipy.interpolate.interp1d(x=self.radial_distance_array, y=self.lookup_table[n1][n2], 
-                                                                    kind='linear', axis=-1, assume_sorted=True)
+        n_lookup_array = np.zeros(self.shape[0], dtype=np.uint32)
+        m_particle_array = np.zeros(self.shape[0], dtype=np.float32)
+        x_array = np.zeros(self.shape[0], dtype=np.float32)
+        y_array = np.zeros(self.shape[0], dtype=np.float32)
+        
+        for i, particle in enumerate(particle_list):
+            for m in range(-particle.m_max, particle.m_max + 1):
+                for l in range(max(1, abs(m)), particle.l_max + 1):
+                    for tau in range(2):
+                        n_lookup_array[self.index(i, tau, l, m)] = fldex.multi_to_single_index(
+                            tau, l, m, self.l_max, self.m_max)
+                        m_particle_array[self.index(i, tau, l, m)] = m
+                        
+                        # scale the x and y position to the lookup resolution:
+                        x_array[self.index(i, tau, l, m)] = particle.position[0] / self.resolution
+                        y_array[self.index(i, tau, l, m)] = particle.position[1] / self.resolution
+        
+        # lookup as numpy array in required shape
+        re_lookup = np.zeros((len(self.radial_distance_array), self.blocksize, self.blocksize), dtype=np.float32)
+        im_lookup = np.zeros((len(self.radial_distance_array), self.blocksize, self.blocksize), dtype=np.float32)
+        for n1 in range(self.blocksize):
+            for n2 in range(self.blocksize):
+                re_lookup[:, n1, n2] = self.lookup_table[n1][n2].real
+                im_lookup[:, n1, n2] = self.lookup_table[n1][n2].imag
+        
+        # transfer data to gpu
+        n_lookup_array_d = gpuarray.to_gpu(n_lookup_array)
+        m_particle_array_d = gpuarray.to_gpu(m_particle_array)
+        x_array_d = gpuarray.to_gpu(x_array)
+        y_array_d = gpuarray.to_gpu(y_array)
+        re_lookup_d = gpuarray.to_gpu(re_lookup)
+        im_lookup_d = gpuarray.to_gpu(im_lookup)
+        
+        cuda_gridsize = (self.shape[0] + cuda_blocksize - 1) // cuda_blocksize
+        
+        def matvec(in_vec):
+            re_in_vec_d = gpuarray.to_gpu(np.float32(in_vec.real))
+            im_in_vec_d = gpuarray.to_gpu(np.float32(in_vec.imag))
+            re_result_d = gpuarray.zeros(in_vec.shape, dtype=np.float32)
+            im_result_d = gpuarray.zeros(in_vec.shape, dtype=np.float32)
+            coupling_function(n_lookup_array_d.gpudata, m_particle_array_d.gpudata, x_array_d.gpudata, 
+                            y_array_d.gpudata, re_lookup_d.gpudata, im_lookup_d.gpudata, 
+                            re_in_vec_d.gpudata, im_in_vec_d.gpudata, re_result_d.gpudata, im_result_d.gpudata, 
+                            block=(cuda_blocksize,1,1), grid=(cuda_gridsize,1))
+            return re_result_d.get() + 1j * im_result_d.get()
+    
+        self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=self.shape, matvec=matvec, dtype=complex)
+
+
+class CouplingMatrixRadialLookupCPU(CouplingMatrixRadialLookup):
+    """Class for radial lookup based coupling matrix running on CPU. This is used when no suitable GPU device is detected
+    or when PyCuda is not installed.
+    
+    Args:
+        vacuum_wavelength (float): vacuum wavelength in length units
+        particle_list (list): list of sumthi.particles.Particle objects
+        layer_system (smuthi.layers.LayerSystem): stratified medium
+        k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
+        resolution (float or None): spatial resolution of the lookup in the radial direction
+        kind (str): interpolation order, e.g. 'linear' or 'cubic'
+    """
+    def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None, 
+                 kind='linear'):
+        
+        z_list = [particle.position[2] for particle in particle_list]
+        assert z_list.count(z_list[0]) == len(z_list)
+        
+        CouplingMatrixRadialLookup.__init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel, resolution)
+        
+        x_array = np.array([particle.position[0] for particle in particle_list])
+        y_array = np.array([particle.position[1] for particle in particle_list])
+        
+        self.particle_rho_array = np.sqrt((x_array[:, None] - x_array[None, :])**2 
+                                          + (y_array[:, None] - y_array[None, :])**2)
+        self.particle_phi_array = np.arctan2(y_array[:, None] - y_array[None, :], x_array[:, None] - x_array[None, :])
+        
+        # contains for each n all positions in the large system arrays that correspond to n:
+        self.system_vector_index_list = [[] for i in range(self.blocksize)]  
+
+        # same size as system_vector_index_list, contains the according particle numbers:
+        self.particle_number_list = [[] for i in range(self.blocksize)]  
+        self.m_list = [None for i in range(self.blocksize)]
+        for i, particle in enumerate(particle_list):
+            for m in range(-particle.m_max, particle.m_max + 1):
+                for l in range(max(1, abs(m)), particle.l_max + 1):
+                    for tau in range(2):
+                        n_lookup = fldex.multi_to_single_index(tau=tau, l=l, m=m, l_max=self.l_max, m_max=self.m_max)
+                        self.system_vector_index_list[n_lookup].append(self.index(i, tau, l, m))
+                        self.particle_number_list[n_lookup].append(i)
+                        self.m_list[n_lookup] = m
+        for n in range(self.blocksize):
+            self.system_vector_index_list[n] = np.array(self.system_vector_index_list[n])
+            self.particle_number_list[n] = np.array(self.particle_number_list[n])
+
+        lookup = [[None for i in range(self.blocksize)] for i2 in range(self.blocksize)]
+        for n1 in range(self.blocksize):
+            for n2 in range(self.blocksize):
+                lookup[n1][n2] = scipy.interpolate.interp1d(x=self.radial_distance_array, y=self.lookup_table[n1][n2], 
+                                                            kind=kind, axis=-1, assume_sorted=True)
 #                @profile
-                def evaluate_coupling_matrix(in_vec):
-                    out_vec = np.zeros(shape=in_vec.shape, dtype=complex)
-                    for n1 in range(self.n_max):
-                        i1 = self.particle_number_list[n1]
-                        idx1 = self.system_vector_index_list[n1]
-                        m1 = self.m_list[n1]
-                        for n2 in range(self.n_max):
-                            i2 = self.particle_number_list[n2]
-                            idx2 = self.system_vector_index_list[n2]
-                            m2 = self.m_list[n2]
-                            rho = self.particle_rho_array[i1[:, None], i2[None, :]]
-                            phi = self.particle_phi_array[i1[:, None], i2[None, :]]
-                            M = lookup[n1][n2](rho)
-                            M = M * np.exp(1j * (m2 - m1) * phi)
-                            out_vec[idx1] += M.dot(in_vec[idx2])
-                    return out_vec
-            self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=self.shape, matvec=evaluate_coupling_matrix,
-                                                                      dtype=complex)
+        def matvec(in_vec):
+            out_vec = np.zeros(shape=in_vec.shape, dtype=complex)
+            for n1 in range(self.blocksize):
+                i1 = self.particle_number_list[n1]
+                idx1 = self.system_vector_index_list[n1]
+                m1 = self.m_list[n1]
+                for n2 in range(self.blocksize):
+                    i2 = self.particle_number_list[n2]
+                    idx2 = self.system_vector_index_list[n2]
+                    m2 = self.m_list[n2]
+                    rho = self.particle_rho_array[i1[:, None], i2[None, :]]
+                    phi = self.particle_phi_array[i1[:, None], i2[None, :]]
+                    M = lookup[n1][n2](rho)
+                    M = M * np.exp(1j * (m2 - m1) * phi)
+                    out_vec[idx1] += M.dot(in_vec[idx2])
+            return out_vec
+        self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=self.shape, matvec=matvec, dtype=complex)
+
 
 class TMatrix(SystemMatrix):
     """Collect the particle T-matrices in a global lienear operator.
