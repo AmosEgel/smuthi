@@ -305,9 +305,9 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     sz_min = 2 * particle_z_array.min()
     sz_max = 2 * particle_z_array.max()
     
-    rho_array = np.arange(0, particle_rho_array.max() + resolution, resolution)
-    sz_array = np.arange(sz_min, sz_max + resolution, resolution)
-    dz_array = np.arange(dz_min, dz_max + resolution, resolution)
+    rho_array = np.arange(0, particle_rho_array.max() + 3 * resolution, resolution)
+    sz_array = np.arange(sz_min, sz_max + 3 * resolution, resolution)
+    dz_array = np.arange(dz_min, dz_max + 3 * resolution, resolution)
     
     len_rho = len(rho_array)
     len_sz = len(sz_array)
@@ -326,7 +326,11 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     ct = dz_array[None, :] / r_array
     st = rho_array[:, None] / r_array
     legendre, _, _ = sf.legendre_normalized(ct, st, 2 * l_max)
-    bessel_h = [sf.spherical_hankel(dm, k_is * r_array) for dm in range(2*l_max+1)]
+    
+    bessel_h = []
+    for dm in tqdm(range(2 * l_max + 1), desc='Spherical Hankel lookup   ', file=sys.stdout,
+                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
+        bessel_h.append(sf.spherical_hankel(dm, k_is * r_array))
     
     for m1 in tqdm(range(-l_max, l_max + 1), desc='Direct coupling           ', file=sys.stdout,
                    bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
@@ -394,7 +398,11 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
                                                                              taulm_list=taulm_mn, dagger=False)
                    
     # bessel function and jacobi factor
-    bessel_list = [scipy.special.jv(dm, k_parallel[None, :] * rho_array[:, None]) for dm in range(2*l_max+1)] # rho k
+    bessel_list = []
+    for dm in tqdm(range(2 * l_max + 1), desc='Bessel function lookup    ', file=sys.stdout,
+                bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
+        bessel_list.append(scipy.special.jv(dm, k_parallel[None, :] * rho_array[:, None]))
+
     bessel_jacobi = [bessel_list[dm] * (k_parallel / (kz_is * k_is))[None, :] for dm in range(2*l_max+1)]
     
     wr_pl = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=complex)

@@ -3,6 +3,7 @@ import numpy as np
 import scipy.special
 import warnings
 import functools
+import sys
 
 
 def legendre_normalized(ct, st, lmax):
@@ -60,49 +61,56 @@ def legendre_normalized(ct, st, lmax):
     return plm, pilm, taulm
 
 
-def spherical_bessel(n, x):
-    """Spherical Bessel function. This is a wrapper for scipy.special.sph_jn to make it operate on numpy
-    arrays.
+if 'conda' in sys.version or 'continuum' in sys.version:
+    # Due to a bug in Anaconda build of scipy (see https://github.com/ContinuumIO/anaconda-issues/issues/1415 ),
+    # the spherical Bessel and Hankel functions for complex arguments need to be defined using the following workaround:
+    def spherical_bessel(n, x):
+        """Spherical Bessel function. This is a wrapper for scipy.special.sph_jn to make it operate on numpy
+        arrays.
 
-    As soon as some bug for complex arguments is resolved, this can be replaced by scipy.special.spherical_jn.
-    https://github.com/ContinuumIO/anaconda-issues/issues/1415
+        As soon as some bug for complex arguments is resolved, this can be replaced by scipy.special.spherical_jn.
+        https://github.com/ContinuumIO/anaconda-issues/issues/1415
 
-    Args:
-        n (int): Order of spherical Bessel function
-        x (array, complex or float): Argument for Bessel function
+        Args:
+            n (int): Order of spherical Bessel function
+            x (array, complex or float): Argument for Bessel function
 
-    Returns:
-        Spherical Bessel function as array.
-    """
-    sphj = scipy.special.sph_jn
-    if hasattr(x, "__iter__"):
-        j_n = np.array([spherical_bessel(n, v) for v in x])
-    else:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="Casting complex values to real discards the imaginary part")
-            j_n = sphj(n, x)[0][n]
-    return j_n
+        Returns:
+            Spherical Bessel function as array.
+        """
+        sphj = scipy.special.sph_jn
+        if hasattr(x, "__iter__"):
+            j_n = np.array([spherical_bessel(n, v) for v in x])
+        else:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="Casting complex values to real discards the imaginary part")
+                j_n = sphj(n, x)[0][n]
+        return j_n
 
+    def spherical_hankel(n, x):
+        """Spherical Hankel function of first kind.
 
-def spherical_hankel(n, x):
-    """Spherical Hankel function of first kind.
+        Args:
+            n (int): Order of spherical Bessel function
+            x (array, complex or float): Argument for Hankel function
 
-    Args:
-        n (int): Order of spherical Bessel function
-        x (array, complex or float): Argument for Hankel function
+        Returns:
+            Spherical Hankel function as array.
+        """
+        sphj = scipy.special.sph_jn
+        sphy = scipy.special.sph_yn
+        if hasattr(x, "__iter__"):
+            h_n = np.array([spherical_hankel(n, v) for v in x])
+        else:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="Casting complex values to real discards the imaginary part")
+                h_n = sphj(n, x)[0][n] + 1j * sphy(n, x)[0][n]
+        return h_n
+else:
+    spherical_bessel = scipy.special.spherical_jn
+    def spherical_hankel(n, x):
+        return scipy.special.spherical_jn(n, x) + 1j * scipy.special.spherical_yn(n, x)
 
-    Returns:
-        Spherical Hankel function as array.
-    """
-    sphj = scipy.special.sph_jn
-    sphy = scipy.special.sph_yn
-    if hasattr(x, "__iter__"):
-        h_n = np.array([spherical_hankel(n, v) for v in x])
-    else:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="Casting complex values to real discards the imaginary part")
-            h_n = sphj(n, x)[0][n] + 1j * sphy(n, x)[0][n]
-    return h_n
 
 
 def dx_xj(n, x):

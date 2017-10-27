@@ -7,6 +7,9 @@ import smuthi.coordinates as coord
 import smuthi.simulation as simul
 import smuthi.particle_coupling as coup
 import smuthi.field_expansion as fldex
+import smuthi.linear_system as linsys
+
+linsys.enable_gpu()
 
 # Parameter input ----------------------------
 vacuum_wavelength = 550

@@ -89,49 +89,57 @@ class LinearSystem:
                              bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
             niS = layer_system.refractive_indices[layer_system.layer_number(particle.position[2])]
             particle.t_matrix = tmt.t_matrix(initial_field.vacuum_wavelength, niS, particle)
-      
+        
+        if coupling_matrix_lookup_resolution is not None:
+            z_list = [particle.position[2] for particle in particle_list]
+            is_list = [layer_system.layer_number(z) for z in z_list]
+            if not is_list.count(is_list[0]) == len(is_list):  # all particles in same layer?
+                warnings.warn("particles are not all in same layer. fall back to direct coupling matrix computation "
+                              "(no lookup)")
+                coupling_matrix_lookup_resolution = None
+            else:  # use lookup
+                z_list = [particle.position[2] for particle in particle_list]
+                if z_list.count(z_list[0]) == len(z_list):  # use radial lookup
+                    if use_gpu:
+                        if interpolator_kind != 'linear' and use_gpu:
+                            warnings.warn(interpolator_kind
+                                        + " interpolator kind is not implemented for CUDA, using 'linear' instead.")
+                        self.coupling_matrix = CouplingMatrixRadialLookupCUDA(
+                            vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
+                            layer_system=layer_system, k_parallel=self.k_parallel,
+                            resolution=coupling_matrix_lookup_resolution, cuda_blocksize=cuda_blocksize)
+                    else:
+                        self.coupling_matrix = CouplingMatrixRadialLookupCPU(
+                            vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
+                            layer_system=layer_system, k_parallel=self.k_parallel,
+                            resolution=coupling_matrix_lookup_resolution, kind=interpolator_kind)
+                else:  #  use volume Slookup
+                    if use_gpu:
+                        if interpolator_kind != 'linear' and use_gpu:
+                            warnings.warn(interpolator_kind
+                                        + " interpolator kind is not implemented for CUDA, using 'linear' instead.")
+                        self.coupling_matrix = CouplingMatrixVolumeLookupCUDA(
+                            vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
+                            layer_system=layer_system, k_parallel=self.k_parallel,
+                            resolution=coupling_matrix_lookup_resolution)
+                    else:
+                        if interpolator_kind == 'linear':
+                            interpolation_order = 1
+                        elif interpolator_kind == 'cubic':
+                            interpolation_order = 3
+                        else:
+                            warnings.warn(interpolator_kind + " interpolator kind is not implemented, using 'linear'.")
+                            interpolation_order = 1
+                        self.coupling_matrix = CouplingMatrixVolumeLookupCPU(
+                            vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
+                            layer_system=layer_system, k_parallel=self.k_parallel,
+                            resolution=coupling_matrix_lookup_resolution, interpolation_order=interpolation_order)
+          
         if coupling_matrix_lookup_resolution is None:
             self.coupling_matrix = CouplingMatrixExplicit(vacuum_wavelength=initial_field.vacuum_wavelength,
                                                           particle_list=particle_list, layer_system=layer_system,
                                                           k_parallel=self.k_parallel)
-        else:
-            z_list = [particle.position[2] for particle in particle_list]
-            if z_list.count(z_list[0]) == len(z_list):
-                if use_gpu:
-                    if interpolator_kind != 'linear' and use_gpu:
-                        warnings.warn(interpolator_kind
-                                      + " interpolator kind is not implemented for CUDA, using 'linear' instead.")
-                    self.coupling_matrix = CouplingMatrixRadialLookupCUDA(
-                        vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
-                        layer_system=layer_system, k_parallel=self.k_parallel,
-                        resolution=coupling_matrix_lookup_resolution, cuda_blocksize=cuda_blocksize)
-                else:
-                    self.coupling_matrix = CouplingMatrixRadialLookupCPU(
-                        vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
-                        layer_system=layer_system, k_parallel=self.k_parallel,
-                        resolution=coupling_matrix_lookup_resolution, kind=interpolator_kind)
-            else:  # volume interpolation
-                if use_gpu:
-                    if interpolator_kind != 'linear' and use_gpu:
-                        warnings.warn(interpolator_kind
-                                      + " interpolator kind is not implemented for CUDA, using 'linear' instead.")
-                    self.coupling_matrix = CouplingMatrixVolumeLookupCUDA(
-                        vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
-                        layer_system=layer_system, k_parallel=self.k_parallel,
-                        resolution=coupling_matrix_lookup_resolution)
-                else:
-                    if interpolator_kind == 'linear':
-                        interpolation_order = 1
-                    elif interpolator_kind == 'cubic':
-                        interpolation_order = 3
-                    else:
-                        warnings.warn(interpolator_kind + " interpolator kind is not implemented, using 'linear'.")
-                        interpolation_order = 1
-                    self.coupling_matrix = CouplingMatrixVolumeLookupCPU(
-                        vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
-                        layer_system=layer_system, k_parallel=self.k_parallel,
-                        resolution=coupling_matrix_lookup_resolution, interpolation_order=interpolation_order)
-          
+        
         self.t_matrix = TMatrix(particle_list=particle_list)
         self.master_matrix = MasterMatrix(t_matrix=self.t_matrix, coupling_matrix=self.coupling_matrix)
       
@@ -548,14 +556,6 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
                               re_lookup_mn_d.gpudata, im_lookup_mn_d.gpudata, re_in_vec_d.gpudata, im_in_vec_d.gpudata,
                               re_result_d.gpudata, im_result_d.gpudata, block=(cuda_blocksize, 1, 1),
                               grid=(cuda_gridsize, 1))
-            
-            rho = 0
-            dz = 0
-            sz = z_array[0]*2
-            dz_i = np.int(np.floor((dz - min(self.diff_z_array))/self.resolution))
-            dz_w = (dz - min(self.diff_z_array))/self.resolution - dz_i
-            sz_i = np.int(np.floor((sz - min(self.sum_z_array))/self.resolution))
-            sz_w = (sz - min(self.sum_z_array))/self.resolution - sz_i
             return re_result_d.get() + 1j * im_result_d.get()
 
         self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=self.shape, matvec=matvec, dtype=complex)

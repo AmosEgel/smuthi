@@ -60,8 +60,7 @@ coefficients_lookup = particle_list[0].scattered_field.coefficients
 simulation_direct.run()
 coefficients_direct = particle_list[0].scattered_field.coefficients
 
-test_vec = np.arange(simulation_lookup.linear_system.master_matrix.shape[0])
-test_vec[0] = 1
+test_vec = np.ones(simulation_lookup.linear_system.master_matrix.shape)
 M_lookup_test_vec = simulation_lookup.linear_system.coupling_matrix.linear_operator(test_vec)
 M_direct_test_vec = simulation_direct.linear_system.coupling_matrix.linear_operator(test_vec)
 
@@ -69,7 +68,7 @@ M_direct_test_vec = simulation_direct.linear_system.coupling_matrix.linear_opera
 def test_linear_operator():
     relerr = np.linalg.norm(M_lookup_test_vec - M_direct_test_vec) / np.linalg.norm(M_direct_test_vec)
     print('relative error linear operator: ', relerr)
-    assert relerr < 5e-4
+    assert relerr < 5e-3
             
 def test_result():
     relerr = np.linalg.norm(coefficients_lookup - coefficients_direct) / np.linalg.norm(coefficients_direct)
