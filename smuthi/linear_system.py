@@ -486,9 +486,8 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
             coupling_source = cu.linear_radial_lookup_source%(self.blocksize, self.shape[0], 
                                                               self.radial_distance_array.min(), resolution)
         elif interpolator_kind == 'cubic':
-            warnings.warn(interpolator_kind + ' interpolation not implemented. Use "linear" instead')
-            coupling_source = cu.linear_radial_lookup_source%(self.blocksize, self.shape[0], 
-                                                              self.radial_distance_array.min(), resolution)
+            coupling_source = cu.cubic_radial_lookup_source%(self.blocksize, self.shape[0], 
+                                                             self.radial_distance_array.min(), resolution)
             
         coupling_function = SourceModule(coupling_source).get_function("coupling_kernel") 
           

@@ -385,6 +385,88 @@ linear_radial_lookup_source = """
     }"""
 
 
+# This cuda kernel multiplies the coupling matrix to a vector. It is based on cubic Hermite spline interpolation of the 
+# lookup table.
+#
+# input arguments of the cuda kernel:
+# n (np.uint32):  n[i] contains the mutlipole multi-index with regard to self.l_max and self.m_max of the i-th
+#                 entry of a system vector
+# m (np.float32): m[i] contains the multipole order with regard to particle.l_max and particle.m_max
+# x_pos (np.float32): x_pos[i] contains the respective particle x-position
+# y_pos (np.float32): y_pos[i] contains the respective particle y-position
+# re_lookup (np.float32): the real part of the lookup table, in the format [r, n1, n2]
+# im_lookup (np.float32): the imaginary part of the lookup table, in the format [r, n1, n2]
+# re_in_vec (np.float32): the real part of the vector to be multiplied with the coupling matrix
+# im_in_vec (np.float32): the imaginary part of the vector to be multiplied with the coupling matrix
+# re_result_vec (np.float32): the real part of the vector into which the result is written
+# im_result_vec (np.float32): the imaginary part of the vector into which the result is written
+cubic_radial_lookup_source = """
+    #define BLOCKSIZE %i
+    #define NUMBER_OF_UNKNOWNS %i
+    #define MIN_RHO %f
+    #define LOOKUP_RESOLUTION %f
+    
+    __device__ float cubic_interpolation(float const w, float const lookup_imn1, float const lookup_i,
+                                         float const lookup_ipl1, float const lookup_ipl2)
+    {
+        return ((-w*w*w+2*w*w-w) * lookup_imn1 + (3*w*w*w-5*w*w+2) * lookup_i + (-3*w*w*w+4*w*w+w) * lookup_ipl1
+                + (w*w*w-w*w) * lookup_ipl2) / 2;
+    }
+
+    
+    __global__ void coupling_kernel(const int *n, const float *m, const float *x_pos, const float *y_pos,
+                                    const float *re_lookup, const float *im_lookup, const float *re_in_vec,
+                                    const float *im_in_vec, float  *re_result, float  *im_result)
+    {
+        unsigned int i1 = blockIdx.x * blockDim.x + threadIdx.x;
+        if(i1 >= NUMBER_OF_UNKNOWNS) return;
+        
+        const float x1 = x_pos[i1];
+        const float y1 = y_pos[i1];
+        
+        const int n1 = n[i1];
+        const float m1 = m[i1];
+
+        re_result[i1] = 0.0;
+        im_result[i1] = 0.0;
+        
+        for (int i2=0; i2<NUMBER_OF_UNKNOWNS; i2++)
+        {
+            float x21 = x1 - x_pos[i2];
+            float y21 = y1 - y_pos[i2];
+            
+            const int n2 = n[i2];
+            const float m2 = m[i2];
+            
+            float r = sqrt(x21*x21+y21*y21);
+            float phi = atan2(y21,x21);
+        
+            int r_idx = (int) floor((r - MIN_RHO) / LOOKUP_RESOLUTION);
+            float w = (r - MIN_RHO) / LOOKUP_RESOLUTION - floor((r - MIN_RHO) / LOOKUP_RESOLUTION);
+            
+            int idx_mn1 = (r_idx - 1) * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
+            int idx = r_idx * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
+            int idx_pl1 = (r_idx + 1) * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
+            int idx_pl2 = (r_idx + 2) * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
+            
+            float re_si = cubic_interpolation(w, re_lookup[idx_mn1], re_lookup[idx], re_lookup[idx_pl1], 
+                                              re_lookup[idx_pl2]);
+            float im_si = cubic_interpolation(w, im_lookup[idx_mn1], im_lookup[idx], im_lookup[idx_pl1], 
+                                              im_lookup[idx_pl2]);                                                
+
+            float re_eimphi = cosf((m2 - m1) * phi);
+            float im_eimphi = sinf((m2 - m1) * phi);
+        
+            float re_w = re_eimphi * re_si - im_eimphi * im_si;
+            float im_w = im_eimphi * re_si + re_eimphi * im_si;
+            
+            re_result[i1] += re_w * re_in_vec[i2] - im_w * im_in_vec[i2];
+            im_result[i1] += re_w * im_in_vec[i2] + im_w * re_in_vec[i2];
+        }
+    }"""
+
+
+# This cuda kernel is used for the calculation of volume lookup tables (see smuthi.particle_coupling module).
 volume_lookup_assembly_code = """
     #define BLOCKSIZE %i
     #define RHO_ARRAY_LENGTH %i

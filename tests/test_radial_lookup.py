@@ -22,15 +22,15 @@ beam_waist = 1000
 beam_focal_point = [200, 200, 200]
 neff_waypoints = [0, 0.5, 0.8-0.01j, 2-0.01j, 2.5, 5]
 neff_discr = 1e-2
-lookup_resol = 1
+lookup_resol = 5
 # --------------------------------------------
 
 coord.set_default_k_parallel(vacuum_wavelength, neff_waypoints, neff_discr)
 
 # initialize particle object
-sphere1 = part.Sphere(position=[0, 0, 150], refractive_index=2.4 + 0.0j, radius=40, l_max=3, m_max=3)
-sphere2 = part.Sphere(position=[102, 0, 150], refractive_index=1.9 + 0.0j, radius=40, l_max=3, m_max=2)
-sphere3 = part.Sphere(position=[202, 100, 150], refractive_index=1.7 + 0.0j, radius=40, l_max=3, m_max=3)
+sphere1 = part.Sphere(position=[0, 0, 150], refractive_index=2.4 + 0.1j, radius=100, l_max=3, m_max=3)
+sphere2 = part.Sphere(position=[102, -100, 150], refractive_index=1.9 + 0.2j, radius=80, l_max=3, m_max=2)
+sphere3 = part.Sphere(position=[202, 100, 150], refractive_index=1.7 + 0.0j, radius=90, l_max=3, m_max=3)
 particle_list = [sphere1, sphere2, sphere3]
 
 # initialize layer system object
@@ -66,6 +66,13 @@ simulation_lookup_linear_gpu = simul.Simulation(layer_system=lay_sys, particle_l
 simulation_lookup_linear_gpu.run()
 coefficients_lookup_linear_gpu = particle_list[0].scattered_field.coefficients
 
+simulation_lookup_cubic_gpu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, 
+                                               initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
+                                               coupling_matrix_lookup_resolution=lookup_resol, 
+                                               coupling_matrix_interpolator_kind='cubic')
+simulation_lookup_cubic_gpu.run()
+coefficients_lookup_cubic_gpu = particle_list[0].scattered_field.coefficients
+
 cu.enable_gpu(False)
 simulation_lookup_linear_cpu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, 
                                                 initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
@@ -86,12 +93,13 @@ M_direct_test_vec = simulation_direct.linear_system.coupling_matrix.linear_opera
 M_linear_cpu_test_vec = simulation_lookup_linear_cpu.linear_system.coupling_matrix.linear_operator(test_vec)
 M_cubic_cpu_test_vec = simulation_lookup_cubic_cpu.linear_system.coupling_matrix.linear_operator(test_vec)
 M_linear_gpu_test_vec = simulation_lookup_linear_gpu.linear_system.coupling_matrix.linear_operator(test_vec)
+M_cubic_gpu_test_vec = simulation_lookup_cubic_gpu.linear_system.coupling_matrix.linear_operator(test_vec)
 
 
 def test_linear_operator():
     relerr = np.linalg.norm(M_linear_cpu_test_vec - M_direct_test_vec) / np.linalg.norm(M_direct_test_vec)
     print('relative error linear operator linear interpoloation CPU: ', relerr)
-    assert relerr < 5e-4
+    assert relerr < 1e-2
     
     relerr = np.linalg.norm(M_cubic_cpu_test_vec - M_direct_test_vec) / np.linalg.norm(M_direct_test_vec)
     print('relative error linear operator cubic interpoloation CPU: ', relerr)
@@ -99,7 +107,11 @@ def test_linear_operator():
     
     relerr = np.linalg.norm(M_linear_gpu_test_vec - M_direct_test_vec) / np.linalg.norm(M_direct_test_vec)
     print('relative error linear operator linear interpoloation GPU: ', relerr)
-    assert relerr < 5e-4
+    assert relerr < 1e-2
+    
+    relerr = np.linalg.norm(M_cubic_gpu_test_vec - M_direct_test_vec) / np.linalg.norm(M_direct_test_vec)
+    print('relative error linear operator cubic interpoloation GPU: ', relerr)
+    assert relerr < 5e-4    
             
 def test_result():
     relerr = np.linalg.norm(coefficients_lookup_linear_cpu - coefficients_direct) / np.linalg.norm(coefficients_direct)
@@ -113,6 +125,10 @@ def test_result():
     relerr = np.linalg.norm(coefficients_lookup_linear_gpu - coefficients_direct) / np.linalg.norm(coefficients_direct)
     print('relative error coefficient solution linear interpolation GPU: ', relerr)
     assert relerr < 5e-4
+    
+    relerr = np.linalg.norm(coefficients_lookup_cubic_gpu - coefficients_direct) / np.linalg.norm(coefficients_direct)
+    print('relative error coefficient solution cubic interpolation GPU: ', relerr)
+    assert relerr < 5e-4    
     
 if __name__ == '__main__':
     test_linear_operator()
