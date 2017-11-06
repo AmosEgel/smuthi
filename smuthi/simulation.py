@@ -27,6 +27,7 @@ class Simulation:
                                                            a lookup table with that spacial resolution. If None
                                                            (default), don't use a lookup table but compute the coupling
                                                            directly. This is more suitable for a small particle number.
+        coupling_matrix_interpolator_kind (str):  Set to 'linear' (default) or 'cubic' interpolation of the lookup table.
         store_coupling_matrix (bool):           If True (default), the coupling matrix is stored. Otherwise it is
                                                 recomputed on the fly during each iteration of the solver.
         length_unit (str):      what is the physical length unit? has no influence on the computations
@@ -37,8 +38,8 @@ class Simulation:
 
     def __init__(self, layer_system=None, particle_list=None, initial_field=None, post_processing=None,
                  k_parallel='default', solver_type='LU', store_coupling_matrix=True,
-                 coupling_matrix_lookup_resolution=None, length_unit='length unit', input_file=None,
-                 output_dir='smuthi_output', save_after_run=False):
+                 coupling_matrix_lookup_resolution=None, coupling_matrix_interpolator_kind='linear',
+                 length_unit='length unit', input_file=None, output_dir='smuthi_output', save_after_run=False):
 
         # initialize attributes
         self.layer_system = layer_system
@@ -48,6 +49,7 @@ class Simulation:
         self.solver_type = solver_type
         self.store_coupling_matrix = store_coupling_matrix
         self.coupling_matrix_lookup_resolution = coupling_matrix_lookup_resolution
+        self.coupling_matrix_interpolator_kind = coupling_matrix_interpolator_kind
         self.post_processing = post_processing
         self.length_unit = length_unit
         self.save_after_run = save_after_run
@@ -79,13 +81,15 @@ class Simulation:
 
     def run(self):
         """Start the simulation."""
-        print(welcome_message())
+        sys.stdout.write(welcome_message())
+        sys.stdout.flush()
 
         self.linear_system = lsys.LinearSystem(particle_list=self.particle_list, initial_field=self.initial_field,
                                                layer_system=self.layer_system, k_parallel=self.k_parallel,
                                                solver_type=self.solver_type,
                                                store_coupling_matrix=self.store_coupling_matrix,
-                                               coupling_matrix_lookup_resolution=self.coupling_matrix_lookup_resolution)
+                                               coupling_matrix_lookup_resolution=self.coupling_matrix_lookup_resolution,
+                                               interpolator_kind=self.coupling_matrix_interpolator_kind)
         self.linear_system.solve()
 
         # post processing
@@ -94,7 +98,10 @@ class Simulation:
             
         if self.save_after_run:
             self.save(self.output_dir + '/simulation.p')
-
+        
+        sys.stdout.write('\n')
+        sys.stdout.flush()
+            
         plt.show()
 
 

@@ -8,8 +8,8 @@ import smuthi.simulation as simul
 import smuthi.particle_coupling as coup
 import smuthi.field_expansion as fldex
 import smuthi.linear_system as linsys
+import smuthi.cuda_sources as cu
 
-linsys.enable_gpu()
 
 # Parameter input ----------------------------
 vacuum_wavelength = 550
@@ -36,8 +36,6 @@ particle_list = [sphere1, sphere2, sphere3]
 # initialize layer system object
 lay_sys = lay.LayerSystem([0, 400, 0], [1.5, 2 + 0.01j, 1])
 
-lookup = coup.radial_coupling_lookup(vacuum_wavelength, particle_list, lay_sys, resolution=lookup_resol)
-
 phi12 = np.arctan2(sphere1.position[1] - sphere2.position[1], sphere1.position[0] - sphere2.position[0])
 rho12 = np.sqrt(sum([(sphere1.position[i]-sphere2.position[i])**2 for i in range(3)]))
 wr12 = coup.layer_mediated_coupling_block(vacuum_wavelength, sphere1, sphere2, lay_sys)
@@ -57,68 +55,65 @@ init_fld = init.GaussianBeam(vacuum_wavelength=vacuum_wavelength, polar_angle=be
 # initialize simulation object
 simulation_direct = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
                                     solver_type='LU', store_coupling_matrix=True)
-
-simulation_lookup = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                                     solver_type='gmres', store_coupling_matrix=False,
-                                     coupling_matrix_lookup_resolution=lookup_resol)
-simulation_lookup.run()
-coefficients_lookup = particle_list[0].scattered_field.coefficients
 simulation_direct.run()
 coefficients_direct = particle_list[0].scattered_field.coefficients
 
-test_vec = np.arange(simulation_lookup.linear_system.master_matrix.shape[0])
-test_vec[0] = 1
-M_lookup_test_vec = simulation_lookup.linear_system.coupling_matrix.linear_operator(test_vec)
+cu.enable_gpu()
+simulation_lookup_linear_gpu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, 
+                                                initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
+                                                coupling_matrix_lookup_resolution=lookup_resol, 
+                                                coupling_matrix_interpolator_kind='linear')
+simulation_lookup_linear_gpu.run()
+coefficients_lookup_linear_gpu = particle_list[0].scattered_field.coefficients
+
+cu.enable_gpu(False)
+simulation_lookup_linear_cpu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, 
+                                                initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
+                                                coupling_matrix_lookup_resolution=lookup_resol, 
+                                                coupling_matrix_interpolator_kind='linear')
+simulation_lookup_linear_cpu.run()
+coefficients_lookup_linear_cpu = particle_list[0].scattered_field.coefficients
+
+simulation_lookup_cubic_cpu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, 
+                                                initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
+                                                coupling_matrix_lookup_resolution=lookup_resol, 
+                                                coupling_matrix_interpolator_kind='cubic')
+simulation_lookup_cubic_cpu.run()
+coefficients_lookup_cubic_cpu = particle_list[0].scattered_field.coefficients
+
+test_vec = np.arange(simulation_lookup_linear_cpu.linear_system.master_matrix.shape[0])
 M_direct_test_vec = simulation_direct.linear_system.coupling_matrix.linear_operator(test_vec)
+M_linear_cpu_test_vec = simulation_lookup_linear_cpu.linear_system.coupling_matrix.linear_operator(test_vec)
+M_cubic_cpu_test_vec = simulation_lookup_cubic_cpu.linear_system.coupling_matrix.linear_operator(test_vec)
+M_linear_gpu_test_vec = simulation_lookup_linear_gpu.linear_system.coupling_matrix.linear_operator(test_vec)
 
-
-def test_lookup():
-    
-    tau1 = 0
-    l1 = 3
-    m1 = -1
-    n1_look = fldex.multi_to_single_index(tau1, l1, m1, simulation_lookup.linear_system.coupling_matrix.l_max, 
-                                          simulation_lookup.linear_system.coupling_matrix.m_max)
-    n1 = fldex.multi_to_single_index(tau1, l1, m1, sphere1.l_max, sphere1.m_max)
-    
-    tau2 =1
-    l2 = 2
-    m2 = 2
-    n2_look = fldex.multi_to_single_index(tau2, l2, m2, simulation_lookup.linear_system.coupling_matrix.l_max, 
-                                          simulation_lookup.linear_system.coupling_matrix.m_max)
-    n2 = fldex.multi_to_single_index(tau2, l2, m2, sphere2.l_max, sphere2.m_max)
-    
-    tau3 =0
-    l3 = 3
-    m3 = 3
-    n3_look = fldex.multi_to_single_index(tau3, l3, m3, simulation_lookup.linear_system.coupling_matrix.l_max, 
-                                          simulation_lookup.linear_system.coupling_matrix.m_max)
-    n3 = fldex.multi_to_single_index(tau3, l3, m3, sphere3.l_max, sphere3.m_max)
-    
-    wl12 = lookup[n1_look][n2_look](rho12) * np.exp(1j * (m2 - m1) * phi12)
-    wd12 = w12[n1, n2] + wr12[n1, n2]
-    relerr12 = abs(wl12 - wd12) / abs(wl12)
-    print('relative error w12 ', relerr12)
-    assert relerr12 < 5e-4
-        
-    wl13 = lookup[n1_look][n3_look](rho13) * np.exp(1j * (m3 - m1) * phi13)
-    wd13 = w13[n1, n3] + wr13[n1, n3]
-    relerr13 = abs(wl13 - wd13) / abs(wl13)
-    print('relative error w13 ', relerr13)
-    assert relerr13 < 5e-4
-    
 
 def test_linear_operator():
-    relerr = np.linalg.norm(M_lookup_test_vec - M_direct_test_vec) / np.linalg.norm(M_direct_test_vec)
-    print('relative error linear operator: ', relerr)
+    relerr = np.linalg.norm(M_linear_cpu_test_vec - M_direct_test_vec) / np.linalg.norm(M_direct_test_vec)
+    print('relative error linear operator linear interpoloation CPU: ', relerr)
+    assert relerr < 5e-4
+    
+    relerr = np.linalg.norm(M_cubic_cpu_test_vec - M_direct_test_vec) / np.linalg.norm(M_direct_test_vec)
+    print('relative error linear operator cubic interpoloation CPU: ', relerr)
+    assert relerr < 5e-4
+    
+    relerr = np.linalg.norm(M_linear_gpu_test_vec - M_direct_test_vec) / np.linalg.norm(M_direct_test_vec)
+    print('relative error linear operator linear interpoloation GPU: ', relerr)
     assert relerr < 5e-4
             
 def test_result():
-    relerr = np.linalg.norm(coefficients_lookup - coefficients_direct) / np.linalg.norm(coefficients_direct)
-    print('relative error coefficient solution: ', relerr)
+    relerr = np.linalg.norm(coefficients_lookup_linear_cpu - coefficients_direct) / np.linalg.norm(coefficients_direct)
+    print('relative error coefficient solution linear interpolation CPU: ', relerr)
+    assert relerr < 5e-4
+    
+    relerr = np.linalg.norm(coefficients_lookup_cubic_cpu - coefficients_direct) / np.linalg.norm(coefficients_direct)
+    print('relative error coefficient solution cubic interpolation CPU: ', relerr)
+    assert relerr < 5e-4
+    
+    relerr = np.linalg.norm(coefficients_lookup_linear_gpu - coefficients_direct) / np.linalg.norm(coefficients_direct)
+    print('relative error coefficient solution linear interpolation GPU: ', relerr)
     assert relerr < 5e-4
     
 if __name__ == '__main__':
-    test_lookup()
     test_linear_operator()
     test_result()

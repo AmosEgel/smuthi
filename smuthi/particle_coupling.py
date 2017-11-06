@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Provide routines for multiple scattering."""
+"""Routines for multiple scattering. The first half of the module contains functions to explicitly compute the 
+coupling matrix entries. The second half of the module contains functions for the preparation of lookup tables that 
+are used to approximate the coupling matrices by interoplation."""
 
 import numpy as np
 import scipy.special
@@ -9,6 +11,7 @@ import smuthi.layers as lay
 import smuthi.spherical_functions as sf
 import smuthi.field_expansion as fldex
 import smuthi.vector_wave_functions as vwf
+import smuthi.cuda_sources as cu
 import matplotlib.pyplot as plt
 import sys
 from tqdm import tqdm
@@ -18,9 +21,8 @@ try:
     from pycuda import gpuarray
     from pycuda.compiler import SourceModule
     import pycuda.cumath
-    pycuda_available = True
 except:
-    pycuda_available = False
+    pass
 
 
 def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emitting_particle, layer_system,
@@ -280,8 +282,34 @@ def direct_coupling_matrix(vacuum_wavelength, particle_list, layer_system):
     return w
 
 
+
+
 def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system, k_parallel='default', 
                                      resolution=None):
+    """Prepare Sommerfeld integral lookup table to allow for a fast calculation of the coupling matrix by interpolation.
+    This function is called when not all particles are on the same z-position.
+    
+    Args:
+        vacuum_wavelength (float):  Vacuum wavelength in length units
+        particle_list (list):       List of particle objects
+        layer_system (smuthi.layers.LayerSystem):    Stratified medium
+        k_parallel (numpy.ndarray or str):           In-plane wavenumber for Sommerfeld integrals.
+                                                     If 'default', smuthi.coordinates.default_k_parallel
+        resolution (float): Spatial resolution of lookup table in length units. (default: vacuum_wavelength / 100)        
+                            Smaller means more accurate but higher memory footprint 
+                            
+    Returns:
+        (tuple): tuple containing:
+
+            w_pl (ndarray):  Coupling lookup for z1 + z2, indices are [rho, z, n1, n2]. Includes layer mediated coupling.
+            w_mn (ndarray):  Coupling lookup for z1 + z2, indices are [rho, z, n1, n2]. Includes layer mediated and 
+                             direct coupling.
+            rho_array (ndarray):    Values for the radial distance considered for the lookup (starting from negative 
+                                    numbers to allow for simpler cubic interpolation without distinction of cases 
+                                    for lookup edges
+            sz_array (ndarray):     Values for the sum of z-coordinates (z1 + z2) considered for the lookup
+            dz_array (ndarray):     Values for the difference of z-coordinates (z1 - z2) considered for the lookup 
+    """
     
     sys.stdout.write('Prepare 3D particle coupling lookup:\n')
     sys.stdout.flush()
@@ -314,9 +342,9 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     sz_min = 2 * particle_z_array.min()
     sz_max = 2 * particle_z_array.max()
     
-    rho_array = np.arange(0, particle_rho_array.max() + 3 * resolution, resolution)
-    sz_array = np.arange(sz_min, sz_max + 3 * resolution, resolution)
-    dz_array = np.arange(dz_min, dz_max + 3 * resolution, resolution)
+    rho_array = np.arange(- 3 * resolution, particle_rho_array.max() + 3 * resolution, resolution)
+    sz_array = np.arange(sz_min - 3 * resolution, sz_max + 3 * resolution, resolution)
+    dz_array = np.arange(dz_min - 3 * resolution, dz_max + 3 * resolution, resolution)
     
     len_rho = len(rho_array)
     len_sz = len(sz_array)
@@ -418,6 +446,16 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     wr_mn = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=complex)
     
     dkp = np.diff(k_parallel)
+    if cu.use_gpu:
+        re_dkp_d = gpuarray.to_gpu(np.float32(dkp.real))
+        im_dkp_d = gpuarray.to_gpu(np.float32(dkp.imag))
+        kernel_source_code = cu.volume_lookup_assembly_code %(blocksize, len_rho, len_sz, len_kp)
+        helper_function = SourceModule(kernel_source_code).get_function("helper")
+        cuda_blocksize = 128
+        cuda_gridsize = (len_rho * len_sz + cuda_blocksize - 1) // cuda_blocksize
+    
+        re_dwr_d = gpuarray.to_gpu(np.zeros((len_rho, len_sz), dtype=np.float32))
+        im_dwr_d = gpuarray.to_gpu(np.zeros((len_rho, len_sz), dtype=np.float32))
     
     for n1 in tqdm(range(blocksize), desc='Layer mediated coupling   ', file=sys.stdout,
                    bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
@@ -433,253 +471,58 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
                 belbee_mn += ((L[pol, 0, 0, :] * B_dag[pol, 0, n1, :] * B[pol, 0, n2, :])[None, :] * epljkdz
                               + (L[pol, 1, 1, :] * B_dag[pol, 1, n1, :] * B[pol, 1, n2, :])[None, :] * emnjkdz)
             
-            integrand = besjac[:, None, :] * belbee_pl[None, :, :] 
-            wr_pl[:, :, n1, n2] = 2 * (1j)**abs(m2 - m1) * ((integrand[:, :, :-1] + integrand[:, :, 1:]) 
-                                                            * dkp[None, None, :]).sum(axis=-1) 
-            
-            integrand = besjac[:, None, :] * belbee_mn[None, :, :]
-            wr_mn[:, :, n1, n2] = 2 * (1j)**abs(m2 - m1) * ((integrand[:, :, :-1] + integrand[:, :, 1:])
-                                                            * dkp[None, None, :]).sum(axis=-1)
-            
-    return wr_pl, w + wr_mn, rho_array, sz_array, dz_array
-
-
-def volumetric_coupling_lookup_table_cuda(vacuum_wavelength, particle_list, layer_system, k_parallel='default', 
-                                          resolution=None):
-    
-    sys.stdout.write('Prepare 3D particle coupling lookup:\n')
-    sys.stdout.flush()
-   
-    if resolution is None:
-        resolution = vacuum_wavelength / 100
-        sys.stdout.write('Setting lookup resolution to %f\n'%resolution)
-        sys.stdout.flush()
-
-    l_max = max([particle.l_max for particle in particle_list])
-    m_max = max([particle.m_max for particle in particle_list])
-    blocksize = fldex.blocksize(l_max, m_max)
-    m_list = [None for i in range(blocksize)]
-    l_list = [None for i in range(blocksize)]
-    tau_list = [None for i in range(blocksize)]
-    for m in range(-m_max, m_max + 1):
-        for l in range(max(1, abs(m)), l_max + 1):
-            for tau in range(2):
-                n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
-                m_list[n] = m
-    
-    particle_x_array = np.array([particle.position[0] for particle in particle_list])
-    particle_y_array = np.array([particle.position[1] for particle in particle_list])
-    particle_z_array = np.array([particle.position[2] for particle in particle_list])
-    particle_rho_array = np.sqrt((particle_x_array[:, None] - particle_x_array[None, :]) ** 2 
-                                 + (particle_y_array[:, None] - particle_y_array[None, :]) ** 2)
-    
-    dz_min = particle_z_array.min() - particle_z_array.max()
-    dz_max = particle_z_array.max() - particle_z_array.min()
-    sz_min = 2 * particle_z_array.min()
-    sz_max = 2 * particle_z_array.max()
-    
-    rho_array = np.arange(0, particle_rho_array.max() + 3 * resolution, resolution)
-    sz_array = np.arange(sz_min, sz_max + 3 * resolution, resolution)
-    dz_array = np.arange(dz_min, dz_max + 3 * resolution, resolution)
-    
-    len_rho = len(rho_array)
-    len_sz = len(sz_array)
-    len_dz = len(dz_array)
-    assert len_sz == len_dz
-    
-    i_s = layer_system.layer_number(particle_list[0].position[2])
-    k_is = layer_system.wavenumber(i_s, vacuum_wavelength)
-    z_is = layer_system.reference_z(i_s)
-    
-    # direct -----------------------------------------------------------------------------------------------------------
-    w = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=complex)
-    
-    r_array = np.sqrt(dz_array[None, :]**2 + rho_array[:, None]**2)
-    r_array[r_array==0] = 1e-20
-    ct = dz_array[None, :] / r_array
-    st = rho_array[:, None] / r_array
-    legendre, _, _ = sf.legendre_normalized(ct, st, 2 * l_max)
-    
-    bessel_h = []
-    for dm in tqdm(range(2 * l_max + 1), desc='Spherical Hankel lookup   ', file=sys.stdout,
-                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
-        bessel_h.append(sf.spherical_hankel(dm, k_is * r_array))
-    
-    for m1 in tqdm(range(-l_max, l_max + 1), desc='Direct coupling           ', file=sys.stdout,
-                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
-        for m2 in range(-l_max, l_max + 1):
-            for l1 in range(max(1, abs(m1)), l_max + 1):
-                for l2 in range(max(1, abs(m2)), l_max + 1):
-                    A = np.zeros((len_rho, len_dz), dtype=complex)
-                    B = np.zeros((len_rho, len_dz), dtype=complex)
-                    for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
-                        a5, b5 = vwf.ab5_coefficients(l2, m2, l1, m1, ld)    # remember that w = A.T
-                        A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]   # remember that w = A.T
-                        B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]   # remember that w = A.T
-                    for tau1 in range(2):
-                        n1 = fldex.multi_to_single_index(tau1, l1, m1, l_max, m_max)
-                        for tau2 in range(2):
-                            n2 = fldex.multi_to_single_index(tau2, l2, m2, l_max, m_max)
-                            if tau1 == tau2:
-                                w[:, :, n1, n2] = A
-                            else:
-                                w[:, :, n1, n2] = B
-
-    # switch off direct coupling contribution near rho=0:
-    w[rho_array < particle_rho_array[~np.eye(particle_rho_array.shape[0],dtype=bool)].min() / 2, :, :, :] = 0  
-
-    # layer mediated ---------------------------------------------------------------------------------------------------
-    sys.stdout.write('Layer mediated coupling   : ...')
-    sys.stdout.flush()
-    if type(k_parallel) == str and k_parallel == 'default':
-        k_parallel = coord.default_k_parallel
-    kz_is = coord.k_z(k_parallel=k_parallel, k=k_is)
-    len_kp = len(k_parallel)
-
-    # phase factors
-    epljksz = np.exp(1j * kz_is[None, :] * (sz_array[:, None] - 2 * z_is))  # z, k
-    emnjksz = np.exp(- 1j * kz_is[None, :] * (sz_array[:, None] - 2 * z_is))
-    epljkdz = np.exp(1j * kz_is[None, :] * dz_array[:, None])
-    emnjkdz = np.exp(- 1j * kz_is[None, :] * dz_array[:, None])
-       
-    # layer response
-    L = np.zeros((2, 2, 2, len_kp), dtype=complex)  # pol, pl/mn1, pl/mn2, kp
-    for pol in range(2):
-        L[pol, :, :, :] = lay.layersystem_response_matrix(pol, layer_system.thicknesses,
-                                                          layer_system.refractive_indices, k_parallel,
-                                                          coord.angular_frequency(vacuum_wavelength), i_s, i_s)
-   
-    # transformation coefficients
-    B_dag = np.zeros((2, 2, blocksize, len_kp), dtype=complex)  # pol, pl/mn, n, kp
-    B = np.zeros((2, 2, blocksize, len_kp), dtype=complex)  # pol, pl/mn, n, kp
-    ct_k = kz_is / k_is
-    st_k = k_parallel / k_is
-    _, pilm_pl, taulm_pl = sf.legendre_normalized(ct_k, st_k, l_max)
-    _, pilm_mn, taulm_mn = sf.legendre_normalized(-ct_k, st_k, l_max)
-    for tau in range(2):
-        for m in range(-m_max, m_max + 1):
-            for l in range(max(1, abs(m)), l_max + 1):
-                n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
-                for pol in range(2):
-                    B_dag[pol, 0, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
-                                                                                    taulm_list=taulm_pl, dagger=True)
-                    B_dag[pol, 1, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
-                                                                                    taulm_list=taulm_mn, dagger=True)
-                    B[pol, 0, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
-                                                                             taulm_list=taulm_pl, dagger=False)
-                    B[pol, 1, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
-                                                                             taulm_list=taulm_mn, dagger=False)
-                   
-    # bessel function and jacobi factor
-    bessel_list = []
-    for dm in tqdm(range(2 * l_max + 1), desc='Bessel function lookup    ', file=sys.stdout,
-                bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
-        bessel_list.append(scipy.special.jv(dm, k_parallel[None, :] * rho_array[:, None]))
-
-    bessel_jacobi = [bessel_list[dm] * (k_parallel / (kz_is * k_is))[None, :] for dm in range(2*l_max+1)]
-    
-    wr_pl = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=complex)
-    wr_mn = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=complex)
-    
-    dkp = np.diff(k_parallel)
-    re_dkp_d = gpuarray.to_gpu(np.float32(dkp.real))
-    im_dkp_d = gpuarray.to_gpu(np.float32(dkp.imag))
-    
-    kernel_source_code = """
-        #define BLOCKSIZE %i
-        #define RHO_ARRAY_LENGTH %i
-        #define Z_ARRAY_LENGTH %i
-        #define K_ARRAY_LENGTH %i
-        
-        __global__ void helper(const float *re_bes_jac, const float *im_bes_jac, const float *re_belbee, 
-                               const float *im_belbee, const float *re_d_kappa, const float *im_d_kappa, 
-                               float *re_result, float  *im_result)
-        {
-            unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-            if(i >= RHO_ARRAY_LENGTH * Z_ARRAY_LENGTH) return;
-            
-            unsigned int i_rho = i / Z_ARRAY_LENGTH;
-            unsigned int i_z = i %% Z_ARRAY_LENGTH; 
-            
-            float re_res = 0.0;
-            float im_res = 0.0;
-            
-            int i_kr = i_rho * K_ARRAY_LENGTH;
-            int i_kz = i_z * K_ARRAY_LENGTH;
-
-            float re_integrand_kp1 = re_bes_jac[i_kr] * re_belbee[i_kz] - im_bes_jac[i_kr] * im_belbee[i_kz];
-            float im_integrand_kp1 = re_bes_jac[i_kr] * im_belbee[i_kz] + im_bes_jac[i_kr] * re_belbee[i_kz];
-
-            re_result[i] = re_integrand_kp1;
-            im_result[i] = im_integrand_kp1;
-            
-            for (int i_k=0; i_k<(K_ARRAY_LENGTH-1); i_k++)
-            {
-                i_kr = i_rho * K_ARRAY_LENGTH + i_k;
-                i_kz = i_z * K_ARRAY_LENGTH + i_k;
-
-                float re_integrand = re_integrand_kp1;
-                float im_integrand = im_integrand_kp1;
-
-                re_integrand_kp1 = re_bes_jac[i_kr+1] * re_belbee[i_kz+1] - im_bes_jac[i_kr+1] * im_belbee[i_kz+1];
-                im_integrand_kp1 = re_bes_jac[i_kr+1] * im_belbee[i_kz+1] + im_bes_jac[i_kr+1] * re_belbee[i_kz+1];
+            if cu.use_gpu:
+                re_belbee_pl_d = gpuarray.to_gpu(np.float32(belbee_pl[None, :, :].real))
+                im_belbee_pl_d = gpuarray.to_gpu(np.float32(belbee_pl[None, :, :].imag))
+                re_belbee_mn_d = gpuarray.to_gpu(np.float32(belbee_mn[None, :, :].real))
+                im_belbee_mn_d = gpuarray.to_gpu(np.float32(belbee_mn[None, :, :].imag))
                 
-                float re_sint = re_integrand + re_integrand_kp1;
-                float im_sint = im_integrand + im_integrand_kp1;
+                re_besjac_d = gpuarray.to_gpu(np.float32(besjac[:, None, :].real))
+                im_besjac_d = gpuarray.to_gpu(np.float32(besjac[:, None, :].imag))
+            
+                helper_function(re_besjac_d.gpudata, im_besjac_d.gpudata, re_belbee_pl_d.gpudata,
+                                im_belbee_pl_d.gpudata, re_dkp_d.gpudata, im_dkp_d.gpudata, re_dwr_d.gpudata, 
+                                im_dwr_d.gpudata, block=(cuda_blocksize, 1, 1), grid=(cuda_gridsize, 1))
+                wr_pl[:, :, n1, n2] = 4 * (1j)**abs(m2 - m1) * (re_dwr_d.get() + 1j * im_dwr_d.get()) 
                 
-                re_res += 0.5 * (re_sint * re_d_kappa[i_k] - im_sint * im_d_kappa[i_k]);
-                im_res += 0.5 * (re_sint * im_d_kappa[i_k] + im_sint * re_d_kappa[i_k]);
-            }
-            
-            re_result[i] = re_res;
-            im_result[i] = im_res;
-            
-        }""" %(blocksize, len_rho, len_sz, len_kp)
-        
-    helper_function = SourceModule(kernel_source_code).get_function("helper")
-    cuda_blocksize = 128
-    cuda_gridsize = (len_rho * len_sz + cuda_blocksize - 1) // cuda_blocksize
-    
-    re_dwr_d = gpuarray.to_gpu(np.zeros((len_rho, len_sz), dtype=np.float32))
-    im_dwr_d = gpuarray.to_gpu(np.zeros((len_rho, len_sz), dtype=np.float32))
-    
-    for n1 in tqdm(range(blocksize), desc='Layer mediated coupling   ', file=sys.stdout,
-                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
-        m1 = m_list[n1]
-        for n2 in range(blocksize):
-            m2 = m_list[n2]
-            besjac = bessel_jacobi[abs(m1 - m2)]
-            belbee_pl = np.zeros((len_dz, len_kp), dtype=complex)
-            belbee_mn = np.zeros((len_dz, len_kp), dtype=complex)
-            for pol in range(2):
-                belbee_pl += ((L[pol, 0, 1, :] * B_dag[pol, 0, n1, :] * B[pol, 1, n2, :])[None, :] * epljksz
-                              + (L[pol, 1, 0, :] * B_dag[pol, 1, n1, :] * B[pol, 0, n2, :])[None, :] * emnjksz)
-                belbee_mn += ((L[pol, 0, 0, :] * B_dag[pol, 0, n1, :] * B[pol, 0, n2, :])[None, :] * epljkdz
-                              + (L[pol, 1, 1, :] * B_dag[pol, 1, n1, :] * B[pol, 1, n2, :])[None, :] * emnjkdz)
-            
-            re_belbee_pl_d = gpuarray.to_gpu(np.float32(belbee_pl[None, :, :].real))
-            im_belbee_pl_d = gpuarray.to_gpu(np.float32(belbee_pl[None, :, :].imag))
-            re_belbee_mn_d = gpuarray.to_gpu(np.float32(belbee_mn[None, :, :].real))
-            im_belbee_mn_d = gpuarray.to_gpu(np.float32(belbee_mn[None, :, :].imag))
-            
-            re_besjac_d = gpuarray.to_gpu(np.float32(besjac[:, None, :].real))
-            im_besjac_d = gpuarray.to_gpu(np.float32(besjac[:, None, :].imag))
-            
-            helper_function(re_besjac_d.gpudata, im_besjac_d.gpudata, re_belbee_pl_d.gpudata, im_belbee_pl_d.gpudata, 
-                            re_dkp_d.gpudata, im_dkp_d.gpudata, re_dwr_d.gpudata, im_dwr_d.gpudata, 
-                            block=(cuda_blocksize, 1, 1), grid=(cuda_gridsize, 1))
-            wr_pl[:, :, n1, n2] = 4 * (1j)**abs(m2 - m1) * (re_dwr_d.get() + 1j * im_dwr_d.get()) 
-            
-            helper_function(re_besjac_d.gpudata, im_besjac_d.gpudata, re_belbee_mn_d.gpudata, im_belbee_mn_d.gpudata, 
-                            re_dkp_d.gpudata, im_dkp_d.gpudata, re_dwr_d.gpudata, im_dwr_d.gpudata, 
-                            block=(cuda_blocksize, 1, 1), grid=(cuda_gridsize, 1))
-            wr_mn[:, :, n1, n2] = 4 * (1j)**abs(m2 - m1) * (re_dwr_d.get() + 1j * im_dwr_d.get()) 
-            
+                helper_function(re_besjac_d.gpudata, im_besjac_d.gpudata, re_belbee_mn_d.gpudata, 
+                                im_belbee_mn_d.gpudata, re_dkp_d.gpudata, im_dkp_d.gpudata, re_dwr_d.gpudata, 
+                                im_dwr_d.gpudata, block=(cuda_blocksize, 1, 1), grid=(cuda_gridsize, 1))
+                wr_mn[:, :, n1, n2] = 4 * (1j)**abs(m2 - m1) * (re_dwr_d.get() + 1j * im_dwr_d.get()) 
+            else:
+                integrand = besjac[:, None, :] * belbee_pl[None, :, :] 
+                wr_pl[:, :, n1, n2] = 2 * (1j)**abs(m2 - m1) * ((integrand[:, :, :-1] + integrand[:, :, 1:]) 
+                                                                * dkp[None, None, :]).sum(axis=-1) 
+                
+                integrand = besjac[:, None, :] * belbee_mn[None, :, :]
+                wr_mn[:, :, n1, n2] = 2 * (1j)**abs(m2 - m1) * ((integrand[:, :, :-1] + integrand[:, :, 1:])
+                                                                * dkp[None, None, :]).sum(axis=-1)
+
     return wr_pl, w + wr_mn, rho_array, sz_array, dz_array
 
 
 def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None,
                                  enable_cuda=False):
+    """Prepare Sommerfeld integral lookup table to allow for a fast calculation of the coupling matrix by interpolation.
+    This function is called when all particles are on the same z-position.
+    
+    Args:
+        vacuum_wavelength (float):  Vacuum wavelength in length units
+        particle_list (list):       List of particle objects
+        layer_system (smuthi.layers.LayerSystem):    Stratified medium
+        k_parallel (numpy.ndarray or str):           In-plane wavenumber for Sommerfeld integrals.
+                                                     If 'default', smuthi.coordinates.default_k_parallel
+        resolution (float): Spatial resolution of lookup table in length units. (default: vacuum_wavelength / 100)       
+                            Smaller means more accurate but higher memory footprint 
+                            
+    Returns:
+        (tuple) tuple containing:
+        
+            lookup_table (ndarray):  Coupling lookup, indices are [rho, n1, n2].
+            rho_array (ndarray):     Values for the radial distance considered for the lookup (starting from negative 
+                                     numbers to allow for simpler cubic interpolation without distinction of cases 
+                                     at rho=0)
+    """
     
     sys.stdout.write('Prepare radial particle coupling lookup:\n')
     sys.stdout.flush()
@@ -696,7 +539,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     y_array = np.array([particle.position[1] for particle in particle_list])
     rho_array = np.sqrt((x_array[:, None] - x_array[None, :]) ** 2 + (y_array[:, None] - y_array[None, :]) ** 2)
 
-    radial_distance_array = np.arange(0, rho_array.max() + resolution, resolution)
+    radial_distance_array = np.arange(- 3 * resolution, rho_array.max() + 3 * resolution, resolution)
     
     z = particle_list[0].position[2]
     i_s = layer_system.layer_number(z)
@@ -704,7 +547,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     dz = z - layer_system.reference_z(i_s)
         
     # direct -----------------------------------------------------------------------------------------------------------
-    w = np.zeros((n_max, n_max, len(radial_distance_array)), dtype=complex)
+    w = np.zeros((len(radial_distance_array), n_max, n_max), dtype=complex)
 
     ct = np.array([0.0])
     st = np.array([1.0])
@@ -727,11 +570,12 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
                         for tau2 in range(2):
                             n2 = fldex.multi_to_single_index(tau2, l2, m2, l_max, m_max)
                             if tau1 == tau2:
-                                w[n1, n2, :] = A  # remember that w = A.T
+                                w[:, n1, n2] = A  # remember that w = A.T
                             else:
-                                w[n1, n2, :] = B
+                                w[:, n1, n2] = B
 
-    w[:, :, radial_distance_array < rho_array[~np.eye(rho_array.shape[0],dtype=bool)].min() / 2] = 0  # switch off direct coupling contribution near rho=0
+    close_to_zero = radial_distance_array < rho_array[~np.eye(rho_array.shape[0],dtype=bool)].min() / 2 
+    w[close_to_zero, :, :] = 0  # switch off direct coupling contribution near rho=0
 
     # layer mediated ---------------------------------------------------------------------------------------------------
     sys.stdout.write('Layer mediated coupling   : ...')
@@ -794,7 +638,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
         bessel_list.append(scipy.special.jv(dm, k_parallel[None, :] * radial_distance_array[:, None]))
     
     jacobi_vector = (k_parallel / (kz_is * k_is))[None, :]
-    lookup_table = [[None for i in range(n_max)] for i2 in range(n_max)]
+    lookup_table = np.zeros((len(radial_distance_array), n_max, n_max), dtype=complex)
     
     for n1 in tqdm(range(n_max), desc='Layer mediated coupling   ', file=sys.stdout,
                    bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
@@ -804,190 +648,6 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
             bes = bessel_list[abs(m1 - m2)]
             integrand = bes * jacobi_vector * belbe[n1, n2, None, :]  # rho, kp
             wr = 4 * (1j) ** abs(m2 - m1) * np.trapz(integrand, x=k_parallel, axis=-1)  # rho
-            lookup_table[n1][n2] = wr + w[n1, n2, :]
+            lookup_table[:, n1, n2] = wr + w[:, n1, n2]
     
     return lookup_table, radial_distance_array
-
-
-# def radial_coupling_lookup_table_multithread(vacuum_wavelength, particle_list, layer_system, k_parallel='default', 
-#                                              resolution=None, enable_cuda=False):
-#     
-#     sys.stdout.write('Prepare radial particle coupling lookup:\n')
-#     sys.stdout.flush()
-#    
-#     if resolution is None:
-#         resolution = vacuum_wavelength / 100
-#         sys.stdout.write('Setting lookup resolution to %f\n'%resolution)
-#         sys.stdout.flush()
-#    
-#     l_max = max([particle.l_max for particle in particle_list])
-#     m_max = max([particle.m_max for particle in particle_list])
-#     n_max = fldex.blocksize(l_max, m_max)
-#     x_array = np.array([particle.position[0] for particle in particle_list])
-#     y_array = np.array([particle.position[1] for particle in particle_list])
-#     rho_array = np.sqrt((x_array[:, None] - x_array[None, :]) ** 2 + (y_array[:, None] - y_array[None, :]) ** 2)
-# 
-#     radial_distance_array = np.arange(0, 2 * (rho_array.max() + resolution), resolution)
-#    
-#     z = particle_list[0].position[2]
-#     i_s = layer_system.layer_number(z)
-#     k_is = layer_system.wavenumber(i_s, vacuum_wavelength)
-#     dz = z - layer_system.reference_z(i_s)
-#         
-#     # direct -----------------------------------------------------------------------------------------------------------
-#     w = np.zeros((n_max, n_max, len(radial_distance_array)), dtype=complex)
-# 
-#     ct = np.array([0.0])
-#     st = np.array([1.0])
-#     bessel_h = [sf.spherical_hankel(n, k_is * radial_distance_array) for n in range(2* l_max + 1)]
-#     legendre, _, _ = sf.legendre_normalized(ct, st, 2 * l_max)
-# 
-#     for m1 in tqdm(range(-m_max, m_max + 1), desc='Direct coupling           ', file=sys.stdout,
-#                    bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
-#         for m2 in range(-m_max, m_max + 1):
-#             for l1 in range(max(1, abs(m1)), l_max + 1):
-#                 for l2 in range(max(1, abs(m2)), l_max + 1):
-#                     A = np.zeros(len(radial_distance_array), dtype=complex)
-#                     B = np.zeros(len(radial_distance_array), dtype=complex)
-#                     for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
-#                         a5, b5 = vwf.ab5_coefficients(l2, m2, l1, m1, ld)
-#                         A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
-#                         B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
-#                     for tau1 in range(2):
-#                         n1 = fldex.multi_to_single_index(tau1, l1, m1, l_max, m_max)
-#                         for tau2 in range(2):
-#                             n2 = fldex.multi_to_single_index(tau2, l2, m2, l_max, m_max)
-#                             if tau1 == tau2:
-#                                 w[n1, n2, :] = A  # remember that w = A.T
-#                             else:
-#                                 w[n1, n2, :] = B
-# 
-#     w[:, :, radial_distance_array < rho_array[~np.eye(rho_array.shape[0],dtype=bool)].min() / 2] = 0  # switch off direct coupling contribution near rho=0
-# 
-#     # layer mediated ---------------------------------------------------------------------------------------------------
-#     sys.stdout.write('Layer mediated coupling   : ...')
-#     sys.stdout.flush()
-#     if type(k_parallel) == str and k_parallel == 'default':
-#         k_parallel = coord.default_k_parallel
-#     kz_is = coord.k_z(k_parallel=k_parallel, k=k_is)
-#     len_kp = len(k_parallel)
-# 
-#     # phase factors
-#     ejkz = np.zeros((2, len_kp), dtype=complex)  # pl/mn, kp
-#     ejkz[0, :] = np.exp(1j * kz_is * dz)
-#     ejkz[1, :] = np.exp(- 1j * kz_is * dz)
-#        
-#     # layer response
-#     L = np.zeros((2, 2, 2, len_kp), dtype=complex)  # pol, pl/mn1, pl/mn2, kp
-#     for pol in range(2):
-#         L[pol, :, :, :] = lay.layersystem_response_matrix(pol, layer_system.thicknesses,
-#                                                           layer_system.refractive_indices, k_parallel,
-#                                                           coord.angular_frequency(vacuum_wavelength), i_s, i_s)
-#    
-#     # transformation coefficients
-#     B_dag = np.zeros((2, 2, n_max, len_kp), dtype=complex)  # pol, pl/mn, n, kp
-#     B = np.zeros((2, 2, n_max, len_kp), dtype=complex)  # pol, pl/mn, n, kp
-#     ct = kz_is / k_is
-#     st = k_parallel / k_is
-#     _, pilm_pl, taulm_pl = sf.legendre_normalized(ct, st, l_max)
-#     _, pilm_mn, taulm_mn = sf.legendre_normalized(-ct, st, l_max)
-# 
-#     m_vec = np.zeros(n_max)
-#     for tau in range(2):
-#         for m in range(-m_max, m_max + 1):
-#             for l in range(max(1, abs(m)), l_max + 1):
-#                 n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
-#                 m_vec[n] = m
-#                 for pol in range(2):
-#                     B_dag[pol, 0, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
-#                                                                                     taulm_list=taulm_pl, dagger=True)
-#                     B_dag[pol, 1, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
-#                                                                                     taulm_list=taulm_mn, dagger=True)
-#                     B[pol, 0, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
-#                                                                              taulm_list=taulm_pl, dagger=False)
-#                     B[pol, 1, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
-#                                                                              taulm_list=taulm_mn, dagger=False)
-#                    
-#     bel = np.zeros((2, 2, n_max, len_kp), dtype=complex)  # pol, pl/mn2, n1, kp
-#     for pm1 in range(2):
-#         for pol in range(2):
-#             bel[pol, :, :, :] += L[pol, pm1,  :, None, :] * B_dag[pol, pm1, None, :, :] * ejkz[pm1, None, None, :]
-#                                  
-#     belbe = np.zeros((n_max, n_max, len_kp), dtype=complex)  # n1, n2, kp
-#     for pm2 in range(2):
-#         for pol in range(2):
-#             belbe += bel[pol, pm2, :, None, :] * B[pol, pm2, None, :, :] * ejkz[1 - pm2, None, None, :]
-#                                 
-#     # bessel function and jacobi factor
-#     bessel_list = []
-#     for dm in range(2 * l_max + 1):
-#         if enable_cuda:
-#             bes = gpuarray.to_gpu(scipy.special.jv(dm, k_parallel[None, :] * radial_distance_array[:, None]))
-#         else:
-#             bes = scipy.special.jv(dm, k_parallel[None, :] * radial_distance_array[:, None])
-#         bessel_list.append(bes)
-#     jacobi_vector = (k_parallel / (kz_is * k_is))[None, :]
-#     
-#     lookup_table = [[None for i in range(n_max)] for i2 in range(n_max)]
-#     
-#     m_list = [None for i in range(n_max)]
-#     for m in range(-m_max, m_max + 1):
-#         for l in range(max(1, abs(m)), l_max + 1):
-#             for tau in range(2):
-#                 n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
-#                 m_list[n] = m
-#     
-#     def make_lookup(n1, n2, lookup_table):
-#         bes = bessel_list[abs(m_list[n1] - m_list[n2])]
-#         integrand = bes * jacobi_vector * belbe[n1, n2, None, :]  # rho, kp
-#         wr = 4 * (1j) ** abs(m_list[n1] - m_list[n2]) * np.trapz(integrand, x=k_parallel, axis=-1)  # rho
-#         lookup_table[n1][n2] = wr + w[n1, n2, :]
-#     
-#     for n1 in tqdm(range(n_max), desc='Layer mediated coupling   ', file=sys.stdout,
-#                    bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
-#         thread_list = []
-#         for n2 in range(n_max):
-#             #thread_list.append(Thread(target=make_lookup, args=(n1, n2, lookup_table)))
-#             thread_list.append(Thread(target=make_lookup, args=(n1, n2, lookup_table)))
-#             thread_list[-1].start()
-#          
-#         for n2 in range(n_max):
-#             thread_list[n2].join()
-
-#     def make_lookup_loop(n1, lookup_table):
-#         for n2 in range(n_max):
-#             bes = bessel_list[abs(m_list[n1] - m_list[n2])]
-#             integrand = bes * jacobi_vector * belbe[n1, n2, None, :]  # rho, kp
-#             wr = 4 * (1j) ** abs(m_list[n1] - m_list[n2]) * np.trapz(integrand, x=k_parallel, axis=-1)  # rho
-#             lookup_table[n1][n2] = wr + w[n1, n2, :]
-#     
-#     t1 = time.time()
-#     thread_list = []
-#     for n1 in range(n_max):
-#         thread_list.append(Thread(target=make_lookup_loop, args=(n1, lookup_table)))
-#         thread_list[-1].start()
-#         
-#     for n1 in range(n_max):
-#         thread_list[n2].join()
-#     dt = time.time() - t1
-#     print('elapsed time: ', dt)
-# 
-#     return lookup_table, radial_distance_array
-
-
-
-def radial_coupling_lookup(vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None):
-   
-    lookup_table, radial_distance_array = radial_coupling_lookup_table(vacuum_wavelength, particle_list,
-                                                                       layer_system, k_parallel, resolution)
-   
-    l_max = max([particle.l_max for particle in particle_list])
-    m_max = max([particle.m_max for particle in particle_list])
-    n_max = fldex.blocksize(l_max, m_max)
-   
-    lookup = [[None for i in range(n_max)] for i2 in range(n_max)]
-    for n1 in range(n_max):
-        for n2 in range(n_max):
-            lookup[n1][n2] = scipy.interpolate.interp1d(x=radial_distance_array, y=lookup_table[n1][n2], kind='linear',
-                                                        axis=-1, assume_sorted=True)
-    return lookup

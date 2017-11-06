@@ -2,6 +2,7 @@ import smuthi.t_matrix as tmt
 import smuthi.particle_coupling as coup
 import smuthi.field_expansion as fldex
 import smuthi.coordinates as coord
+import smuthi.cuda_sources as cu
 import numpy as np
 import sys
 import scipy.linalg
@@ -16,40 +17,10 @@ try:
     from pycuda import gpuarray
     from pycuda.compiler import SourceModule
     import pycuda.cumath
-    pycuda_available = True
 except:
-    pycuda_available = False
-
-use_gpu = False
+    pass
 iter_num = 0
 
-
-def enable_gpu(enable=True):
-    """Sets the use_gpu flag to enable/disable the use of CUDA kernels.
-    Args:
-        enable (bool): Set use_gpu flag to this value (default=True).
-    """
-    # todo: do gpuarrays require cuda toolkit? otherwise distinguish if only gpuarrays work but no kernel compilation
-    global use_gpu
-    if not (enable and pycuda_available):
-        warnings.warn("Unable to import PyCuda - fall back to CPU mode")
-        use_gpu = False
-    else:
-        try:
-            test_fun = SourceModule("""
-                __global__ void test_kernel(float *x)
-                {
-                    unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-                    x[i] = 2 * i;
-                }""").get_function("test_kernel")
-            x = gpuarray.to_gpu(np.zeros(128, dtype=np.float32))
-            test_fun(x, block=(128,1,1), grid=(1,1))
-            assert np.allclose(x.get(), 2 * np.arange(128))
-            use_gpu = True
-        except Exception as e:
-            warnings.warn("CUDA test kernel failed - fall back to CPU mode")
-            use_gpu = False
-    
 
 class LinearSystem:
     """Manage the assembly and solution of the linear system of equations.
@@ -63,17 +34,20 @@ class LinearSystem:
        store_coupling_matrix (bool):   If True (default), the coupling matrix is stored. Otherwise it is recomputed on
                                         the fly during each iteration of the solver.
         coupling_matrix_lookup_resolution (float or None): If type float, compute particle coupling by interpolation of
-                                                           a lookup table with that spacial resolution. If None
-                                                           (default), don't use a lookup table but compute the coupling
-                                                           directly. This is more suitable for a small particle number.
+                                                           a lookup table with that spacial resolution. A smaller number
+                                                           implies higher accuracy and memory footprint.
+                                                           If None (default), don't use a lookup table but compute the 
+                                                           coupling directly. This is more suitable for a small particle 
+                                                           number.
         interpolator_kind (str): interpolation order to be used, e.g. 'linear' or 'cubic'. This argument is ignored if
-                                 coupling_matrix_lookup_resolution is None.
+                                 coupling_matrix_lookup_resolution is None. In general, cubic interpolation is more 
+                                 accurate but a bit slower than linear.
                                                            
     """
     def __init__(self, particle_list, initial_field, layer_system, k_parallel='default', solver_type='LU',
-                 store_coupling_matrix=True, coupling_matrix_lookup_resolution=None, interpolator_kind='linear',
+                 store_coupling_matrix=True, coupling_matrix_lookup_resolution=None, interpolator_kind='cubic',
                  cuda_blocksize=128):
-      
+        
         self.k_parallel = k_parallel
         self.solver_type = solver_type
       
@@ -94,48 +68,56 @@ class LinearSystem:
             z_list = [particle.position[2] for particle in particle_list]
             is_list = [layer_system.layer_number(z) for z in z_list]
             if not is_list.count(is_list[0]) == len(is_list):  # all particles in same layer?
-                warnings.warn("particles are not all in same layer. fall back to direct coupling matrix computation "
-                              "(no lookup)")
+                warnings.warn("Particles are not all in same layer. Fall back to direct coupling matrix computation "
+                              "(no lookup).")
                 coupling_matrix_lookup_resolution = None
             else:  # use lookup
+                if not interpolator_kind in ('linear', 'cubic'):
+                    warnings.warn(interpolator_kind + ' interpolation not implemented. Use "linear" instead')
+                    interpolator_kind = 'linear'
+
                 z_list = [particle.position[2] for particle in particle_list]
-                if z_list.count(z_list[0]) == len(z_list):  # use radial lookup
-                    if use_gpu:
-                        if interpolator_kind != 'linear' and use_gpu:
-                            warnings.warn(interpolator_kind
-                                        + " interpolator kind is not implemented for CUDA, using 'linear' instead.")
+                if z_list.count(z_list[0]) == len(z_list):  # all particles at same height: use radial lookup
+                    if cu.use_gpu:
+                        sys.stdout.write('Coupling matrix computation by ' + interpolator_kind + ' interpolation '
+                                         'of radial lookup on GPU.\n')
+                        sys.stdout.flush()
                         self.coupling_matrix = CouplingMatrixRadialLookupCUDA(
                             vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
                             layer_system=layer_system, k_parallel=self.k_parallel,
-                            resolution=coupling_matrix_lookup_resolution, cuda_blocksize=cuda_blocksize)
+                            resolution=coupling_matrix_lookup_resolution, cuda_blocksize=cuda_blocksize,
+                            interpolator_kind=interpolator_kind)
                     else:
+                        sys.stdout.write('Coupling matrix computation by ' + interpolator_kind + ' interpolation '
+                                         'of radial lookup on CPU.\n')
+                        sys.stdout.flush()
                         self.coupling_matrix = CouplingMatrixRadialLookupCPU(
                             vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
                             layer_system=layer_system, k_parallel=self.k_parallel,
-                            resolution=coupling_matrix_lookup_resolution, kind=interpolator_kind)
-                else:  #  use volume Slookup
-                    if use_gpu:
-                        if interpolator_kind != 'linear' and use_gpu:
-                            warnings.warn(interpolator_kind
-                                        + " interpolator kind is not implemented for CUDA, using 'linear' instead.")
+                            resolution=coupling_matrix_lookup_resolution, interpolator_kind=interpolator_kind)
+                else:  #  not all particles at same height: use volume lookup
+                    if cu.use_gpu:
+                        sys.stdout.write('Coupling matrix computation by ' + interpolator_kind + ' interpolation '
+                                         'of 3D lookup on GPU.\n')
+                        sys.stdout.flush()
                         self.coupling_matrix = CouplingMatrixVolumeLookupCUDA(
                             vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
                             layer_system=layer_system, k_parallel=self.k_parallel,
-                            resolution=coupling_matrix_lookup_resolution)
+                            resolution=coupling_matrix_lookup_resolution, interpolator_kind=interpolator_kind)
                     else:
-                        if interpolator_kind == 'linear':
-                            interpolation_order = 1
-                        elif interpolator_kind == 'cubic':
-                            interpolation_order = 3
-                        else:
-                            warnings.warn(interpolator_kind + " interpolator kind is not implemented, using 'linear'.")
-                            interpolation_order = 1
+                        sys.stdout.write('Coupling matrix computation by ' + interpolator_kind + ' interpolation '
+                                         'of 3D lookup on CPU.\n')
+
+                        sys.stdout.flush()
                         self.coupling_matrix = CouplingMatrixVolumeLookupCPU(
                             vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
                             layer_system=layer_system, k_parallel=self.k_parallel,
-                            resolution=coupling_matrix_lookup_resolution, interpolation_order=interpolation_order)
+                            resolution=coupling_matrix_lookup_resolution, interpolator_kind=interpolator_kind)
           
         if coupling_matrix_lookup_resolution is None:
+            sys.stdout.write('Explicit coupling matrix computation on CPU.\n')
+            sys.stdout.flush()
+
             self.coupling_matrix = CouplingMatrixExplicit(vacuum_wavelength=initial_field.vacuum_wavelength,
                                                           particle_list=particle_list, layer_system=layer_system,
                                                           k_parallel=self.k_parallel)
@@ -266,8 +248,9 @@ class CouplingMatrixVolumeLookup(SystemMatrix):
         self.m_max = max([particle.m_max for particle in particle_list])
         self.blocksize = fldex.blocksize(self.l_max, self.m_max)
         self.resolution = resolution
+        #lkup = coup.volumetric_coupling_lookup_table(vacuum_wavelength=vacuum_wavelength, particle_list=particle_list,
         lkup = coup.volumetric_coupling_lookup_table(vacuum_wavelength=vacuum_wavelength, particle_list=particle_list,
-                                                     layer_system=layer_system, k_parallel=k_parallel,
+                                                     layer_system=layer_system, k_parallel=k_parallel, 
                                                      resolution=resolution)
         self.lookup_table_plus, self.lookup_table_minus = lkup[0], lkup[1]
         self.rho_array, self.sum_z_array, self.diff_z_array = lkup[2], lkup[3], lkup[4]
@@ -283,10 +266,16 @@ class CouplingMatrixVolumeLookupCPU(CouplingMatrixVolumeLookup):
         layer_system (smuthi.layers.LayerSystem): stratified medium
         k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
         resolution (float or None): spatial resolution of the lookup in the radial direction
-        interpolation_order (int): order of the interpolation spline
+        interpolator_kind (str): 'linear' or 'cubic' interpolation
     """
     def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None,
-                 interpolation_order=3):
+                 interpolator_kind='cubic'):
+        
+        if interpolator_kind == 'cubic':
+            interpolation_order = 3
+        else:
+            interpolation_order = 1
+            
       
         CouplingMatrixVolumeLookup.__init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel,
                                             resolution)
@@ -370,142 +359,29 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
         k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
         resolution (float or None): spatial resolution of the lookup in the radial direction
         cuda_blocksize (int): threads per block for cuda call
+        interpolator_kind (str): 'linear' (default) or 'cubic' interpolation
     """
 
     def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None,
-                 cuda_blocksize=128):
+                 cuda_blocksize=128, interpolator_kind='linear'):
 
         CouplingMatrixVolumeLookup.__init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel,
                                             resolution)
 
         sys.stdout.write('Prepare CUDA kernel and device lookup data ... ')
         sys.stdout.flush()
-        # This cuda kernel multiplies the coupling matrix to a vector. It is based on linear interpolation of the lookup
-        # table.
-        #
-        # input arguments of the cuda kernel:
-        # n (np.uint32):  n[i] contains the mutlipole multi-index with regard to self.l_max and self.m_max of the i-th
-        #                 entry of a system vector
-        # m (np.float32): m[i] contains the multipole order with regard to particle.l_max and particle.m_max
-        # x_pos (np.float32): x_pos[i] contains the respective particle x-position
-        # y_pos (np.float32): y_pos[i] contains the respective particle y-position
-        # z_pos (np.float32): z_pos[i] contains the respective particle z-position
-        # re_lookup_pl (np.float32): the real part of the lookup table for the z1+z2 part of the Sommerfeld integral,
-        #                            in the format (rho, sum_z, n1, n2)
-        # im_lookup_pl (np.float32): the imaginary part of the lookup table for the z1+z2 part of the Sommerfeld
-        #                            integral, in the format (rho, sum_z, n1, n2)
-        # re_lookup_mn (np.float32): the real part of the lookup table for the z1-z2 part of the Sommerfeld integral,
-        #                            in the format (rho, diff_z, n1, n2)
-        # im_lookup_mn (np.float32): the imaginary part of the lookup table for the z1-z2 part of the Sommerfeld
-        #                            integral, in the format (rho, diff_z, n1, n2)
-        # re_in_vec (np.float32): the real part of the vector to be multiplied with the coupling matrix
-        # im_in_vec (np.float32): the imaginary part of the vector to be multiplied with the coupling matrix
-        # re_result_vec (np.float32): the real part of the vector into which the result is written
-        # im_result_vec (np.float32): the imaginary part of the vector into which the result is written
-        kernel_source_code = """
-            #define BLOCKSIZE %i
-            #define NUMBER_OF_UNKNOWNS %i
-            #define Z_ARRAY_LENGTH %i
-            #define MIN_RHO %f
-            #define MIN_Z_SUM %f
-            #define MIN_Z_DIFF %f
-            #define LOOKUP_RESOLUTION %f
-            __global__ void coupling_kernel(const int *n, const float *m, const float *x_pos, const float *y_pos,
-                                            const float *z_pos, const float *re_lookup_pl, const float *im_lookup_pl,
-                                            const float *re_lookup_mn, const float *im_lookup_mn,
-                                            const float *re_in_vec, const float *im_in_vec,
-                                            float  *re_result, float  *im_result)
-            {
-                unsigned int i1 = blockIdx.x * blockDim.x + threadIdx.x;
-                if(i1 >= NUMBER_OF_UNKNOWNS) return;
-
-                const float x1 = x_pos[i1];
-                const float y1 = y_pos[i1];
-                const float z1 = z_pos[i1];
-
-                const int n1 = n[i1];
-                const float m1 = m[i1];
-
-                re_result[i1] = 0.0;
-                im_result[i1] = 0.0;
-                
-                for (int i2=0; i2<NUMBER_OF_UNKNOWNS; i2++)
-                {
-                    float x21 = x1 - x_pos[i2];
-                    float y21 = y1 - y_pos[i2];
-                    float sz21 = z1 + z_pos[i2];
-                    float dz21 = z1 - z_pos[i2];
-
-                    const int n2 = n[i2];
-                    const float m2 = m[i2];
-
-                    float rho = sqrt(x21*x21+y21*y21);
-                    float phi = atan2(y21,x21);
-                    
-                    int rho_idx = (int) floor((rho - MIN_RHO) / LOOKUP_RESOLUTION);
-                    float rho_w = (rho - MIN_RHO) / LOOKUP_RESOLUTION - floor((rho - MIN_RHO) / LOOKUP_RESOLUTION);
-                    
-                    int sz_idx = (int) floor((sz21 - MIN_Z_SUM) / LOOKUP_RESOLUTION);
-                    float sz_w = (sz21 - MIN_Z_SUM) / LOOKUP_RESOLUTION - floor((sz21 - MIN_Z_SUM) / LOOKUP_RESOLUTION);
-
-                    int dz_idx = (int) floor((dz21 - MIN_Z_DIFF) / LOOKUP_RESOLUTION);
-                    float dz_w = (dz21 - MIN_Z_DIFF) / LOOKUP_RESOLUTION 
-                                  - floor((dz21 - MIN_Z_DIFF) /  LOOKUP_RESOLUTION);
-                    
-                    int idx_rho_sz = rho_idx * Z_ARRAY_LENGTH * BLOCKSIZE * BLOCKSIZE 
-                                     +  sz_idx * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
-
-                    int idx_rho_szpl1 = rho_idx * Z_ARRAY_LENGTH * BLOCKSIZE * BLOCKSIZE
-                                      + (sz_idx + 1) * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
-
-                    int idx_rhopl1_sz = (rho_idx + 1) * Z_ARRAY_LENGTH * BLOCKSIZE * BLOCKSIZE
-                                        + sz_idx * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
-
-                    int idx_rhopl1_szpl1 = (rho_idx + 1) * Z_ARRAY_LENGTH * BLOCKSIZE * BLOCKSIZE
-                                           + (sz_idx + 1) * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
-
-                    int idx_rho_dz = rho_idx * Z_ARRAY_LENGTH * BLOCKSIZE * BLOCKSIZE + dz_idx * BLOCKSIZE * BLOCKSIZE
-                                     + n1 * BLOCKSIZE + n2;
-
-                    int idx_rho_dzpl1 = rho_idx * Z_ARRAY_LENGTH * BLOCKSIZE * BLOCKSIZE
-                                        + (dz_idx + 1) * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
-
-                    int idx_rhopl1_dz = (rho_idx + 1) * Z_ARRAY_LENGTH * BLOCKSIZE * BLOCKSIZE
-                                        + dz_idx * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
-
-                    int idx_rhopl1_dzpl1 = (rho_idx + 1) * Z_ARRAY_LENGTH * BLOCKSIZE * BLOCKSIZE
-                                           + (dz_idx + 1) * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
-                    
-                    float f_rhoi = re_lookup_pl[idx_rho_sz] * (1 - sz_w) + re_lookup_pl[idx_rho_szpl1] * sz_w;
-                    float f_rhoipl1 = re_lookup_pl[idx_rhopl1_sz] * (1 - sz_w) + re_lookup_pl[idx_rhopl1_szpl1] * sz_w;
-                    float re_si_pl = f_rhoi * (1 - rho_w) + f_rhoipl1 * rho_w;
-
-                    f_rhoi = im_lookup_pl[idx_rho_sz] * (1 - sz_w) + im_lookup_pl[idx_rho_szpl1] * sz_w;
-                    f_rhoipl1 = im_lookup_pl[idx_rhopl1_sz] * (1 - sz_w) + im_lookup_pl[idx_rhopl1_szpl1] * sz_w;
-                    float im_si_pl = f_rhoi * (1 - rho_w) + f_rhoipl1 * rho_w;
-                    
-                    f_rhoi = re_lookup_mn[idx_rho_dz] * (1 - dz_w) + re_lookup_mn[idx_rho_dzpl1] * dz_w;
-                    f_rhoipl1 = re_lookup_mn[idx_rhopl1_dz] * (1 - dz_w) + re_lookup_mn[idx_rhopl1_dzpl1] * dz_w;
-                    float re_si_mn = f_rhoi * (1 - rho_w) + f_rhoipl1 * rho_w;
-
-                    f_rhoi = im_lookup_mn[idx_rho_dz] * (1 - dz_w) + im_lookup_mn[idx_rho_dzpl1] * dz_w;
-                    f_rhoipl1 = im_lookup_mn[idx_rhopl1_dz] * (1 - dz_w) + im_lookup_mn[idx_rhopl1_dzpl1] * dz_w;
-                    float im_si_mn = f_rhoi * (1 - rho_w) + f_rhoipl1 * rho_w;
-                    
-                    float re_eimphi = cosf((m2 - m1) * phi);
-                    float im_eimphi = sinf((m2 - m1) * phi);
-                    
-                    float re_w = re_eimphi * (re_si_pl + re_si_mn) - im_eimphi * (im_si_pl + im_si_mn);
-                    float im_w = im_eimphi * (re_si_pl + re_si_mn) + re_eimphi * (im_si_pl + im_si_mn);
-                    
-                    re_result[i1] += re_w * re_in_vec[i2] - im_w * im_in_vec[i2];
-                    im_result[i1] += re_w * im_in_vec[i2] + im_w * re_in_vec[i2];
-                }
-            }""" %(self.blocksize, self.shape[0], len(self.sum_z_array), min(self.rho_array),  min(self.sum_z_array),
-                   min(self.diff_z_array), self.resolution)
         
-        coupling_function = SourceModule(kernel_source_code).get_function("coupling_kernel")
-
+        if interpolator_kind == 'linear':
+            coupling_source = cu.linear_volume_lookup_source%(self.blocksize, self.shape[0], len(self.sum_z_array), 
+                                                              min(self.rho_array), min(self.sum_z_array), 
+                                                              min(self.diff_z_array), self.resolution)
+        elif interpolator_kind == 'cubic':
+            coupling_source = cu.cubic_volume_lookup_source%(self.blocksize, self.shape[0], len(self.sum_z_array),
+                                                             min(self.rho_array), min(self.sum_z_array), 
+                                                             min(self.diff_z_array), self.resolution)
+        
+        coupling_function = SourceModule(coupling_source).get_function("coupling_kernel") 
+        
         n_lookup_array = np.zeros(self.shape[0], dtype=np.uint32)
         m_particle_array = np.zeros(self.shape[0], dtype=np.float32)
         x_array = np.zeros(self.shape[0], dtype=np.float32)
@@ -599,77 +475,22 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
         cuda_blocksize (int): threads per block when calling CUDA kernel
     """
     def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None,
-                 cuda_blocksize=128):
+                 cuda_blocksize=128, interpolator_kind='linear'):
       
         CouplingMatrixRadialLookup.__init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel, resolution)
       
         sys.stdout.write('Prepare CUDA kernel and device lookup data ... ')
         sys.stdout.flush()
-        # This cuda kernel multiplies the coupling matrix to a vector. It is based on linear interpolation of the lookup
-        # table.
-        #
-        # input arguments of the cuda kernel:
-        # n (np.uint32):  n[i] contains the mutlipole multi-index with regard to self.l_max and self.m_max of the i-th
-        #                 entry of a system vector
-        # m (np.float32): m[i] contains the multipole order with regard to particle.l_max and particle.m_max
-        # x_pos (np.float32): x_pos[i] contains the respective particle x-position
-        # y_pos (np.float32): y_pos[i] contains the respective particle y-position
-        # re_lookup (np.float32): the real part of the lookup table, in the format [r, n1, n2]
-        # im_lookup (np.float32): the imaginary part of the lookup table, in the format [r, n1, n2]
-        # re_in_vec (np.float32): the real part of the vector to be multiplied with the coupling matrix
-        # im_in_vec (np.float32): the imaginary part of the vector to be multiplied with the coupling matrix
-        # re_result_vec (np.float32): the real part of the vector into which the result is written
-        # im_result_vec (np.float32): the imaginary part of the vector into which the result is written
-        coupling_function = SourceModule("""
-            #define BLOCKSIZE %i
-            #define NUMBER_OF_UNKNOWNS %i
-            __global__ void coupling_kernel(const int *n, const float *m, const float *x_pos, const float *y_pos,
-                                            const float *re_lookup, const float *im_lookup, const float *re_in_vec,
-                                            const float *im_in_vec, float  *re_result, float  *im_result)
-            {
-                unsigned int i1 = blockIdx.x * blockDim.x + threadIdx.x;
-                if(i1 >= NUMBER_OF_UNKNOWNS) return;
-              
-                const float x1 = x_pos[i1];
-                const float y1 = y_pos[i1];
-              
-                const int n1 = n[i1];
-                const float m1 = m[i1];
-  
-                re_result[i1] = 0.0;
-                im_result[i1] = 0.0;
-              
-                for (int i2=0; i2<NUMBER_OF_UNKNOWNS; i2++)
-                {
-                    float x21 = x1 - x_pos[i2];
-                    float y21 = y1 - y_pos[i2];
-                  
-                    const int n2 = n[i2];
-                    const float m2 = m[i2];
-                  
-                    float r = sqrt(x21*x21+y21*y21);
-                    float phi = atan2(y21,x21);
-              
-                    int r_idx = (int) floor(r);
-                    float w = r - floor(r);
-                  
-                    int idx = r_idx * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
-                    int idx_pl_1 = (r_idx + 1) * BLOCKSIZE * BLOCKSIZE + n1 * BLOCKSIZE + n2;
-                  
-                    float re_si = re_lookup[idx] + w * (re_lookup[idx_pl_1] - re_lookup[idx]);
-                    float im_si = im_lookup[idx] + w * (im_lookup[idx_pl_1] - im_lookup[idx]);
-                   
-                    float re_eimphi = cosf((m2 - m1) * phi);
-                    float im_eimphi = sinf((m2 - m1) * phi);
-              
-                    float re_w = re_eimphi * re_si - im_eimphi * im_si;
-                    float im_w = im_eimphi * re_si + re_eimphi * im_si;
-                  
-                    re_result[i1] += re_w * re_in_vec[i2] - im_w * im_in_vec[i2];
-                    im_result[i1] += re_w * im_in_vec[i2] + im_w * re_in_vec[i2];
-                  
-                }
-            }"""%(self.blocksize, self.shape[0])).get_function("coupling_kernel")
+                
+        if interpolator_kind == 'linear':
+            coupling_source = cu.linear_radial_lookup_source%(self.blocksize, self.shape[0], 
+                                                              self.radial_distance_array.min(), resolution)
+        elif interpolator_kind == 'cubic':
+            warnings.warn(interpolator_kind + ' interpolation not implemented. Use "linear" instead')
+            coupling_source = cu.linear_radial_lookup_source%(self.blocksize, self.shape[0], 
+                                                              self.radial_distance_array.min(), resolution)
+            
+        coupling_function = SourceModule(coupling_source).get_function("coupling_kernel") 
           
         n_lookup_array = np.zeros(self.shape[0], dtype=np.uint32)
         m_particle_array = np.zeros(self.shape[0], dtype=np.float32)
@@ -685,17 +506,13 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
                         m_particle_array[self.index(i, tau, l, m)] = m
                        
                         # scale the x and y position to the lookup resolution:
-                        x_array[self.index(i, tau, l, m)] = particle.position[0] / self.resolution
-                        y_array[self.index(i, tau, l, m)] = particle.position[1] / self.resolution
+                        x_array[self.index(i, tau, l, m)] = particle.position[0]
+                        y_array[self.index(i, tau, l, m)] = particle.position[1]
       
         # lookup as numpy array in required shape
-        re_lookup = np.zeros((len(self.radial_distance_array), self.blocksize, self.blocksize), dtype=np.float32)
-        im_lookup = np.zeros((len(self.radial_distance_array), self.blocksize, self.blocksize), dtype=np.float32)
-        for n1 in range(self.blocksize):
-            for n2 in range(self.blocksize):
-                re_lookup[:, n1, n2] = self.lookup_table[n1][n2].real
-                im_lookup[:, n1, n2] = self.lookup_table[n1][n2].imag
-      
+        re_lookup = self.lookup_table.real.astype(np.float32)
+        im_lookup = self.lookup_table.imag.astype(np.float32)
+        
         # transfer data to gpu
         n_lookup_array_d = gpuarray.to_gpu(n_lookup_array)
         m_particle_array_d = gpuarray.to_gpu(m_particle_array)
@@ -714,10 +531,10 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
             im_in_vec_d = gpuarray.to_gpu(np.float32(in_vec.imag))
             re_result_d = gpuarray.zeros(in_vec.shape, dtype=np.float32)
             im_result_d = gpuarray.zeros(in_vec.shape, dtype=np.float32)
-            coupling_function(n_lookup_array_d.gpudata, m_particle_array_d.gpudata, x_array_d.gpudata,
-                            y_array_d.gpudata, re_lookup_d.gpudata, im_lookup_d.gpudata,
-                            re_in_vec_d.gpudata, im_in_vec_d.gpudata, re_result_d.gpudata, im_result_d.gpudata,
-                            block=(cuda_blocksize,1,1), grid=(cuda_gridsize,1))
+            coupling_function(n_lookup_array_d.gpudata, m_particle_array_d.gpudata, x_array_d.gpudata, y_array_d.gpudata,
+                              re_lookup_d.gpudata, im_lookup_d.gpudata, re_in_vec_d.gpudata, im_in_vec_d.gpudata, 
+                              re_result_d.gpudata, im_result_d.gpudata, block=(cuda_blocksize,1,1), 
+                              grid=(cuda_gridsize,1))
             return re_result_d.get() + 1j * im_result_d.get()
        
         self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=self.shape, matvec=matvec, dtype=complex)
@@ -736,7 +553,7 @@ class CouplingMatrixRadialLookupCPU(CouplingMatrixRadialLookup):
         kind (str): interpolation order, e.g. 'linear' or 'cubic'
     """
     def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None,
-                 kind='linear'):
+                 interpolator_kind='linear'):
       
         z_list = [particle.position[2] for particle in particle_list]
         assert z_list.count(z_list[0]) == len(z_list)
@@ -771,9 +588,9 @@ class CouplingMatrixRadialLookupCPU(CouplingMatrixRadialLookup):
         lookup = [[None for i in range(self.blocksize)] for i2 in range(self.blocksize)]
         for n1 in range(self.blocksize):
             for n2 in range(self.blocksize):
-                lookup[n1][n2] = scipy.interpolate.interp1d(x=self.radial_distance_array, y=self.lookup_table[n1][n2],
-                                                            kind=kind, axis=-1, assume_sorted=True)
-#                @profile
+                lookup[n1][n2] = scipy.interpolate.interp1d(x=self.radial_distance_array, y=self.lookup_table[:, n1, n2],
+                                                            kind=interpolator_kind, axis=-1, assume_sorted=True)
+
         def matvec(in_vec):
             out_vec = np.zeros(shape=in_vec.shape, dtype=complex)
             for n1 in range(self.blocksize):
