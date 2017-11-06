@@ -31,7 +31,7 @@ class LinearSystem:
         layer_system (smuthi.layers.LayerSystem):   Stratified medium
         k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
         solver_type (str):  What solver to use? Options: 'LU' for LU factorization, 'gmres' for GMRES iterative solver
-       store_coupling_matrix (bool):   If True (default), the coupling matrix is stored. Otherwise it is recomputed on
+        store_coupling_matrix (bool):   If True (default), the coupling matrix is stored. Otherwise it is recomputed on
                                         the fly during each iteration of the solver.
         coupling_matrix_lookup_resolution (float or None): If type float, compute particle coupling by interpolation of
                                                            a lookup table with that spacial resolution. A smaller number
@@ -44,12 +44,13 @@ class LinearSystem:
                                  accurate but a bit slower than linear.
                                                            
     """
-    def __init__(self, particle_list, initial_field, layer_system, k_parallel='default', solver_type='LU',
-                 store_coupling_matrix=True, coupling_matrix_lookup_resolution=None, interpolator_kind='cubic',
-                 cuda_blocksize=128):
+    def __init__(self, particle_list, initial_field, layer_system, k_parallel='default', solver_type='LU', 
+                 solver_tolerance=1e-4, store_coupling_matrix=True, coupling_matrix_lookup_resolution=None, 
+                 interpolator_kind='cubic', cuda_blocksize=128):
         
         self.k_parallel = k_parallel
         self.solver_type = solver_type
+        self.solver_tolerance = solver_tolerance
       
         self.particle_list = particle_list
         self.initial_field = initial_field
@@ -148,7 +149,8 @@ class LinearSystem:
                                 + str(int(time.time() - start_time)) + 's')
                     sys.stdout.write('\r' + iter_msg)
                     iter_num += 1
-                b, info = scipy.sparse.linalg.gmres(self.master_matrix.linear_operator, rhs, rhs, callback=status_msg)
+                b, info = scipy.sparse.linalg.gmres(self.master_matrix.linear_operator, rhs, rhs, 
+                                                    tol=self.solver_tolerance, callback=status_msg)
                 sys.stdout.write('\n')
             else:
                 raise ValueError('This solver type is currently not implemented.')

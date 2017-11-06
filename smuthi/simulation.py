@@ -37,7 +37,7 @@ class Simulation:
     """
 
     def __init__(self, layer_system=None, particle_list=None, initial_field=None, post_processing=None,
-                 k_parallel='default', solver_type='LU', store_coupling_matrix=True,
+                 k_parallel='default', solver_type='LU', solver_tolerance=1e-4, store_coupling_matrix=True,
                  coupling_matrix_lookup_resolution=None, coupling_matrix_interpolator_kind='linear',
                  length_unit='length unit', input_file=None, output_dir='smuthi_output', save_after_run=False):
 
@@ -47,6 +47,7 @@ class Simulation:
         self.initial_field = initial_field
         self.k_parallel = k_parallel
         self.solver_type = solver_type
+        self.solver_tolerance = solver_tolerance
         self.store_coupling_matrix = store_coupling_matrix
         self.coupling_matrix_lookup_resolution = coupling_matrix_lookup_resolution
         self.coupling_matrix_interpolator_kind = coupling_matrix_interpolator_kind
@@ -86,7 +87,7 @@ class Simulation:
 
         self.linear_system = lsys.LinearSystem(particle_list=self.particle_list, initial_field=self.initial_field,
                                                layer_system=self.layer_system, k_parallel=self.k_parallel,
-                                               solver_type=self.solver_type,
+                                               solver_type=self.solver_type, solver_tolerance=self.solver_tolerance,
                                                store_coupling_matrix=self.store_coupling_matrix,
                                                coupling_matrix_lookup_resolution=self.coupling_matrix_lookup_resolution,
                                                interpolator_kind=self.coupling_matrix_interpolator_kind)
