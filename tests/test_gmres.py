@@ -44,7 +44,7 @@ simulation_lu.run()
 coefficients_lu = particle_list[0].scattered_field.coefficients
 
 simulation_gmres = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                                    solver_type='gmres')
+                                    solver_type='gmres', solver_tolerance=1e-5)
 simulation_gmres.run()
 coefficients_gmres = particle_list[0].scattered_field.coefficients
 
