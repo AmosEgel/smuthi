@@ -54,7 +54,7 @@ def read_input_yaml(filename):
         lookup_resolution = None
 
     simulation = smuthi.simulation.Simulation(solver_type=input_data.get('solver type', 'LU'),
-                                              solver_tolerance=input_data.get('solver tolerance', 1e-4),
+                                              solver_tolerance=float(input_data.get('solver tolerance', 1e-4)),
                                               store_coupling_matrix=input_data.get('store coupling matrix', True),
                                               coupling_matrix_lookup_resolution=lookup_resolution,
                                               coupling_matrix_interpolator_kind=input_data.get('interpolation order',

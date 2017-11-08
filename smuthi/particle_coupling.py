@@ -310,10 +310,9 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
             sz_array (ndarray):     Values for the sum of z-coordinates (z1 + z2) considered for the lookup
             dz_array (ndarray):     Values for the difference of z-coordinates (z1 - z2) considered for the lookup 
     """
-    
     sys.stdout.write('Prepare 3D particle coupling lookup:\n')
     sys.stdout.flush()
-   
+
     if resolution is None:
         resolution = vacuum_wavelength / 100
         sys.stdout.write('Setting lookup resolution to %f\n'%resolution)
@@ -357,7 +356,9 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     
     # direct -----------------------------------------------------------------------------------------------------------
     w = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=complex)
-    
+    sys.stdout.write('Lookup table memory footprint: ' + size_format(2 * w.nbytes) + '\n')
+    sys.stdout.flush()
+
     r_array = np.sqrt(dz_array[None, :]**2 + rho_array[:, None]**2)
     r_array[r_array==0] = 1e-20
     ct = dz_array[None, :] / r_array
@@ -523,10 +524,10 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
                                      numbers to allow for simpler cubic interpolation without distinction of cases 
                                      at rho=0)
     """
-    
+
     sys.stdout.write('Prepare radial particle coupling lookup:\n')
     sys.stdout.flush()
-   
+
     if resolution is None:
         resolution = vacuum_wavelength / 100
         sys.stdout.write('Setting lookup resolution to %f\n'%resolution)
@@ -550,6 +551,8 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
         
     # direct -----------------------------------------------------------------------------------------------------------
     w = np.zeros((len_rho, blocksize, blocksize), dtype=complex)
+    sys.stdout.write('Memory footprint: ' + size_format(w.nbytes) + '\n')
+    sys.stdout.flush()
 
     ct = np.array([0.0])
     st = np.array([1.0])
@@ -676,3 +679,16 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
                                                             * dkp[None, :]).sum(axis=-1)  # trapezoidal rule
     
     return w + wr, radial_distance_array
+
+
+def size_format(b):
+    if b < 1000:
+              return '%i' % b + 'B'
+    elif 1000 <= b < 1000000:
+        return '%.1f' % float(b/1000) + 'KB'
+    elif 1000000 <= b < 1000000000:
+        return '%.1f' % float(b/1000000) + 'MB'
+    elif 1000000000 <= b < 1000000000000:
+        return '%.1f' % float(b/1000000000) + 'GB'
+    elif 1000000000000 <= b:
+        return '%.1f' % float(b/1000000000000) + 'TB'

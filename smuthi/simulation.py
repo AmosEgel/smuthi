@@ -66,6 +66,12 @@ class Simulation:
         else:
             self.output_dir = False
 
+    def print_simulation_header(self):
+        version = pkg_resources.get_distribution("smuthi").version
+        welcome_msg = ("\n" + "*" * 32 + "\n    SMUTHI version " + version + "\n" + "*" * 32 + "\n")
+        sys.stdout.write(welcome_msg)
+        sys.stdout.flush()
+
     def save(self, filename=None):
         """Export simulation object to disc.
 
@@ -82,8 +88,7 @@ class Simulation:
 
     def run(self):
         """Start the simulation."""
-        sys.stdout.write(welcome_message())
-        sys.stdout.flush()
+        self.print_simulation_header()
 
         self.linear_system = lsys.LinearSystem(particle_list=self.particle_list, initial_field=self.initial_field,
                                                layer_system=self.layer_system, k_parallel=self.k_parallel,
@@ -118,16 +123,3 @@ class Logger(object):
 
     def flush(self):
         self.terminal.flush()
-
-
-def welcome_message():
-    """
-    Returns:
-         string to be printed when a simulation starts
-    """
-    version = pkg_resources.get_distribution("smuthi").version
-    msg = ("\n"
-           "********************************\n"
-           "    SMUTHI version " + version + "\n"
-           "********************************\n")
-    return msg

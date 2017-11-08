@@ -56,6 +56,9 @@ class LinearSystem:
         self.initial_field = initial_field
         self.layer_system = layer_system
 
+        dummy_matrix = SystemMatrix(self.particle_list)
+        sys.stdout.write('Number of unknowns: %i\n' % dummy_matrix.shape[0])
+
         for particle in tqdm(particle_list, desc='Initial field coefficients', file=sys.stdout,
                              bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
             particle.initial_field = initial_field.spherical_wave_expansion(particle, layer_system)
@@ -64,13 +67,18 @@ class LinearSystem:
                              bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
             niS = layer_system.refractive_indices[layer_system.layer_number(particle.position[2])]
             particle.t_matrix = tmt.t_matrix(initial_field.vacuum_wavelength, niS, particle)
-        
+
+        self.t_matrix = TMatrix(particle_list=particle_list)
+
         if coupling_matrix_lookup_resolution is not None:
             z_list = [particle.position[2] for particle in particle_list]
             is_list = [layer_system.layer_number(z) for z in z_list]
             if not is_list.count(is_list[0]) == len(is_list):  # all particles in same layer?
                 warnings.warn("Particles are not all in same layer. Fall back to direct coupling matrix computation "
                               "(no lookup).")
+                coupling_matrix_lookup_resolution = None
+            if store_coupling_matrix:
+                warnings.warn("Explicit matrix compuatation using lookup currently not implemented. Disabling lookup.")
                 coupling_matrix_lookup_resolution = None
             else:  # use lookup
                 if not interpolator_kind in ('linear', 'cubic'):
@@ -116,14 +124,15 @@ class LinearSystem:
                             resolution=coupling_matrix_lookup_resolution, interpolator_kind=interpolator_kind)
           
         if coupling_matrix_lookup_resolution is None:
+            if not store_coupling_matrix:
+                warnings.warn("With lookup disabled, coupling matrix needs to be stored.")
+                store_coupling_matrix = True
             sys.stdout.write('Explicit coupling matrix computation on CPU.\n')
             sys.stdout.flush()
-
             self.coupling_matrix = CouplingMatrixExplicit(vacuum_wavelength=initial_field.vacuum_wavelength,
                                                           particle_list=particle_list, layer_system=layer_system,
                                                           k_parallel=self.k_parallel)
         
-        self.t_matrix = TMatrix(particle_list=particle_list)
         self.master_matrix = MasterMatrix(t_matrix=self.t_matrix, coupling_matrix=self.coupling_matrix)
       
     def solve(self):
@@ -216,6 +225,8 @@ class CouplingMatrixExplicit(SystemMatrix):
       
         SystemMatrix.__init__(self, particle_list)
         coup_mat = np.zeros(self.shape, dtype=complex)
+        sys.stdout.write('Coupling matrix memory footprint: ' + coup.size_format(coup_mat.nbytes) + '\n')
+        sys.stdout.flush()
         for s1, particle1 in enumerate(tqdm(particle_list, desc='Particle coupling matrix  ', file=sys.stdout,
                                             bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}')):
             idx1 = np.array(self.index_block(s1))[:, None]
@@ -250,7 +261,6 @@ class CouplingMatrixVolumeLookup(SystemMatrix):
         self.m_max = max([particle.m_max for particle in particle_list])
         self.blocksize = fldex.blocksize(self.l_max, self.m_max)
         self.resolution = resolution
-        #lkup = coup.volumetric_coupling_lookup_table(vacuum_wavelength=vacuum_wavelength, particle_list=particle_list,
         lkup = coup.volumetric_coupling_lookup_table(vacuum_wavelength=vacuum_wavelength, particle_list=particle_list,
                                                      layer_system=layer_system, k_parallel=k_parallel, 
                                                      resolution=resolution)
