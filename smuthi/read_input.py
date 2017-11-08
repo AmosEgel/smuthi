@@ -6,7 +6,7 @@ import smuthi.coordinates as coord
 import smuthi.particles as part
 import smuthi.initial_field as init
 import smuthi.layers as lay
-import smuthi.linear_system as lsys
+import smuthi.cuda_sources as cu
 import smuthi.post_processing as pp
 import os
 
@@ -23,7 +23,9 @@ def read_input_yaml(filename):
     print('\nReading ' + os.path.abspath(filename))
     with open(filename, 'r') as input_file:
         input_data = yaml.load(input_file.read())
-    
+
+    cu.enable_gpu(input_data.get('enable GPU', False))
+
     # wavelength
     wl = float(input_data['vacuum wavelength'])
     
@@ -50,9 +52,13 @@ def read_input_yaml(filename):
     lookup_resolution = input_data.get('coupling matrix lookup resolution', None)
     if lookup_resolution <= 0:
         lookup_resolution = None
+
     simulation = smuthi.simulation.Simulation(solver_type=input_data.get('solver type', 'LU'),
+                                              solver_tolerance=input_data.get('solver tolerance', 1e-4),
                                               store_coupling_matrix=input_data.get('store coupling matrix', True),
                                               coupling_matrix_lookup_resolution=lookup_resolution,
+                                              coupling_matrix_interpolator_kind=input_data.get('interpolation order',
+                                                                                               'linear'),
                                               input_file=filename,
                                               length_unit=input_data.get('length unit'),
                                               output_dir=input_data.get('output folder'), 
@@ -113,9 +119,10 @@ def read_input_yaml(filename):
                 a = float(prtcl['semi axis a'])
                 euler_angles = [float(prtcl['euler angles'][0]), float(prtcl['euler angles'][1]),
                                 float(prtcl['euler angles'][2])]
-                use_ds = prtcl.get('use discrete sources', True)
-                nint = prtcl.get('nint', 200)
-                nrank = prtcl.get('nrank', l_max + 2)
+                nfmds_settings = prtcl.get('NFM-DS settings', {})
+                use_ds = nfmds_settings.get('use discrete sources', True)
+                nint = nfmds_settings.get('nint', 200)
+                nrank = nfmds_settings.get('nrank', l_max + 2)
                 t_matrix_method = {'use discrete sources': use_ds, 'nint': nint, 'nrank': nrank}
                 particle_list.append(part.Spheroid(position=pos, refractive_index=n, semi_axis_a=a, semi_axis_c=c,
                                                    l_max=l_max, m_max=m_max, euler_angles=euler_angles,
@@ -125,9 +132,10 @@ def read_input_yaml(filename):
                 r = float(prtcl['cylinder radius'])
                 euler_angles = [float(prtcl['euler angles'][0]), float(prtcl['euler angles'][1]),
                                 float(prtcl['euler angles'][2])]
-                use_ds = prtcl.get('use discrete sources', True)
-                nint = prtcl.get('nint', 200)
-                nrank = prtcl.get('nrank', l_max + 2)
+                nfmds_settings = prtcl.get('NFM-DS settings', {})
+                use_ds = nfmds_settings.get('use discrete sources', True)
+                nint = nfmds_settings.get('nint', 200)
+                nrank = nfmds_settings.get('nrank', l_max + 2)
                 t_matrix_method = {'use discrete sources': use_ds, 'nint': nint, 'nrank': nrank}
 
                 particle_list.append(part.FiniteCylinder(position=pos, refractive_index=n, cylinder_radius=r,
@@ -149,12 +157,8 @@ def read_input_yaml(filename):
     infld = input_data['initial field']
     if infld['type'] == 'plane wave':
         a = float(infld['amplitude'])
-        if infld['angle units'] == 'degree':
-            ang_fac = np.pi / 180
-        else:
-            ang_fac = 1
-        pol_ang = ang_fac * float(infld['polar angle'])
-        az_ang = ang_fac * float(infld['azimuthal angle'])
+        pol_ang = angle_factor * float(infld['polar angle'])
+        az_ang = angle_factor * float(infld['azimuthal angle'])
         if infld['polarization'] == 'TE':
             pol = 0
         elif infld['polarization'] == 'TM':
@@ -167,12 +171,8 @@ def read_input_yaml(filename):
                                        polarization=pol, amplitude=a, reference_point=ref)
     elif infld['type'] == 'Gaussian beam':
         a = float(infld['amplitude'])
-        if infld['angle units'] == 'degree':
-            ang_fac = np.pi / 180
-        else:
-            ang_fac = 1
-        pol_ang = ang_fac * float(infld['polar angle'])
-        az_ang = ang_fac * float(infld['azimuthal angle'])
+        pol_ang = angle_factor * float(infld['polar angle'])
+        az_ang = angle_factor * float(infld['azimuthal angle'])
         if infld['polarization'] == 'TE':
             pol = 0
         elif infld['polarization'] == 'TM':
