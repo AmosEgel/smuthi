@@ -16,10 +16,14 @@ An arbitrary number of spheres, spheroids and finite cylinders inside an arbitra
 be modelled. For spheres, the T-matrix is given by the Mie-coefficients. For spheroids and finite cylinders, Smuthi
 calls the
 `NFM-DS <https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds>`_,
-to compute the single particle T-matrix. This is a Fortran software package written by A. Doicu, T. Wriedt and Y. Eremin, based on the "Null-field method with
-discrete sources".
+to compute the single particle T-matrix. This is a Fortran software package written by A. Doicu, T. Wriedt and
+Y. Eremin, based on the "Null-field method with discrete sources".
 
 As the initial excitation, Smuthi supports plane waves, Gaussian beams and single or multiple point dipole sources.
+
+For large numbers of particles, Smuthi offers a lookup table approach for the evaluation of Sommerfeld integrals. If
+the CUDA toolkit is installed and a suitable graphics processing unit (GPU) is available, the most costly operations can
+be run in parallel on the GPU.
 
 You can compute the 3D electric near field along a cut plane and save it in the form of ascii data files,
 png images or animations. The dashed circles around the particles are a reminder that inside the circumscribing sphere

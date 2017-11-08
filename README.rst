@@ -12,6 +12,11 @@ Author: Amos Egel. Mail to amos.egel@kit.edu for support or to report a problem.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
 
+What's new in version 0.7
+--------------------------
+Iterative solver (GMRES), lookup tables and GPU support were added for fast simulations including large particle
+numbers.
+
 What's new in version 0.6
 --------------------------
 Dipole sources are supported as initial field.
@@ -46,5 +51,5 @@ Planned updates for future versions
 ------------------------------------
 Things to be implemented next:
 
- - faster evaluation of particle coupling
  - faster (and less memory intense) evaluation of near field
+ - packages for the evaluation of bidirectional scattering distrubtion function and emission efficiency
