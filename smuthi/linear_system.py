@@ -176,7 +176,7 @@ class LinearSystem:
 
 
 class SystemMatrix:
-    """A system matrix is an abstract linear operator that operates on a system coefficient vector, i.e. a vector
+    r"""A system matrix is an abstract linear operator that operates on a system coefficient vector, i.e. a vector
     :math:`c = c_{\tau,l,m}^i`, where :math:`(\tau, l, m)` are the multipole indices and :math:`i` indicates the
     particle number.
     """
@@ -197,7 +197,7 @@ class SystemMatrix:
         return range(sum(blocksizes[:i]), sum(blocksizes))
   
     def index(self, i, tau, l, m):
-        """
+        r"""
         Args:
             i (int):    particle number
             tau (int):    spherical polarization index

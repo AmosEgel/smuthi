@@ -307,7 +307,6 @@ def layersystem_scattering_matrix(pol, layer_d, layer_n, kpar, omega):
     return smat
 
 
-#@lru_cache(128)
 @memo.Memoize
 def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, tolayer, prec=None):
     """Layer system response matrix of a planarly layered medium.

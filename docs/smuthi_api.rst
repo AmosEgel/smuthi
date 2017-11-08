@@ -9,6 +9,13 @@ smuthi.coordinates module
     :members:
     :undoc-members:
 
+smuthi.cuda_sources module
+---------------------------
+
+.. automodule:: smuthi.cuda_sources
+    :members:
+    :undoc-members:
+
 smuthi.field_expansion module
 -----------------------
 
@@ -34,6 +41,13 @@ smuthi.layers module
 --------------------
 
 .. automodule:: smuthi.layers
+    :members:
+    :undoc-members:
+
+smuthi.linear_system module
+----------------------------
+
+.. automodule:: smuthi.linear_system
     :members:
     :undoc-members:
 

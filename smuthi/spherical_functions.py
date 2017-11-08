@@ -2,7 +2,7 @@
 import numpy as np
 import scipy.special
 import warnings
-import functools
+import smuthi.memoizing as memo
 import sys
 
 
@@ -141,7 +141,7 @@ def dx_xh(n, x):
     return res
 
 
-@functools.lru_cache(maxsize=64)
+@memo.Memoize
 def factorial(n):
     """Return factorial.
 
@@ -158,7 +158,7 @@ def factorial(n):
         return n * factorial(n-1)
 
 
-@functools.lru_cache(maxsize=64)
+@memo.Memoize
 def double_factorial(n):
     """Return double factorial.
 

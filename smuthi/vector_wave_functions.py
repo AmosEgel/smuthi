@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-import smuthi.coordinates as coord
 import smuthi.spherical_functions as sf
 import numpy as np
 import sympy.physics.wigner
 import sympy
-import functools
-
+import smuthi.memoizing as memo
 
 
 def plane_vector_wave_function(x, y, z, kp, alpha, kz, pol):
@@ -326,7 +324,7 @@ def translation_coefficients_svwf_out_to_out(tau1, l1, m1, tau2, l2, m2, k, d, s
     return A
 
 
-@functools.lru_cache(maxsize=5000)
+@memo.Memoize
 def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
     """a5 and b5 are the coefficients used in the evaluation of the SVWF translation
     operator. Their computation is based on the sympy.physics.wigner package and is performed with symbolic numbers.

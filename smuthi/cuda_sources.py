@@ -16,6 +16,7 @@ use_gpu = False
 
 def enable_gpu(enable=True):
     """Sets the use_gpu flag to enable/disable the use of CUDA kernels.
+
     Args:
         enable (bool): Set use_gpu flag to this value (default=True).
     """
