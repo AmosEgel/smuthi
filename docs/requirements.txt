@@ -1,1 +1,2 @@
 smuthi
+functools >= 3.2

@@ -7,8 +7,9 @@ Parameters specified in the input file
 
 In the following, the parameters which can be specified in the input file are listed:
 
-Length unit
-------------
+Units
+------
+
 Declare here the units in which you want to specify lengths and angles. The length unit has no influence on the
 calculations and can be chosen arbitrarily. This field is mainly there to remind the user that all lengths have to be
 specified in consistent units. In addition, it is used for the axis annotation of output plots.
@@ -77,7 +78,8 @@ https://arxiv.org/ftp/arxiv/papers/1202/1202.5904.pdf
 A larger value leads to higher accuracy, but also to longer computation time. :code:`l_max` is a positive integer and
 :code:`m_max` is a non-negative integer and not greater than :code:`l_max`.
 
-In the case of non-spherical particles, you can also specify :code:`use discrete sources` (default is :code:`True`),
+In the case of non-spherical particles, you can also specify a structure :code:`NFM-DS settings` with the fields
+:code:`use discrete sources` (default is :code:`True`),
 :code:`nint` (default is :code:`200`) and :code:`nrank: 8` (default is :code:`l_max + 2`). These parameters specify the
 calculation of the T-matrix using the NFM-DS module. For further information about the meaning of these parameters, see
 the `NFM-DS documentation <https://scattport.org/images/scattering-code/NFM-DS_program-description.pdf>`_.
@@ -102,9 +104,10 @@ The parameters for the scattering particles can be listed directly in the input 
     euler angles: [0, 0, 0]
     l_max: 4
     m_max: 4
-    use discrete sources: true
-    nint: 200
-    nrank: 8
+    NFM-DS settings:
+      use discrete sources: true
+      nint: 200                 
+      nrank: 8                  
   - shape: spheroid
     semi axis c: 80
     semi axis a: 140
@@ -114,9 +117,10 @@ The parameters for the scattering particles can be listed directly in the input 
     euler angles: [0, 0, 0]
     l_max: 3
     m_max: 3
-    use discrete sources: true
-    nint: 200
-    nrank: 8
+    NFM-DS settings:
+      use discrete sources: true
+      nint: 200                 
+      nrank: 8                  
 
 
 Alternatively, the scattering particles can be specified in a separate file, which needs to be located in the SMUTHI
@@ -138,14 +142,13 @@ For plane waves, specify the initial field in the following format::
 
   initial field:
     type: plane wave
-    angle units: degree
     polar angle: 0
     azimuthal angle: 0
     polarization: TE
     amplitude: 1
     reference point: [0, 0, 0]
 
-Angle units can be 'degree' (otherwise, radians are used). For polarization, select either :code:`TE` or :code:`TM`. 
+For polarization, select either :code:`TE` or :code:`TM`. 
 
 The electric field of the plane wave in the layer from which it comes then reads
 
@@ -169,7 +172,6 @@ For Gaussian beams, specify the input in this format::
 
   initial field:
     type: Gaussian beam
-    angle units: degree
     polar angle: 0
     azimuthal angle: 0
     polarization: TE
@@ -239,11 +241,55 @@ as polar and azimuthal angle coordinates of far field evaluations::
    angular resolution: 1
 
 
+Solution strategy
+--------------------
 
-   neff waypoints: [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
+Choose a solver that is used for the solution of the linear system. Currently, :code:`LU` (default) for LU-factorization 
+and :code:`gmres` for an interative GMRES solver are possible input. In general, the iterative solver is recommended for
+large particle numbers::
+
+  solver type: LU
+
+If an iterative solver is chosen, the following setting determines at what relative accuracy the solver terminates::
+
+  solver tolerance: 1e-4
+  
+If the following parameter is set to true (default), the coupling matrix is stored explicitly. This is recommended for
+small particle numbers, whereas for large particle numbers, it leads to large memory consumption::  
+  
+  store coupling matrix: true
+
+If the coupling matrix is not stored, matrix-vector producs are evaluated by recomputing the coupling coefficients 
+on the fly during each step of the iterative solver. In that case, the computation time can be drastically reduced 
+by computing the coupling coefficients through interpolation from a lookup table. For that purpose, set the following 
+parameter to a posive value (that is the spatial resolution of the lookup table in length units)::
+
+  coupling matrix lookup resolution: 0
+
+Note:
+
+- currently only applicable with GMRES solver and when coupling matrix NOT
+  stored
+- only applicable if all particles are in the same layer
+- if NOT all particles share the same height (same position z-coordinate),
+  and the particles are distributed over a large volume, the lookup can
+  have very large memory footprint. In that case, consider a coarser
+  resolution in combination with cubic interpolation (see below) to
+  compensate the precision loss.
+
+For the interpoloation from the lookup table, you can choose between :code:`linear` (default, faster) and :code:`cubic` 
+(more preicse)::
+
+  interpolation order: linear   
+  
+
+Set the following parameter to 'true' to benefint from greatly accelerated calculations using the graphics processing 
+unit. Requires a CUDA-enabled NVIDIA GPU, a suitable version of the CUDA toolkit and the PyCuda package installed::
+  
+  enable GPU: false                           
 
 
-Post procesing
+Post processing
 -----------------
 
 Define here, what output you want to generate. Currently, the following tasks can be defined for the post processing
