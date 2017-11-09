@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name="SMUTHI",
-    version="0.7.0",
+    version="0.7.1",
     author="Amos Egel",
     author_email="amos.egel@kit.edu",
     url='https://gitlab.com/AmosEgel/smuthi',
