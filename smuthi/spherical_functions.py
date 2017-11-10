@@ -177,6 +177,7 @@ def double_factorial(n):
     else:
         return n * double_factorial(n - 2)
 
+
 def wigner_d(l, m, m_prime, beta, wdsympy=False):
     """Computation of Wigner-d-functions for the rotation of a T-matrix
     
@@ -228,3 +229,36 @@ def wigner_d(l, m, m_prime, beta, wdsympy=False):
     
     return wig_d[l].real
 
+
+def wigner_D(l , m, m_prime, alpha, beta, gamma, wdsympy=False):
+    """Computation of Wigner-D-functions for the rotation of a T-matrix
+         
+    Args:
+        l (int):          Degree :math:`l` (1, ..., lmax)
+        m (int):          Order :math:`m` (-min(l,mmax),...,min(l,mmax))
+        m_prime (int):    Order :math:`m_prime` (-min(l,mmax),...,min(l,mmax))
+        alpha (float):    First Euler angle in rad
+        beta (float):     Second Euler angle in rad
+        gamma (float):    Third Euler angle in rad
+        wdsympy (bool):   If True, Wigner-d-functions come form the sympy toolbox
+        
+    Returns:
+        single complex value of Wigner-D-function 
+    """       
+# Doicu, Light Scattering by Systems of Particles, p. 271ff (B.33ff)   
+    if m >= 0 and m_prime >= 0:
+        delta_m_mprime = 1
+    elif m >= 0 and m_prime < 0:
+        delta_m_mprime = (-1) ** m_prime
+    elif m < 0 and m_prime >= 0:
+        delta_m_mprime = (-1) ** m
+    elif m < 0 and m_prime < 0:
+        delta_m_mprime = (-1) ** (m + m_prime)
+        
+    wig_D = ((-1) ** (m + m_prime) * np.exp(1j * m * alpha) * delta_m_mprime * wigner_d(l, m, m_prime, beta, wdsympy) 
+            * np.exp(1j * m_prime * gamma))
+
+# Mishchenko, Scattering, Absorption and Emission of Light by small Particles, p.367 (B.38)
+#    wig_D = np.exp(-1j * m * alpha) * wigner_d(l, m, m_prime, beta) * np.exp(-1j * m_prime * gamma)    
+   
+    return wig_D
