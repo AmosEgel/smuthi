@@ -4,6 +4,9 @@ import scipy.special
 import warnings
 import smuthi.memoizing as memo
 import sys
+import sympy
+import math
+from sympy.physics.quantum.spin import Rotation
 
 
 def legendre_normalized(ct, st, lmax):
@@ -173,3 +176,55 @@ def double_factorial(n):
         return 1
     else:
         return n * double_factorial(n - 2)
+
+def wigner_d(l, m, m_prime, beta, wdsympy=False):
+    """Computation of Wigner-d-functions for the rotation of a T-matrix
+    
+    Args:
+        l (int):          Degree :math:`l` (1, ..., lmax)
+        m (int):          Order :math:`m` (-min(l,mmax),...,min(l,mmax))
+        m_prime (int):    Order :math:`m_prime` (-min(l,mmax),...,min(l,mmax))
+        beta (float):     Second Euler angle in radians
+        wdsympy (bool):   If True, Wigner-d-functions come form the sympy toolbox 
+        
+    Returns:
+        real value of Wigner-d-function
+    """
+    
+    wig_d = np.zeros(l + 1, dtype=complex)
+    
+    if wdsympy == False:
+    
+        if beta < 0:
+            aa = m
+            bb = m_prime
+            m = bb
+            m_prime = aa
+           
+        if m == 0 and m_prime == 0:
+            for nn in range(1, l + 1):
+                wig_d[nn] = sympy.legendre_poly(nn, np.cos(beta))          
+        else:
+            l_min = np.maximum(np.absolute(m), np.absolute(m_prime))
+            wig_d[l_min - 1] = 0
+            if m_prime >= m:
+                zeta = 1
+            else:
+                zeta = (-1) ** (m - m_prime)
+        
+            wig_d[l_min] = (zeta * 2 ** (-l_min) * (math.factorial(2 * l_min) 
+                            / (math.factorial(np.absolute(m - m_prime)) * math.factorial(np.absolute(m + m_prime)))) ** 0.5
+                            * (1 - np.cos(beta)) ** (np.absolute(m - m_prime) / 2) 
+                            * (1 + np.cos(beta)) ** (np.absolute(m + m_prime) / 2 ))
+    
+            for ll in range(l_min, l):
+                wig_d[ll + 1] = (((2 * ll + 1) * (ll * (ll + 1) * np.cos(beta) - m * m_prime) * wig_d[ll] 
+                                - (ll + 1) * (ll ** 2 - m ** 2) ** 0.5 * (ll ** 2 - m_prime ** 2) ** 0.5 * wig_d[ll - 1])
+                                / (ll * ((ll + 1) ** 2 - m ** 2) ** 0.5 * ((ll + 1) ** 2 - m_prime ** 2) ** 0.5))
+    
+    else:
+        wig_d[l] = complex(Rotation.d(l, m, m_prime, beta).doit())
+    
+    
+    return wig_d[l].real
+
