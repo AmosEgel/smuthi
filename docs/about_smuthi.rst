@@ -103,7 +103,9 @@ from the following persons:
 
    - Adrian Doicu, Thomas Wriedt and Yuri Eremin through the
      `NFM-DS <https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds>`_ package, a copy of which
-     is distributed with Smuthi
+     is distributed with Smuthi.
+
+Big thanks go to Lorenzo Pattelli for designing the Smuthi logo.
 
 The creation of Smuthi was funded by the `DFG <http://www.dfg.de/>`_ through the research project
 `LAMBDA <http://gepris.dfg.de/gepris/projekt/278746617>`_ within the priority programme
