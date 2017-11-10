@@ -1,5 +1,6 @@
-SMUTHI
-=======================
+.. image:: docs/images/logo_cropped.png
+   :align: center
+
 SMUTHI stands for 'scattering by multiple particles in thin-film systems'. The software allows to simulate light
 scattering by multiple particles near (or between) planar interfaces. It is based on the T-matrix method for the single
 particle scattering, and on the scattering-matrix method for the propagation through the layered medium.
@@ -51,5 +52,15 @@ Planned updates for future versions
 ------------------------------------
 Things to be implemented next:
 
+ - rotated particles
+ - plane wave based coupling for close non spherical particles
  - faster (and less memory intense) evaluation of near field
  - packages for the evaluation of bidirectional scattering distrubtion function and emission efficiency
+
+
+Credits
+--------
+We thank
+
+ - Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use their NFM-DS Fortran code
+ - Lorenzo Pattelli for designing the Smuthi logo
