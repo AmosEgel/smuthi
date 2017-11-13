@@ -7,6 +7,9 @@ import smuthi.vector_wave_functions as vwf
 import smuthi.particles as part
 import smuthi.particle_coupling as pc
 import smuthi.scattered_field as sf
+import warnings
+import sys
+from tqdm import tqdm
 
 
 class InitialField:
@@ -365,7 +368,7 @@ class DipoleSource(InitialField):
         swe.coefficients = np.dot(wd + wr, self.outgoing_spherical_wave_expansion(layer_system).coefficients)
         return swe
 
-    def piecewise_field_expansion(self, layer_system, include_direct_field=True):
+    def piecewise_field_expansion(self, layer_system, include_direct_field=True, include_layer_response=True):
         """Compute a piecewise field expansion of the dipole field.
 
         Args:
@@ -373,6 +376,10 @@ class DipoleSource(InitialField):
             include_direct_field (bool):                if True (default), the direct dipole field is included.
                                                         otherwise, only the layer response of the dipole field is
                                                         returned.
+            include_layer_response (bool):              if True (default), the layer response of the dipole field is 
+                                                        included. otherwise, only the direct dipole field is
+                                                        returned.
+                                        
 
         Returns:
             smuthi.field_expansion.PiecewiseWaveExpansion object
@@ -380,21 +387,22 @@ class DipoleSource(InitialField):
         pfe = fldex.PiecewiseFieldExpansion()
         if include_direct_field:
             pfe.expansion_list.append(self.outgoing_spherical_wave_expansion(layer_system))
-        for i in range(layer_system.number_of_layers()):
-            # layer response as plane wave expansions
-            pwe_up, pwe_down = fldex.swe_to_pwe_conversion(swe=self.outgoing_spherical_wave_expansion(layer_system),
-                                                           k_parallel=self.k_parallel,
-                                                           azimuthal_angles=self.azimuthal_angles,
-                                                           layer_system=layer_system, layer_number=i,
-                                                           layer_system_mediated=True)
-            if i > 0:
-                pfe.expansion_list.append(pwe_up)
-            if i < layer_system.number_of_layers() - 1:
-                pfe.expansion_list.append(pwe_down)
+        if include_layer_response:
+            for i in range(layer_system.number_of_layers()):
+                # layer response as plane wave expansions
+                pwe_up, pwe_down = fldex.swe_to_pwe_conversion(swe=self.outgoing_spherical_wave_expansion(layer_system),
+                                                            k_parallel=self.k_parallel,
+                                                            azimuthal_angles=self.azimuthal_angles,
+                                                            layer_system=layer_system, layer_number=i,
+                                                            layer_system_mediated=True)
+                if i > 0:
+                    pfe.expansion_list.append(pwe_up)
+                if i < layer_system.number_of_layers() - 1:
+                    pfe.expansion_list.append(pwe_down)
 
         return pfe
 
-    def electric_field(self, x, y, z, layer_system, include_direct_field=True):
+    def electric_field(self, x, y, z, layer_system, include_direct_field=True, include_layer_response=True):
         """Evaluate the complex electric field of the dipole source.
 
         Args:
@@ -405,11 +413,16 @@ class DipoleSource(InitialField):
             include_direct_field (bool):                if True (default), the direct dipole field is included.
                                                         otherwise, only the layer response of the dipole field is
                                                         returned.
+            include_layer_response (bool):              if True (default), the layer response of the dipole field is 
+                                                        included. otherwise, only the direct dipole field is
+                                                        returned.
+
 
         Returns
             Tuple (E_x, E_y, E_z) of electric field values
         """
-        pfe = self.piecewise_field_expansion(layer_system=layer_system, include_direct_field=include_direct_field)
+        pfe = self.piecewise_field_expansion(layer_system=layer_system, include_direct_field=include_direct_field,
+                                             include_layer_response=include_layer_response)
         return pfe.electric_field(x, y, z)
 
     def dissipated_power_homogeneous_background(self, layer_system):
@@ -551,7 +564,7 @@ class DipoleCollection(InitialField):
         pfe = self.piecewise_field_expansion(layer_system=layer_system)
         return pfe.electric_field(x, y, z)
 
-    def dissipated_power(self, particle_list, layer_system):
+    def dissipated_power(self, particle_list, layer_system, k_parallel='default', azimuthal_angles='default'):
         r"""Compute the power that the dipole collection feeds into the system.
 
         It is computed according to
@@ -568,32 +581,64 @@ class DipoleCollection(InitialField):
         Args:
             particle_list (list of smuthi.particles.Particle objects): scattering particles
             layer_system (smuthi.layers.LayerSystem): stratified medium
+            k_parallel (ndarray or str): array of in-plane wavenumbers for plane wave expansions. If 'default', use 
+                                         smuthi.coordinates.default_k_parallel
+            azimuthal_angles (ndarray or str): array of azimuthal angles for plane wave expansions. If 'default', use 
+                                               smuthi.coordinates.default_azimuthal_angles
 
         Returns:
             dissipated power of each dipole (list of floats)
         """
+        if k_parallel == 'default':
+            k_parallel = coord.default_k_parallel
+            
+        if azimuthal_angles == 'default':
+            azimuthal_angles = coord.default_azimuthal_angles
+        
         power_list = []
-        for dipole in self.dipole_list:
-            scat_fld_exp = sf.scattered_field_piecewise_expansion(dipole.vacuum_wavelength, particle_list, layer_system, 
-                                                                  dipole.k_parallel, dipole.azimuthal_angles)
-            e_x_scat, e_y_scat, e_z_scat = scat_fld_exp.electric_field(dipole.position[0], dipole.position[1],
-                                                                       dipole.position[2])
-            e_x_in, e_y_in, e_z_in = dipole.electric_field(x=dipole.position[0], y=dipole.position[1],
-                                                           z=dipole.position[2], layer_system=layer_system,
-                                                           include_direct_field=False)
-            for other_dipole in self.dipole_list:
-                if not dipole == other_dipole:
-                    other_in = other_dipole.electric_field(x=dipole.position[0], y=dipole.position[1],
-                                                           z=dipole.position[2], layer_system=layer_system,
-                                                           include_direct_field=True)
-                    e_x_in = e_x_in + other_in[0]
-                    e_y_in = e_y_in + other_in[1]
-                    e_z_in = e_z_in + other_in[2]
-
+        
+        x_positions = np.array([dipole.position[0] for dipole in self.dipole_list])
+        y_positions = np.array([dipole.position[1] for dipole in self.dipole_list])
+        z_positions = np.array([dipole.position[2] for dipole in self.dipole_list])
+        
+        scat_fld_exp = sf.scattered_field_piecewise_expansion(self.vacuum_wavelength, particle_list, layer_system, 
+                                                              k_parallel, azimuthal_angles)
+        
+        e_x_scat, e_y_scat, e_z_scat = scat_fld_exp.electric_field(x_positions, y_positions, z_positions)
+        
+        e_x_in_direct_list, e_y_in_direct_list, e_z_in_direct_list = [], [], []
+        e_x_in_response_list, e_y_in_response_list, e_z_in_response_list = [], [], []
+        
+        for dipole in tqdm(self.dipole_list, desc='Dipole array power        ', file=sys.stdout,
+                                        bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}'):
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="invalid value encountered in multiply")
+                e_x_in_direct, e_y_in_direct, e_z_in_direct = dipole.electric_field(
+                    x=x_positions, y=y_positions, z=z_positions, layer_system=layer_system, include_layer_response=False)
+            
+            e_x_in_response, e_y_in_response, e_z_in_response = dipole.electric_field(
+                x=x_positions, y=y_positions, z=z_positions, layer_system=layer_system, include_direct_field=False)
+            
+            e_x_in_direct_list.append(e_x_in_direct)
+            e_y_in_direct_list.append(e_y_in_direct)
+            e_z_in_direct_list.append(e_z_in_direct)
+            
+            e_x_in_response_list.append(e_x_in_response)
+            e_y_in_response_list.append(e_y_in_response)
+            e_z_in_response_list.append(e_z_in_response)
+            
+        for i, dipole in enumerate(self.dipole_list):
+            e_x_in = (sum([e_x_in[i] for i_other, e_x_in in enumerate(e_x_in_direct_list) if i_other != i])
+                      + sum([e_x_in[i] for i_other, e_x_in in enumerate(e_x_in_response_list)]))
+            e_y_in = (sum([e_y_in[i] for i_other, e_y_in in enumerate(e_y_in_direct_list) if i_other != i])
+                      + sum([e_y_in[i] for i_other, e_y_in in enumerate(e_y_in_response_list)]))
+            e_z_in = (sum([e_z_in[i] for i_other, e_z_in in enumerate(e_z_in_direct_list) if i_other != i])
+                      + sum([e_z_in[i] for i_other, e_z_in in enumerate(e_z_in_response_list)]))
+            
             p = (dipole.dissipated_power_homogeneous_background(layer_system) +
-                 dipole.angular_frequency() / 2 * (np.conjugate(dipole.dipole_moment[0]) * (e_x_scat + e_x_in) +
-                                                   np.conjugate(dipole.dipole_moment[1]) * (e_y_scat + e_y_in) +
-                                                   np.conjugate(dipole.dipole_moment[2]) * (e_z_scat + e_z_in)).imag)
+                 dipole.angular_frequency() / 2 * (np.conjugate(dipole.dipole_moment[0]) * (e_x_scat[i] + e_x_in) +
+                                                   np.conjugate(dipole.dipole_moment[1]) * (e_y_scat[i] + e_y_in) +
+                                                   np.conjugate(dipole.dipole_moment[2]) * (e_z_scat[i] + e_z_in)).imag)
             power_list.append(p)
 
         return power_list
