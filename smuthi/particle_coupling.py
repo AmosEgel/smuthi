@@ -905,7 +905,7 @@ def A_block_pvwf_coupling(l_max, m_max, pp1, pp2, steps, kpar_k_max, alpha, beta
                 * bessel_arr[:, (tp[ii * blocksize + mm, 2] + l_max) * (2 * l_max + 1) + tp[ii * blocksize + mm, 5] + l_max])
                 integral[:, jj] = np.trapz(np.transpose(integrand), kpar[:, 0])
                 
-            A_n_nprime[mm + blocksize * ii] = (4 * 1j ** (tp[ii * blocksize + mm, 2] - tp[ii * blocksize + mm, 5]) 
+            A_block[mm + blocksize * ii] = (4 * 1j ** (tp[ii * blocksize + mm, 2] - tp[ii * blocksize + mm, 5]) 
                                                 * (integral[:, 0] + integral[:, 1]))
     else:
         const_arr = kpar / (kz * k) * np.exp(1j * (kz * r2mnr1_cyl[2]))
