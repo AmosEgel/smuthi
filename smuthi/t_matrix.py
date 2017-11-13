@@ -106,9 +106,33 @@ def t_matrix(vacuum_wavelength, n_medium, particle):
     return t
 
 
-def rotate_t_matrix(t, euler_angles):
-    """Placeholder for a proper T-matrix rotation routine"""
-    if euler_angles == [0, 0, 0]:
-        return t
+def rotate_t_matrix(T, l_max, m_max, alpha, beta, gamma, wdsympy=False):
+    """T-matrix of a particle in a rotated coordinate system (R), with respect to the labratrory coordinate system (L) 
+    
+    Args:
+        T (numpy.matrix):     T-matrix 
+        l_max (int):          Maximal multipole degree
+        m_max (int):          Maximal multipole order
+        alpha (float):        First Euler angle
+        beta (float):         Second Euler angle
+        gamma (float):        Third Euler angle
+        
+    Returns:
+        rotated T-matrix
+    """
+    
+    if [alpha, beta, gamma] == [0, 0, 0]:
+        return T
     else:
-        raise ValueError('Non-trivial rotation not yet implemented')
+        blocksize = fldex.blocksize(l_max, m_max)
+        T_mat_rot = np.zeros([blocksize, blocksize], dtype=complex)
+    
+# Doicu, Light Scattering by Systems of Particles, p. 70 (1.115)      
+        T_mat_rot = (np.dot(np.dot(np.transpose(fldex.block_rotation_matrix_D_svwf(l_max, -gamma, -beta, -alpha, wdsympy)) , T),
+                        np.transpose(fldex.block_rotation_matrix_D_svwf(l_max, alpha, beta, gamma, wdsympy))))
+
+# Mishchenko, Scattering, Absorption and Emission of Light by small Particles, p.120 (5.29)
+#       T_rot_matrix = np.dot(np.dot(fldex.rotation_matrix_D(l_max, alpha, beta, gamma), T),
+#                             fldex.rotation_matrix_D(l_max, -gamma, -beta, -alpha))
+
+        return T_mat_rot
