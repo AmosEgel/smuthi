@@ -811,3 +811,121 @@ def spheroids_closest_points(sha1, mha1, ctr1, orient1, sha2, mha2, ctr2, orient
     res = {'alpha' : alpha, 'beta' : beta, 'normale' : normale, 'p1' : p1 * 100, 'p2' : p2 * 100}
     
     return res
+
+def A_block_pvwf_coupling(l_max, m_max, pp1, pp2, steps, kpar_k_max, alpha, beta, rfi, wavelength):
+    """ Computation of the translation operator A_n_nprime(particle1, particle2)
+    
+    Args:
+        l_max (int):              Maximal multipole order
+        pp1 (numpy.array):        Center position of particle 1
+        pp2 (numpy.array):        Center position of particle 2
+        steps (int):              Number of integration steps
+        kpar_k_max (float):       Maximal value of (kpar / k ) up to which the integral is determined
+        alpha (float):            Azimuthal angle of the coordinate system rotation in Rad
+        beta (float):             Polar angle of the coordinate system rotation in Rad
+        rfi (float):              Refractive index of the ambiance medium
+        wavelength (float):       Vacuum wavelength of respective light
+        
+    Returns: 
+        Translation operator A_block(numpy.array)
+    """
+    blocksize = fldex.blocksize(l_max, m_max)
+    tp = np.zeros([blocksize ** 2, 6], dtype=int)
+     
+    for tauii in range(2):
+        for lii in range(1, l_max + 1):
+            if lii <= m_max:
+                for mii in range(- lii, lii + 1):
+                    jmult = fldex.multi_to_single_index(tauii, lii, mii, l_max, m_max)
+                    for kk in range(blocksize):
+                        tp[jmult + blocksize * kk, 0] = tauii 
+                        tp[jmult + blocksize * kk, 1] = lii
+                        tp[jmult + blocksize * kk, 2] = mii
+                        tp[jmult * blocksize + kk, 3] = tauii 
+                        tp[jmult * blocksize + kk, 4] = lii
+                        tp[jmult * blocksize + kk, 5] = mii
+            else:
+                for mii in range(- m_max, m_max + 1):
+                    jmult = fldex.multi_to_single_index(tauii, lii, mii, l_max, m_max)
+                    for kk in range(blocksize):
+                        tp[jmult + blocksize * kk, 0] = tauii 
+                        tp[jmult + blocksize * kk, 1] = lii
+                        tp[jmult + blocksize * kk, 2] = mii
+                        tp[jmult * blocksize + kk, 3] = tauii 
+                        tp[jmult * blocksize + kk, 4] = lii
+                        tp[jmult * blocksize + kk, 5] = mii
+                
+    A_block = np.zeros([blocksize ** 2], dtype=complex)
+    
+    r2mnr1_Lab = pp2 - pp1 
+    r2mnr1 = np.dot(np.dot([[math.cos(beta), 0, math.sin(beta)], [0, 1, 0], [- math.sin(beta), 0, math.cos(beta)]],
+                    [[math.cos(alpha), - math.sin(alpha), 0], [math.sin(alpha), math.cos(alpha), 0], [0, 0, 1]]), r2mnr1_Lab)
+    r2mnr1_cyl = np.zeros([3, 1])
+    r2mnr1_cyl[0], r2mnr1_cyl[1] = (r2mnr1[0] ** 2 + r2mnr1[1] ** 2) ** 0.5, math.atan2(r2mnr1[1], r2mnr1[0])
+    r2mnr1_cyl[2] = r2mnr1[2]
+    
+    k = rfi * 2 * math.pi / wavelength
+    kpar_max = kpar_k_max * k 
+        
+    aa = 0
+    kpar = np.zeros([steps, 1], dtype=complex)
+    for ii in np.linspace(0 , kpar_max, num=steps):
+        if ii <= 0.8 * k or ii >= 1.2 * k:
+            kpar[aa] = ii
+        else:
+            kpar[aa] = ii + 1j * ((1 / (1600 * k ** 2)) * ii ** 2 - (1 / (800 * k)) * ii + 3 / 5000)
+        aa += 1
+    
+    kz = np.sqrt(k ** 2 - kpar ** 2 )
+    integral = np.zeros([blocksize, 2], dtype=complex)
+      
+    B_arr = np.zeros([steps, blocksize, 2], dtype=complex)       
+    B_dagger_arr = np.zeros([steps, blocksize, 2], dtype=complex)
+    bessel_arr = np.zeros([steps, (2* l_max + 1) ** 2], dtype=complex)
+    ii = 0
+    for mm in range(-l_max, l_max + 1):
+        for nn in range(-l_max, l_max + 1):
+            bessel_arr[:, ii] = (np.exp(1j * r2mnr1_cyl[1] * (mm - nn)) 
+                                * scipy.special.jn(mm - nn, np.transpose(kpar) * r2mnr1_cyl[0]))
+            ii += 1
+        
+    if r2mnr1_cyl[2] < 0:
+        const_arr = kpar / (kz * k) * np.exp(1j * (- kz * r2mnr1_cyl[2]))
+        for gg in range(0, blocksize):
+            for hh in range(0, 2):
+                B_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg, 0], tp[gg, 1], tp[gg, 2], hh,
+                     kp=np.transpose(kpar), kz=-np.transpose(kz), pilm_list=None, taulm_list=None, dagger=False)
+                B_dagger_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg * blocksize + 1, 3],
+                            tp[gg * blocksize + 1, 4], tp[gg * blocksize + 1, 5], hh, kp=np.transpose(kpar),
+                            kz=-np.transpose(kz), pilm_list=None, taulm_list=None, dagger=True)
+        for ii in range(0, blocksize):
+            mm = np.array([aa for aa in range(blocksize)])
+            for jj in range(2):
+                integrand = (const_arr * B_arr[:, mm, jj] * B_dagger_arr[:, ii, jj][:, None] 
+                * bessel_arr[:, (tp[ii * blocksize + mm, 2] + l_max) * (2 * l_max + 1) + tp[ii * blocksize + mm, 5] + l_max])
+                integral[:, jj] = np.trapz(np.transpose(integrand), kpar[:, 0])
+                
+            A_n_nprime[mm + blocksize * ii] = (4 * 1j ** (tp[ii * blocksize + mm, 2] - tp[ii * blocksize + mm, 5]) 
+                                                * (integral[:, 0] + integral[:, 1]))
+    else:
+        const_arr = kpar / (kz * k) * np.exp(1j * (kz * r2mnr1_cyl[2]))
+        for gg in range(0, blocksize):
+            for hh in range(0, 2):
+                B_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg, 0], tp[gg, 1], tp[gg, 2], hh,
+                     kp=np.transpose(kpar), kz=np.transpose(kz), pilm_list=None, taulm_list=None, dagger=False)
+                B_dagger_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg * blocksize + 1, 3],
+                            tp[gg * blocksize + 1, 4], tp[gg * blocksize + 1, 5], hh, kp=np.transpose(kpar),
+                            kz=np.transpose(kz), pilm_list=None, taulm_list=None, dagger=True)
+        for ii in range(0, blocksize):
+            mm = np.array([aa for aa in range(blocksize)])
+            for jj in range(2):
+                integrand = (const_arr * B_arr[:, mm, jj] * B_dagger_arr[:, ii, jj][:, None] 
+                * bessel_arr[:, (tp[ii * blocksize + mm, 2] + l_max) * (2 * l_max + 1) + tp[ii * blocksize + mm, 5] + l_max])
+                integral[:, jj] = np.trapz(np.transpose(integrand), kpar[:, 0])
+                
+            A_block[mm + blocksize * ii] = (4 * 1j ** (tp[ii * blocksize + mm, 2] - tp[ii * blocksize + mm, 5]) 
+                                             * (integral[:, 0] + integral[:, 1]))
+    
+    A_block = np.transpose(np.reshape(A_block, [blocksize, blocksize]))
+                
+    return A_block
