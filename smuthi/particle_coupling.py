@@ -4,6 +4,7 @@ coupling matrix entries. The second half of the module contains functions for th
 are used to approximate the coupling matrices by interoplation."""
 
 import numpy as np
+import math
 import scipy.special
 import scipy.interpolate
 import smuthi.coordinates as coord
@@ -692,3 +693,125 @@ def size_format(b):
         return '%.1f' % float(b/1000000000) + 'GB'
     elif 1000000000000 <= b:
         return '%.1f' % float(b/1000000000000) + 'TB'
+
+
+def spheroids_closest_points(sha1, mha1, ctr1, orient1, sha2, mha2, ctr2, orient2):
+    """ Computation of the two closest points of two adjacent spheroids
+    
+    Args:
+        sha1 (int):                Semi-halfaxis (exists twice) of spheroid 1
+        mha1 (int):                Major-halfaxis (exists once) of spheroid 1
+        ctr1 (numpy.array):        Center coordinates of spheroid 1
+        orinet1 (numpy.array):     Orientation angles of spheroid 1
+        sha2 (int):                Semi-halfaxis (exists twice) of spheroid 2
+        mha2 (int):                Major-halfaxis (exists once) of spheroid 2
+        ctr2 (numpy.array):        Center coordinates of spheroid 2
+        orinet2 (numpy.array):     Orientation angles of spheroid 2
+        
+    Retruns:
+        Dictonary that contains fields 'p1', 'p2', 'normale' which connects p1 and p2,
+        and the rotation angles 'alpha' and 'beta'
+    """
+    rot_matrix_1 = (np.array([
+    [np.dot(math.cos(orient1[0]), math.cos(orient1[1])), -math.sin(orient1[0]), np.dot(math.cos(orient1[0]), math.sin(orient1[1]))],
+    [np.dot(math.sin(orient1[0]), math.cos(orient1[1])), math.cos(orient1[0]), np.dot(math.sin(orient1[0]), math.sin(orient1[1]))],
+    [-math.sin(orient1[1]), 0, math.cos(orient1[1])]]))
+
+    rot_matrix_2 = (np.array([
+    [np.dot(math.cos(orient2[0]), math.cos(orient2[1])), -math.sin(orient2[0]), np.dot(math.cos(orient2[0]), math.sin(orient2[1]))],
+    [np.dot(math.sin(orient2[0]), math.cos(orient2[1])), math.cos(orient2[0]), np.dot(math.sin(orient2[0]), math.sin(orient2[1]))],
+    [-math.sin(orient2[1]), 0, math.cos(orient2[1])]]))
+        
+    # all coordinates are transformed from [1 == 1nm] to [1 == 100nm]
+    a1, a2 = sha1 / 100, sha2 / 100
+    c1, c2 = mha1 / 100, mha2 / 100
+    ctr1, ctr2 = np.dot(ctr1, 1 / 100), np.dot(ctr2, 1 / 100)
+    
+    eigenvalue_matrix_1 = np.array([[1 / a1 ** 2, 0, 0], [0, 1 / a1 ** 2, 0], [0, 0, 1 / c1 ** 2]])
+    eigenvalue_matrix_2 = np.array([[1 / a2 ** 2, 0, 0], [0, 1 / a2 ** 2, 0], [0, 0, 1 / c2 ** 2]])
+    
+    E1 = np.dot(rot_matrix_1, np.dot(eigenvalue_matrix_1, np.transpose(rot_matrix_1)))
+    E2 = np.dot(rot_matrix_2, np.dot(eigenvalue_matrix_2, np.transpose(rot_matrix_2)))
+    
+    S = np.matrix.getH(np.linalg.cholesky(E1))
+    # transformation of spheroid E1 into the unit-sphere with its center at origin / same transformation on E2
+    # E1_prime = np.dot(np.transpose(np.linalg.inv(S)), np.dot(E1, np.linalg.inv(S)))
+    E2_prime = np.dot(np.transpose(np.linalg.inv(S)), np.dot(E2, np.linalg.inv(S)))
+    # ctr1_prime = ctr1 - ctr1 
+    ctr2_prime = -(np.dot(S, (ctr1 - ctr2)))
+    
+    E2_prime_L = np.linalg.cholesky(E2_prime)
+        
+    # we need a function, starting variables x0, a constraints function
+    # the function needs to be defined as a regular function
+    H = np.dot(np.linalg.inv(E2_prime_L), np.transpose(np.linalg.inv(E2_prime_L)))
+    p = np.array([0, 0, 0])
+    f = np.dot(np.transpose(ctr2_prime - p), np.transpose(np.linalg.inv(E2_prime_L)))
+    
+    
+    def minimization_fun(y_vec):
+        fun = 0.5 * np.dot(np.dot(np.transpose(y_vec), H), y_vec) + np.dot(f, y_vec)
+        return fun
+    
+    def constraint_fun(x):
+        eq_constraint = (x[0] ** 2 + x[1] ** 2 + x[2] ** 2) ** 0.5 - 1
+        return eq_constraint
+    
+    bnds = ((-1, 1), (-1, 1), (-1, 1))
+    length_constraints = {'type' : 'eq', 'fun' : constraint_fun}
+    
+    flag = False
+    while flag == False:
+        x0 = -1 + np.dot((1 + 1), np.random.rand(3))
+        optimization_result = scipy.optimize.minimize(minimization_fun, x0, method='SLSQP', bounds=bnds,
+                                                      constraints=length_constraints, tol=None, callback=None, options=None)
+        x_vec = np.transpose(np.dot(np.transpose(np.linalg.inv(E2_prime_L)), optimization_result['x'])
+                             + np.transpose(ctr2_prime))
+        if optimization_result['success'] == True:
+            if np.linalg.norm(x_vec) < np.linalg.norm(ctr2_prime):
+                flag = True
+            else:
+                print('wrong minima ...')
+        else:
+            print('No minima found ...')
+    
+    p2_prime = x_vec
+    p2 = np.dot(np.linalg.inv(S), p2_prime) + ctr1
+    
+    E1_L = np.linalg.cholesky(E1)
+    H = np.dot(np.linalg.inv(E1_L), np.transpose(np.linalg.inv(E1_L)))
+    p = p2
+    f = np.dot(np.transpose(ctr1 - p), np.transpose(np.linalg.inv(E1_L)))
+    
+    def minimization_fun2(y_vec):
+        fun = 0.5 * np.dot(np.dot(np.transpose(y_vec), H), y_vec) + np.dot(f, y_vec)
+        return fun
+    
+    flag = False
+    while flag == False:
+        x0 = -1 + np.dot((1 + 1), np.random.rand(3))
+        optimization_result2 = scipy.optimize.minimize(minimization_fun2, x0, method='SLSQP', bounds=bnds,
+                                                      constraints=length_constraints, tol=None, callback=None, options=None)
+        p1 = np.transpose(np.dot(np.transpose(np.linalg.inv(E1_L)), optimization_result2['x']) + np.transpose(ctr1))
+        if optimization_result2['success'] == True:
+            if np.linalg.norm(p1 - p) < np.linalg.norm(ctr1 - p):
+                flag = True
+            else:
+                print('wrong minima ...')
+        else:
+            print('No minima found ...')
+    
+    normale = p2 - p1
+    normale = np.dot(normale, 1 / np.max(np.absolute(normale)))
+    azimuth = math.atan2(normale[1], normale[0])
+    elevation = math.atan2(normale[2], (normale[0] ** 2 + normale[1] ** 2) ** 0.5)
+
+    if normale[2] < 0:
+        beta = (math.pi / 2) + elevation
+    else:
+        beta = (-math.pi / 2) + elevation
+    alpha = -azimuth
+              
+    res = {'alpha' : alpha, 'beta' : beta, 'normale' : normale, 'p1' : p1 * 100, 'p2' : p2 * 100}
+    
+    return res
