@@ -4,7 +4,7 @@ import numpy as np
 import sympy.physics.wigner
 import sympy
 import smuthi.memoizing as memo
-import smuthi.field_expansion as fldex
+
 
 
 def plane_vector_wave_function(x, y, z, kp, alpha, kz, pol):
@@ -358,58 +358,3 @@ def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
     return a, b
 
 
-def block_rotation_matrix_D(l_max, m_max, alpha, beta, gamma, wdsympy=False):
-    """Rotation matrix between a labratory coordinate system (L) and a rotated coordinate system (R)
-    
-    Args:
-        l_max (int):      Maximal multipole degree
-        m_max (int):      Maximal multipole order
-        alpha (float):    First Euler angle
-        beta (float):     Second Euler angle
-        gamma (float):    Third Euler angle
-        wdsympy (bool):   If True, Wigner-d-functions come form the sympy toolbox
-        
-    Returns:
-        rotation matrix of dimension [blocksize, blocksize]
-    """
-    
-    blocksize = fldex.blocksize(l_max, m_max)
-    rotation_matrix = np.zeros([blocksize, blocksize], dtype=complex)
-    
-    row = 0
-    for ll in range(1, l_max + 1):
-        if ll <= m_max:
-            for mm in range(-ll, ll + 1):
-                column = 0
-                for ll_prime in range(1, l_max + 1):
-                    if ll_prime <= m_max:
-                        for mm_prime in range(-ll_prime, ll_prime +1):
-                            if ll == ll_prime:
-                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
-                                rotation_matrix[row + int(blocksize / 2), column + int(blocksize / 2)] = rotation_matrix[row, column]
-                            column +=  1
-                    else:
-                        for mm_prime in range(-m_max, m_max +1):
-                            if ll == ll_prime:
-                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
-                                rotation_matrix[row + int(blocksize / 2), column + int(blocksize / 2)] = rotation_matrix[row, column]
-                            column +=  1
-                row += 1                        
-        else:
-            for mm in range(-m_max, m_max + 1):
-                column = 0
-                for ll_prime in range(1, l_max + 1):
-                    if ll_prime <= m_max:
-                        for mm_prime in range(-ll_prime, ll_prime +1):
-                            if ll == ll_prime:
-                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
-                                rotation_matrix[row + int(blocksize / 2), column + int(blocksize / 2)] = rotation_matrix[row, column]
-                            column +=  1
-                    else:
-                        for mm_prime in range(-m_max, m_max +1):
-                            if ll == ll_prime:
-                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
-                                rotation_matrix[row + int(blocksize / 2), column + int(blocksize / 2)] = rotation_matrix[row, column]
-                            column +=  1                            
-                row += 1
-    return rotation_matrix

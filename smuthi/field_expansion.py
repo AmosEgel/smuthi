@@ -4,6 +4,7 @@
 import numpy as np
 import smuthi.coordinates as coord
 import smuthi.vector_wave_functions as vwf
+import smuthi.spherical_functions as sf
 import copy
 
 
@@ -897,3 +898,60 @@ def blocksize(l_max, m_max):
     Returns:
          Number of indices for one particle, which is the maximal index plus 1."""
     return multi_to_single_index(tau=1, l=l_max, m=m_max, l_max=l_max, m_max=m_max) + 1
+
+
+def block_rotation_matrix_D_svwf(l_max, m_max, alpha, beta, gamma, wdsympy=False):
+    """Rotation matrix for the rotation of SVWFs between a labratory coordinate system (L) and a rotated coordinate system (R)
+    
+    Args:
+        l_max (int):      Maximal multipole degree
+        m_max (int):      Maximal multipole order
+        alpha (float):    First Euler angle
+        beta (float):     Second Euler angle
+        gamma (float):    Third Euler angle
+        wdsympy (bool):   If True, Wigner-d-functions come form the sympy toolbox
+        
+    Returns:
+        rotation matrix of dimension [blocksize, blocksize]
+    """
+    
+    b_size = blocksize(l_max, m_max)
+    rotation_matrix = np.zeros([blocksize, blocksize], dtype=complex)
+    
+    row = 0
+    for ll in range(1, l_max + 1):
+        if ll <= m_max:
+            for mm in range(-ll, ll + 1):
+                column = 0
+                for ll_prime in range(1, l_max + 1):
+                    if ll_prime <= m_max:
+                        for mm_prime in range(-ll_prime, ll_prime +1):
+                            if ll == ll_prime:
+                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
+                                rotation_matrix[row + int(b_size / 2), column + int(b_size / 2)] = rotation_matrix[row, column]
+                            column +=  1
+                    else:
+                        for mm_prime in range(-m_max, m_max +1):
+                            if ll == ll_prime:
+                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
+                                rotation_matrix[row + int(b_size / 2), column + int(b_size / 2)] = rotation_matrix[row, column]
+                            column +=  1
+                row += 1                        
+        else:
+            for mm in range(-m_max, m_max + 1):
+                column = 0
+                for ll_prime in range(1, l_max + 1):
+                    if ll_prime <= m_max:
+                        for mm_prime in range(-ll_prime, ll_prime +1):
+                            if ll == ll_prime:
+                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
+                                rotation_matrix[row + int(b_size / 2), column + int(b_size / 2)] = rotation_matrix[row, column]
+                            column +=  1
+                    else:
+                        for mm_prime in range(-m_max, m_max +1):
+                            if ll == ll_prime:
+                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
+                                rotation_matrix[row + int(b_size / 2), column + int(b_size / 2)] = rotation_matrix[row, column]
+                            column +=  1                            
+                row += 1
+    return rotation_matrix
