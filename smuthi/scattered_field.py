@@ -2,6 +2,8 @@
 import numpy as np
 import smuthi.coordinates as coord
 import smuthi.field_expansion as fldex
+from tqdm import tqdm
+import sys
 
 
 def total_far_field(initial_field, particle_list, layer_system, polar_angles='default', azimuthal_angles='default'):
@@ -302,7 +304,8 @@ def scattered_field_piecewise_expansion(vacuum_wavelength, particle_list, layer_
     """
 
     sfld = fldex.PiecewiseFieldExpansion()
-    for i in range(layer_system.number_of_layers()):
+    for i in tqdm(range(layer_system.number_of_layers()), desc='Scatt. field expansion    ', file=sys.stdout,
+                                        bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}'):
         # layer mediated scattered field ---------------------------------------------------------------------------
         k = coord.angular_frequency(vacuum_wavelength) * layer_system.refractive_indices[i]
         ref = [0, 0, layer_system.reference_z(i)]

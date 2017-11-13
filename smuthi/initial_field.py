@@ -589,6 +589,9 @@ class DipoleCollection(InitialField):
         Returns:
             dissipated power of each dipole (list of floats)
         """
+        sys.stdout.write('Dipole array dissipated power evaluation:\n')
+        sys.stdout.flush()
+                        
         if k_parallel == 'default':
             k_parallel = coord.default_k_parallel
             
@@ -609,7 +612,7 @@ class DipoleCollection(InitialField):
         e_x_in_direct_list, e_y_in_direct_list, e_z_in_direct_list = [], [], []
         e_x_in_response_list, e_y_in_response_list, e_z_in_response_list = [], [], []
         
-        for dipole in tqdm(self.dipole_list, desc='Dipole array power        ', file=sys.stdout,
+        for dipole in tqdm(self.dipole_list, desc='Initial field             ', file=sys.stdout,
                                         bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}'):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message="invalid value encountered in multiply")

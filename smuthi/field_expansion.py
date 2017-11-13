@@ -4,6 +4,7 @@
 import numpy as np
 import smuthi.coordinates as coord
 import smuthi.vector_wave_functions as vwf
+import smuthi.spherical_functions as sf
 import copy
 
 
@@ -750,6 +751,9 @@ def swe_to_pwe_conversion(swe, k_parallel='default', azimuthal_angles='default',
     if type(azimuthal_angles) == str and azimuthal_angles == 'default':
         azimuthal_angles = coord.default_azimuthal_angles
     
+    if not hasattr(k_parallel, '__len__'):
+        k_parallel = np.array([k_parallel])
+    
     i_swe = layer_system.layer_number(swe.reference_point[2])
     if layer_number is None and not layer_system_mediated:
         layer_number = i_swe
@@ -779,17 +783,28 @@ def swe_to_pwe_conversion(swe, k_parallel='default', azimuthal_angles='default',
     # phase factor for the translation of the reference point from rvec_S to rvec_iS
     ejkrSiS_up = np.exp(1j * np.tensordot(kvec_up, rpwe_mn_rswe, axes=([0], [0])))
     ejkrSiS_down = np.exp(1j * np.tensordot(kvec_down, rpwe_mn_rswe, axes=([0], [0])))
+    
+    ct_up = pwe_up.k_z() / swe.k
+    st_up = pwe_up.k_parallel / swe.k
+    plm_list_up, pilm_list_up, taulm_list_up = sf.legendre_normalized(ct_up, st_up, swe.l_max)
 
+    ct_down = pwe_down.k_z() / swe.k
+    st_down = pwe_down.k_parallel / swe.k
+    plm_list_down, pilm_list_down, taulm_list_down = sf.legendre_normalized(ct_down, st_down, swe.l_max)
+    
     for m in range(-swe.m_max, swe.m_max + 1):
         eima = np.exp(1j * m * pwe_up.azimuthal_angles)  # indices: alpha_idx
-        for l in range(max(1, abs(m)), swe.l_max + 1):
-            for tau in range(2):
-                for pol in range(2):
-                    b = swe.coefficients_tlm(tau, l, m)
-                    B_up = vwf.transformation_coefficients_vwf(tau, l, m, pol, pwe_up.k_parallel, pwe_up.k_z())
-                    pwe_up.coefficients[pol, :, :] += b * B_up[:, None] * eima[None, :]
-                    B_down = vwf.transformation_coefficients_vwf(tau, l, m, pol, pwe_down.k_parallel, pwe_down.k_z())
-                    pwe_down.coefficients[pol, :, :] += b * B_down[:, None] * eima[None, :]
+        for pol in range(2):
+            dbB_up = np.zeros(len(k_parallel), dtype=complex)
+            dbB_down = np.zeros(len(k_parallel), dtype=complex)
+            for l in range(max(1, abs(m)), swe.l_max + 1):
+                for tau in range(2):
+                    dbB_up += swe.coefficients_tlm(tau, l, m) * vwf.transformation_coefficients_vwf(
+                        tau, l, m, pol, pilm_list=pilm_list_up, taulm_list=taulm_list_up)
+                    dbB_down += swe.coefficients_tlm(tau, l, m) * vwf.transformation_coefficients_vwf(
+                        tau, l, m, pol, pilm_list=pilm_list_down, taulm_list=taulm_list_down)
+            pwe_up.coefficients[pol, :, :] += dbB_up[:, None] * eima[None, :]
+            pwe_down.coefficients[pol, :, :] += dbB_down[:, None] * eima[None, :]
 
     pwe_up.coefficients = pwe_up.coefficients / (2 * np.pi * kzvec[None, :, None] * swe.k) * ejkrSiS_up[None, :, :]
     pwe_down.coefficients = (pwe_down.coefficients / (2 * np.pi * kzvec[None, :, None] * swe.k)
