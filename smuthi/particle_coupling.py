@@ -742,17 +742,13 @@ def spheroids_closest_points(sha1, mha1, ctr1, orient1, sha2, mha2, ctr2, orient
     
     E2_prime_L = np.linalg.cholesky(E2_prime)
         
-    # we need a function, starting variables x0, a constraints function
-    # the function needs to be defined as a regular function
     H = np.dot(np.linalg.inv(E2_prime_L), np.transpose(np.linalg.inv(E2_prime_L)))
     p = np.array([0, 0, 0])
     f = np.dot(np.transpose(ctr2_prime - p), np.transpose(np.linalg.inv(E2_prime_L)))
     
-    
     def minimization_fun(y_vec):
         fun = 0.5 * np.dot(np.dot(np.transpose(y_vec), H), y_vec) + np.dot(f, y_vec)
         return fun
-    
     def constraint_fun(x):
         eq_constraint = (x[0] ** 2 + x[1] ** 2 + x[2] ** 2) ** 0.5 - 1
         return eq_constraint
