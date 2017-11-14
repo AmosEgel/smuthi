@@ -831,30 +831,23 @@ def A_block_pvwf_coupling(l_max, m_max, pp1, pp2, steps, kpar_k_max, alpha, beta
     """
     blocksize = fldex.blocksize(l_max, m_max)
     tp = np.zeros([blocksize ** 2, 6], dtype=int)
-     
+       
     for tauii in range(2):
         for lii in range(1, l_max + 1):
-            if lii <= m_max:
-                for mii in range(- lii, lii + 1):
-                    jmult = fldex.multi_to_single_index(tauii, lii, mii, l_max, m_max)
-                    for kk in range(blocksize):
-                        tp[jmult + blocksize * kk, 0] = tauii 
-                        tp[jmult + blocksize * kk, 1] = lii
-                        tp[jmult + blocksize * kk, 2] = mii
-                        tp[jmult * blocksize + kk, 3] = tauii 
-                        tp[jmult * blocksize + kk, 4] = lii
-                        tp[jmult * blocksize + kk, 5] = mii
-            else:
-                for mii in range(- m_max, m_max + 1):
-                    jmult = fldex.multi_to_single_index(tauii, lii, mii, l_max, m_max)
-                    for kk in range(blocksize):
-                        tp[jmult + blocksize * kk, 0] = tauii 
-                        tp[jmult + blocksize * kk, 1] = lii
-                        tp[jmult + blocksize * kk, 2] = mii
-                        tp[jmult * blocksize + kk, 3] = tauii 
-                        tp[jmult * blocksize + kk, 4] = lii
-                        tp[jmult * blocksize + kk, 5] = mii
-                
+            for aa, bb in zip(range(-m_max, m_max + 1), range(-lii, lii + 1)):
+                if aa <= bb:
+                    mii = bb
+                else:
+                    mii = aa
+                jmult = fldex.multi_to_single_index(tauii, lii, mii, l_max, m_max)
+                for kk in range(blocksize):
+                    tp[jmult + blocksize * kk, 0] = tauii 
+                    tp[jmult + blocksize * kk, 1] = lii
+                    tp[jmult + blocksize * kk, 2] = mii
+                    tp[jmult * blocksize + kk, 3] = tauii 
+                    tp[jmult * blocksize + kk, 4] = lii
+                    tp[jmult * blocksize + kk, 5] = mii
+            
     A_block = np.zeros([blocksize ** 2], dtype=complex)
     
     r2mnr1_Lab = pp2 - pp1 
