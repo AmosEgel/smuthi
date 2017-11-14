@@ -916,42 +916,20 @@ def block_rotation_matrix_D_svwf(l_max, m_max, alpha, beta, gamma, wdsympy=False
     """
     
     b_size = blocksize(l_max, m_max)
-    rotation_matrix = np.zeros([blocksize, blocksize], dtype=complex)
+    rotation_matrix = np.zeros([b_size, b_size], dtype=complex)
     
     row = 0
     for ll in range(1, l_max + 1):
-        if ll <= m_max:
-            for mm in range(-ll, ll + 1):
-                column = 0
-                for ll_prime in range(1, l_max + 1):
-                    if ll_prime <= m_max:
-                        for mm_prime in range(-ll_prime, ll_prime +1):
-                            if ll == ll_prime:
-                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
-                                rotation_matrix[row + int(b_size / 2), column + int(b_size / 2)] = rotation_matrix[row, column]
-                            column +=  1
-                    else:
-                        for mm_prime in range(-m_max, m_max +1):
-                            if ll == ll_prime:
-                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
-                                rotation_matrix[row + int(b_size / 2), column + int(b_size / 2)] = rotation_matrix[row, column]
-                            column +=  1
-                row += 1                        
-        else:
-            for mm in range(-m_max, m_max + 1):
-                column = 0
-                for ll_prime in range(1, l_max + 1):
-                    if ll_prime <= m_max:
-                        for mm_prime in range(-ll_prime, ll_prime +1):
-                            if ll == ll_prime:
-                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
-                                rotation_matrix[row + int(b_size / 2), column + int(b_size / 2)] = rotation_matrix[row, column]
-                            column +=  1
-                    else:
-                        for mm_prime in range(-m_max, m_max +1):
-                            if ll == ll_prime:
-                                rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
-                                rotation_matrix[row + int(b_size / 2), column + int(b_size / 2)] = rotation_matrix[row, column]
-                            column +=  1                            
-                row += 1
+        for aa, bb in zip(range(-m_max, m_max + 1), range(-ll, ll + 1)):
+            mm = max(aa, bb)                   
+            column = 0
+            for ll_prime in range(1, l_max + 1):
+                for cc, dd in zip(range(-m_max, m_max + 1), range(-ll_prime, ll_prime +1)):
+                    mm_prime = max(cc, dd)
+                    if ll == ll_prime:
+                        rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
+                        rotation_matrix[row + int(b_size / 2), column + int(b_size / 2)] = rotation_matrix[row, column]
+                    column +=  1
+            row += 1
+
     return rotation_matrix

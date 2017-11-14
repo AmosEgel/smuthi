@@ -835,10 +835,7 @@ def A_block_pvwf_coupling(l_max, m_max, pp1, pp2, steps, kpar_k_max, alpha, beta
     for tauii in range(2):
         for lii in range(1, l_max + 1):
             for aa, bb in zip(range(-m_max, m_max + 1), range(-lii, lii + 1)):
-                if aa <= bb:
-                    mii = bb
-                else:
-                    mii = aa
+                mii = max(aa, bb)
                 jmult = fldex.multi_to_single_index(tauii, lii, mii, l_max, m_max)
                 for kk in range(blocksize):
                     tp[jmult + blocksize * kk, 0] = tauii 
