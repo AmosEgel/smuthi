@@ -186,7 +186,7 @@ def wigner_d(l, m, m_prime, beta, wdsympy=False):
         m (int):          Order :math:`m` (-min(l,mmax),...,min(l,mmax))
         m_prime (int):    Order :math:`m_prime` (-min(l,mmax),...,min(l,mmax))
         beta (float):     Second Euler angle in radians
-        wdsympy (bool):   If True, Wigner-d-functions come form the sympy toolbox 
+        wdsympy (bool):   If True, Wigner-d-functions come from the sympy toolbox 
         
     Returns:
         real value of Wigner-d-function
@@ -240,7 +240,7 @@ def wigner_D(l , m, m_prime, alpha, beta, gamma, wdsympy=False):
         alpha (float):    First Euler angle in rad
         beta (float):     Second Euler angle in rad
         gamma (float):    Third Euler angle in rad
-        wdsympy (bool):   If True, Wigner-d-functions come form the sympy toolbox
+        wdsympy (bool):   If True, Wigner-d-functions come from the sympy toolbox
         
     Returns:
         single complex value of Wigner-D-function 

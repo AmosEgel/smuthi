@@ -858,7 +858,7 @@ def A_block_pvwf_coupling(l_max, m_max, pp1, pp2, steps, kpar_k_max, alpha, beta
     kpar_max = kpar_k_max * k 
         
     aa = 0
-    kpar = np.zeros([steps, 1], dtype=complex)
+    kpar = np.zeros(steps, dtype=complex)
     for ii in np.linspace(0 , kpar_max, num=steps):
         if ii <= 0.8 * k or ii >= 1.2 * k:
             kpar[aa] = ii
@@ -871,51 +871,37 @@ def A_block_pvwf_coupling(l_max, m_max, pp1, pp2, steps, kpar_k_max, alpha, beta
       
     B_arr = np.zeros([steps, blocksize, 2], dtype=complex)       
     B_dagger_arr = np.zeros([steps, blocksize, 2], dtype=complex)
-    bessel_arr = np.zeros([steps, (2* l_max + 1) ** 2], dtype=complex)
+    bessel_arr = np.zeros([steps, (2* m_max + 1) ** 2], dtype=complex)
     ii = 0
-    for mm in range(-l_max, l_max + 1):
-        for nn in range(-l_max, l_max + 1):
+    for mm in range(-m_max, m_max + 1):
+        for nn in range(-m_max, m_max + 1):
             bessel_arr[:, ii] = (np.exp(1j * r2mnr1_cyl[1] * (mm - nn)) 
                                 * scipy.special.jn(mm - nn, np.transpose(kpar) * r2mnr1_cyl[0]))
             ii += 1
         
     if r2mnr1_cyl[2] < 0:
-        const_arr = kpar / (kz * k) * np.exp(1j * (- kz * r2mnr1_cyl[2]))
-        for gg in range(0, blocksize):
-            for hh in range(0, 2):
-                B_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg, 0], tp[gg, 1], tp[gg, 2], hh,
-                     kp=np.transpose(kpar), kz=-np.transpose(kz), pilm_list=None, taulm_list=None, dagger=False)
-                B_dagger_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg * blocksize + 1, 3],
-                            tp[gg * blocksize + 1, 4], tp[gg * blocksize + 1, 5], hh, kp=np.transpose(kpar),
-                            kz=-np.transpose(kz), pilm_list=None, taulm_list=None, dagger=True)
-        for ii in range(0, blocksize):
-            mm = np.array([aa for aa in range(blocksize)])
-            for jj in range(2):
-                integrand = (const_arr * B_arr[:, mm, jj] * B_dagger_arr[:, ii, jj][:, None] 
-                * bessel_arr[:, (tp[ii * blocksize + mm, 2] + l_max) * (2 * l_max + 1) + tp[ii * blocksize + mm, 5] + l_max])
-                integral[:, jj] = np.trapz(np.transpose(integrand), kpar[:, 0])
-                
-            A_block[mm + blocksize * ii] = (4 * 1j ** (tp[ii * blocksize + mm, 2] - tp[ii * blocksize + mm, 5]) 
-                                                * (integral[:, 0] + integral[:, 1]))
+        kz_var = -kz
     else:
-        const_arr = kpar / (kz * k) * np.exp(1j * (kz * r2mnr1_cyl[2]))
-        for gg in range(0, blocksize):
-            for hh in range(0, 2):
-                B_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg, 0], tp[gg, 1], tp[gg, 2], hh,
-                     kp=np.transpose(kpar), kz=np.transpose(kz), pilm_list=None, taulm_list=None, dagger=False)
-                B_dagger_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg * blocksize + 1, 3],
-                            tp[gg * blocksize + 1, 4], tp[gg * blocksize + 1, 5], hh, kp=np.transpose(kpar),
-                            kz=np.transpose(kz), pilm_list=None, taulm_list=None, dagger=True)
-        for ii in range(0, blocksize):
-            mm = np.array([aa for aa in range(blocksize)])
-            for jj in range(2):
-                integrand = (const_arr * B_arr[:, mm, jj] * B_dagger_arr[:, ii, jj][:, None] 
-                * bessel_arr[:, (tp[ii * blocksize + mm, 2] + l_max) * (2 * l_max + 1) + tp[ii * blocksize + mm, 5] + l_max])
-                integral[:, jj] = np.trapz(np.transpose(integrand), kpar[:, 0])
+        kz_var = kz
+        
+    const_arr = kpar / (kz * k) * np.exp(1j * (kz_var * r2mnr1_cyl[2]))
+    for gg in range(0, blocksize):
+        for hh in range(0, 2):
+            B_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg, 0], tp[gg, 1], tp[gg, 2], hh, kp=kpar, kz=kz_var,
+                                pilm_list=None, taulm_list=None, dagger=False)
+            B_dagger_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg * blocksize + 1, 3], tp[gg * blocksize + 1, 4],
+                                        tp[gg * blocksize + 1, 5], hh, kp=kpar, kz=kz_var, pilm_list=None, taulm_list=None,
+                                        dagger=True)
+    for ii in range(0, blocksize):
+        mm = np.array([aa for aa in range(blocksize)])
+        for jj in range(2):
+            integrand = (const_arr[:, None] * B_arr[:, mm, jj] * B_dagger_arr[:, ii, jj][:, None] 
+                        * bessel_arr[:, (tp[ii * blocksize + mm, 2] + m_max) * (2 * m_max + 1) + tp[ii * blocksize + mm, 5] + m_max])
+            integral[:, jj] = np.trapz(np.transpose(integrand), kpar)
                 
-            A_block[mm + blocksize * ii] = (4 * 1j ** (tp[ii * blocksize + mm, 2] - tp[ii * blocksize + mm, 5]) 
-                                             * (integral[:, 0] + integral[:, 1]))
-    
+        A_block[mm + blocksize * ii] = (4 * 1j ** (tp[ii * blocksize + mm, 2] - tp[ii * blocksize + mm, 5]) 
+                                        * (integral[:, 0] + integral[:, 1]))
+
     A_block = np.transpose(np.reshape(A_block, [blocksize, blocksize]))
                 
     return A_block

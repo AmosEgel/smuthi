@@ -909,7 +909,7 @@ def block_rotation_matrix_D_svwf(l_max, m_max, alpha, beta, gamma, wdsympy=False
         alpha (float):    First Euler angle
         beta (float):     Second Euler angle
         gamma (float):    Third Euler angle
-        wdsympy (bool):   If True, Wigner-d-functions come form the sympy toolbox
+        wdsympy (bool):   If True, Wigner-d-functions come from the sympy toolbox
         
     Returns:
         rotation matrix of dimension [blocksize, blocksize]
