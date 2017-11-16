@@ -764,13 +764,15 @@ def spheroids_closest_points(sha1, mha1, ctr1, orient1, sha2, mha2, ctr2, orient
         x_vec = np.transpose(np.dot(np.transpose(np.linalg.inv(E2_prime_L)), optimization_result['x'])
                              + np.transpose(ctr2_prime))
         if optimization_result['success'] == True:
-            if np.linalg.norm(x_vec) < np.linalg.norm(ctr2_prime):
+            if np.linalg.norm(x_vec) <= 1:
+                raise ValueError("particle error: particle's intersect")
+            elif np.linalg.norm(x_vec) < np.linalg.norm(ctr2_prime):
                 flag = True
             else:
                 print('wrong minima ...')
         else:
             print('No minima found ...')
-    
+
     p2_prime = x_vec
     p2 = np.dot(np.linalg.inv(S), p2_prime) + ctr1
     
@@ -778,15 +780,11 @@ def spheroids_closest_points(sha1, mha1, ctr1, orient1, sha2, mha2, ctr2, orient
     H = np.dot(np.linalg.inv(E1_L), np.transpose(np.linalg.inv(E1_L)))
     p = p2
     f = np.dot(np.transpose(ctr1 - p), np.transpose(np.linalg.inv(E1_L)))
-    
-    def minimization_fun2(y_vec):
-        fun = 0.5 * np.dot(np.dot(np.transpose(y_vec), H), y_vec) + np.dot(f, y_vec)
-        return fun
-    
+       
     flag = False
     while flag == False:
         x0 = -1 + np.dot((1 + 1), np.random.rand(3))
-        optimization_result2 = scipy.optimize.minimize(minimization_fun2, x0, method='SLSQP', bounds=bnds,
+        optimization_result2 = scipy.optimize.minimize(minimization_fun, x0, method='SLSQP', bounds=bnds,
                                                       constraints=length_constraints, tol=None, callback=None, options=None)
         p1 = np.transpose(np.dot(np.transpose(np.linalg.inv(E1_L)), optimization_result2['x']) + np.transpose(ctr1))
         if optimization_result2['success'] == True:
