@@ -531,12 +531,13 @@ class PlaneWaveExpansion(FieldExpansion):
 
 
 class FarField:
-    r"""Represent the far field intensity of an electromagnetic field.
+    r"""Represent the far field intensity :math:`I_{\Omega,j}(\beta, \alpha)` of an electromagnetic field,
+    such that the radiative power :math:`P` reads:
     
     .. math::
         P = \sum_{j=1}^2 \iint \mathrm{d}^2 \Omega \, I_{\Omega,j}(\beta, \alpha),
 
-    where :math:`P` is the radiative power, :math:`j` indicates the polarization and 
+    where :math:`j` indicates the polarization and 
     :math:`\mathrm{d}^2 \Omega = \mathrm{d}\alpha \sin\beta \mathrm{d}\beta` denotes the infinitesimal solid angle.   
     
     Args:
