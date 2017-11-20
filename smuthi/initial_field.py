@@ -50,6 +50,8 @@ class InitialPropagatingWave(InitialField):
                  reference_point=None):
         assert (polarization == 0 or polarization == 1)
         InitialField.__init__(self, vacuum_wavelength)
+        if np.isclose(np.cos(polar_angle), 0):
+            raise ValueError('propagating waves not defined in the xy-plane')
         self.polar_angle = polar_angle
         self.azimuthal_angle = azimuthal_angle
         self.polarization = polarization
