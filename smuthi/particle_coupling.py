@@ -355,7 +355,7 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     z_is = layer_system.reference_z(i_s)
     
     # direct -----------------------------------------------------------------------------------------------------------
-    w = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=complex)
+    w = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=np.complex64)
     sys.stdout.write('Lookup table memory footprint: ' + size_format(2 * w.nbytes) + '\n')
     sys.stdout.flush()
 
@@ -443,8 +443,8 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
 
     bessel_jacobi = [bessel_list[dm] * (k_parallel / (kz_is * k_is))[None, :] for dm in range(2*l_max+1)]
     
-    wr_pl = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=complex)
-    wr_mn = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=complex)
+    wr_pl = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=np.complex64)
+    wr_mn = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=np.complex64)
     
     dkp = np.diff(k_parallel)
     if cu.use_gpu:

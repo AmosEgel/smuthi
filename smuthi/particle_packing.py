@@ -9,6 +9,8 @@ def random_sequential_addition(zmin, zmax, rhomax=None, volume_density=None, par
         particle_volume = sum([4 / 3 * np.pi * particle.radius**3 for particle in particle_list])
         cylinder_volume = particle_volume / volume_density
         rhomax = np.sqrt(cylinder_volume / (zmax - zmin) / np.pi)
+        sys.stdout.write('Radius of particle domain: %f\n'%rhomax)
+        
     for i, particle in enumerate(particle_list):
         sys.stdout.write('\rPacking particle number %i'%i)
         if not type(particle) == part.Sphere:
@@ -31,7 +33,7 @@ def random_sequential_addition(zmin, zmax, rhomax=None, volume_density=None, par
         particle.position[0] = x
         particle.position[1] = y
         particle.position[2] = z
-
+        
 
 def check_sphere_collision(new_position, new_radius, old_positions, old_radii):
     squared_distances = ((new_position[None, :] - old_positions)**2).sum(axis=-1)

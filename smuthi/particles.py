@@ -15,6 +15,7 @@ class Particle:
                                     scattered field
     """
     def __init__(self, position=None, euler_angles=None, refractive_index=1+0j, l_max=None, m_max=None):
+        
         if position is None:
             self.position = [0, 0, 0]
         else:
@@ -25,7 +26,6 @@ class Particle:
         else:
             self.euler_angles = euler_angles
 
-        self.euler_angles=euler_angles
         self.refractive_index = refractive_index
         self.l_max = l_max
         if m_max is not None:
@@ -52,12 +52,8 @@ class Sphere(Particle):
     """
     def __init__(self, position=None, refractive_index=1+0j, radius=1, l_max=None, m_max=None):
 
-        if position is None:
-            self.position = [0, 0, 0]
-        else:
-            self.position = position
-
         Particle.__init__(self, position=position, refractive_index=refractive_index, l_max=l_max, m_max=m_max)
+
         self.radius = radius
 
 
@@ -78,15 +74,8 @@ class Spheroid(Particle):
     def __init__(self, position=None, euler_angles=None, refractive_index=1+0j, semi_axis_c=1, semi_axis_a=1,
                  l_max=None, m_max=None, t_matrix_method=None):
 
-        if position is None:
-            self.position = [0, 0, 0]
-        else:
-            self.position = position
-
-        if euler_angles is None:
-            self.euler_angles = [0, 0, 0]
-        else:
-            self.euler_angles = euler_angles
+        Particle.__init__(self, position=position, euler_angles=euler_angles, refractive_index=refractive_index,
+                          l_max=l_max, m_max=m_max)
 
         if t_matrix_method is None:
             self.t_matrix_method = {}
@@ -96,8 +85,6 @@ class Spheroid(Particle):
         self.semi_axis_c = semi_axis_c
         self.semi_axis_a = semi_axis_a
 
-        Particle.__init__(self, position=position, euler_angles=euler_angles, refractive_index=refractive_index,
-                          l_max=l_max, m_max=m_max)
 
 
 class FiniteCylinder(Particle):
@@ -116,15 +103,8 @@ class FiniteCylinder(Particle):
     def __init__(self, position=None, euler_angles=None, refractive_index=1+0j, cylinder_radius=1,
                  cylinder_height=1, l_max=None, m_max=None, t_matrix_method=None):
 
-        if position is None:
-            self.position = [0, 0, 0]
-        else:
-            self.position = position
-
-        if euler_angles is None:
-            self.euler_angles = [0, 0, 0]
-        else:
-            self.euler_angles = euler_angles
+        Particle.__init__(self, position=position, euler_angles=euler_angles, refractive_index=refractive_index,
+                          l_max=l_max, m_max=m_max)
 
         if t_matrix_method is None:
             self.t_matrix_method = {}
@@ -134,5 +114,3 @@ class FiniteCylinder(Particle):
         self.cylinder_radius = cylinder_radius
         self.cylinder_height = cylinder_height
 
-        Particle.__init__(self, position=position, euler_angles=euler_angles, refractive_index=refractive_index,
-                          l_max=l_max, m_max=m_max)
