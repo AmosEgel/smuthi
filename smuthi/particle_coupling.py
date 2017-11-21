@@ -810,23 +810,26 @@ def spheroids_closest_points(sha1, mha1, ctr1, orient1, sha2, mha2, ctr2, orient
     
     return res
 
-def A_block_pvwf_coupling(l_max, m_max, pp1, pp2, steps, kpar_k_max, alpha, beta, rfi, wavelength):
+def A_block_pvwf_coupling(l_max, m_max, pp1, pp2, steps, kpar_k_max, alpha, beta, rfi, vacuum_wavelength):
     """ Computation of the translation operator A_n_nprime(particle1, particle2)
     
     Args:
-        l_max (int):              Maximal multipole order
-        pp1 (numpy.array):        Center position of particle 1
-        pp2 (numpy.array):        Center position of particle 2
-        steps (int):              Number of integration steps
-        kpar_k_max (float):       Maximal value of (kpar / k ) up to which the integral is determined
-        alpha (float):            Azimuthal angle of the coordinate system rotation in Rad
-        beta (float):             Polar angle of the coordinate system rotation in Rad
-        rfi (float):              Refractive index of the ambiance medium
-        wavelength (float):       Vacuum wavelength of respective light
+        l_max (int):                        Maximal multipole order
+        pp1 (list):                         Center position of particle 1
+        pp2 (list):                         Center position of particle 2
+        steps (int):                        Number of integration steps
+        kpar_k_max (float):                 Maximal value of (kpar / k ) up to which the integral is determined
+        alpha (float):                      Azimuthal angle of the coordinate system rotation in Rad
+        beta (float):                       Polar angle of the coordinate system rotation in Rad
+        rfi (float):                        Refractive index of the ambiance medium
+        vacuum_wavelength (float):          Vacuum wavelength of respective light
         
     Returns: 
         Translation operator A_block(numpy.array)
     """
+    pp1 = np.array(pp1, dtype=float)
+    pp2 = np.array(pp2, dtype=float)
+    
     blocksize = fldex.blocksize(l_max, m_max)
     tp = np.zeros([blocksize ** 2, 6], dtype=int)
        
@@ -852,7 +855,7 @@ def A_block_pvwf_coupling(l_max, m_max, pp1, pp2, steps, kpar_k_max, alpha, beta
     r2mnr1_cyl[0], r2mnr1_cyl[1] = (r2mnr1[0] ** 2 + r2mnr1[1] ** 2) ** 0.5, math.atan2(r2mnr1[1], r2mnr1[0])
     r2mnr1_cyl[2] = r2mnr1[2]
     
-    k = rfi * 2 * math.pi / wavelength
+    k = rfi * 2 * math.pi / vacuum_wavelength
     kpar_max = kpar_k_max * k 
         
     aa = 0
@@ -903,3 +906,41 @@ def A_block_pvwf_coupling(l_max, m_max, pp1, pp2, steps, kpar_k_max, alpha, beta
     A_block = np.transpose(np.reshape(A_block, [blocksize, blocksize]))
                 
     return A_block
+
+
+def direct_coupling_block_pvwf(vacuum_wavelength, receiving_particle, emitting_particle, layer_system, steps, kpar_k_max):
+    """Direct particle coupling matrix :math:`W` for two particles. Computation via plane vector wave functions.
+
+    Args:
+        vacuum_wavelength (float):                          Vacuum wavelength :math:`\lambda` (length unit)
+        receiving_particle (smuthi.particles.Particle):     Particle that receives the scattered field
+        emitting_particle (smuthi.particles.Particle):      Particle that emits the scattered field
+        layer_system (smuthi.layers.LayerSystem):           Stratified medium in which the coupling takes place
+        steps (int):                                        Number of integration steps
+        kpar_k_max (float):                                 Maximal value of (kpar / k ) up to which the integral is determined        
+
+    Returns:
+        Direct coupling matrix block as numpy array.
+    """    
+    
+    closest_point_dic = spheroids_closest_points(emitting_particle.semi_axis_a, emitting_particle.semi_axis_c,
+                                                 emitting_particle.position, emitting_particle.euler_angles,
+                                                 receiving_particle.semi_axis_a, receiving_particle.semi_axis_c,
+                                                 receiving_particle.position, receiving_particle.euler_angles)
+    
+    l_max = max([particle.l_max for particle in [receiving_particle, emitting_particle]])
+    m_max = max([particle.m_max for particle in [receiving_particle, emitting_particle]])
+    
+    rfi = layer_system.refractive_indices[layer_system.layer_number(receiving_particle.position[2])]
+    
+    A_block = A_block_pvwf_coupling(l_max, m_max, emitting_particle.position, receiving_particle.position, steps, kpar_k_max,
+                                    closest_point_dic['alpha'], closest_point_dic['beta'], rfi, vacuum_wavelength)
+    
+    W_block = np.dot(np.dot(np.transpose(fldex.block_rotation_matrix_D_svwf(l_max, m_max, 0, closest_point_dic['beta'],
+                     closest_point_dic['alpha'])), np.transpose(A_block)), np.transpose(fldex.block_rotation_matrix_D_svwf(l_max,
+                     m_max, -closest_point_dic['alpha'], -closest_point_dic['beta'], 0)))
+    
+    return W_block
+
+    
+    
