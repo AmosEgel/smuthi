@@ -909,7 +909,7 @@ def A_block_pvwf_coupling(l_max, m_max, pp1, pp2, steps, kpar_k_max, alpha, beta
 
 
 def direct_coupling_block_pvwf(vacuum_wavelength, receiving_particle, emitting_particle, layer_system, steps, kpar_k_max):
-    """Direct particle coupling matrix :math:`W` for two particles. Computation via plane vector wave functions.
+    """Direct particle coupling matrix :math:`W` for two particles (via plane vector wave functions).
 
     Args:
         vacuum_wavelength (float):                          Vacuum wavelength :math:`\lambda` (length unit)
@@ -942,5 +942,34 @@ def direct_coupling_block_pvwf(vacuum_wavelength, receiving_particle, emitting_p
     
     return W_block
 
-    
+   
+def direct_coupling_matrix_pvwf(vacuum_wavelength, particle_list, layer_system, steps, kpar_k_max):
+    """Return the direct particle coupling matrix W for a particle collection in a layered medium (via plane vector wave functions).
+
+    Args:
+        vacuum_wavelength (float):                                  Wavelength in length unit
+        particle_list (list of smuthi.particles.Particle obejcts:   Scattering particles
+        layer_system (smuthi.layers.LayerSystem):                   The stratified medium
+   
+    Returns:
+        Ensemble coupling matrix as numpy array.
+    """
+    # indices
+    blocksizes = [fldex.blocksize(particle.l_max, particle.m_max)
+                  for particle in particle_list]
+
+    # initialize result
+    w = np.zeros((sum(blocksizes), sum(blocksizes)), dtype=complex)
+
+    for s1, particle1 in enumerate(particle_list):
+        idx1 = np.array(range(sum(blocksizes[:s1]), sum(blocksizes[:s1+1])))
+        for s2, particle2 in enumerate(particle_list):
+            idx2 = range(sum(blocksizes[:s2]), sum(blocksizes[:s2+1]))
+            if s1 == s2:
+                w[idx1[:, None], idx2] = 0
+            else:
+                w[idx1[:, None], idx2] = direct_coupling_block_pvwf(vacuum_wavelength, particle1, particle2, layer_system, steps,
+                                                                    kpar_k_max)
+
+    return w
     
