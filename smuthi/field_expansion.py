@@ -5,6 +5,15 @@ import numpy as np
 import smuthi.coordinates as coord
 import smuthi.vector_wave_functions as vwf
 import smuthi.spherical_functions as sf
+import smuthi.cuda_sources as cu
+try:
+    import pycuda.autoinit
+    import pycuda.driver as drv
+    from pycuda import gpuarray
+    from pycuda.compiler import SourceModule
+    import pycuda.cumath
+except:
+    pass
 import copy
 
 
@@ -99,7 +108,7 @@ class PiecewiseFieldExpansion(FieldExpansion):
         for fex in self.expansion_list:
             dvg = np.logical_and(dvg, fex.diverging(x, y, z))
         return dvg
-
+    
     def electric_field(self, x, y, z):
         """Evaluate electric field.
         
@@ -257,7 +266,7 @@ class SphericalWaveExpansion(FieldExpansion):
         """
         n = multi_to_single_index(tau, l, m, self.l_max, self.m_max)
         return self.coefficients[n]
-
+    
     def electric_field(self, x, y, z):
         """Evaluate electric field.
         
@@ -473,7 +482,7 @@ class PlaneWaveExpansion(FieldExpansion):
                                      upper_z=min(self.upper_z, other.upper_z))
         pwe_sum.coefficients = self.coefficients + other.coefficients
         return pwe_sum
-
+    
     def electric_field(self, x, y, z):
         """Evaluate electric field.
         
@@ -492,40 +501,88 @@ class PlaneWaveExpansion(FieldExpansion):
         xr = x[self.valid(x, y, z)] - self.reference_point[0]
         yr = y[self.valid(x, y, z)] - self.reference_point[1]
         zr = z[self.valid(x, y, z)] - self.reference_point[2]
+        
+        if cu.use_gpu and xr.size:  # run calculations on gpu
+            
+            re_k_d = gpuarray.to_gpu(np.array(self.k).real.astype(np.float32))
+            im_k_d = gpuarray.to_gpu(np.array(self.k).imag.astype(np.float32)) 
+            
+            re_kp_d = gpuarray.to_gpu(self.k_parallel.real.astype(np.float32))
+            im_kp_d = gpuarray.to_gpu(self.k_parallel.imag.astype(np.float32))
+            
+            re_kz_d = gpuarray.to_gpu(self.k_z().real.astype(np.float32))
+            im_kz_d = gpuarray.to_gpu(self.k_z().imag.astype(np.float32))
+            
+            alpha_d = gpuarray.to_gpu(self.azimuthal_angles.astype(np.float32))
+            
+            xr_d = gpuarray.to_gpu(xr.astype(np.float32))
+            yr_d = gpuarray.to_gpu(yr.astype(np.float32))
+            zr_d = gpuarray.to_gpu(zr.astype(np.float32))
+            
+            re_g_te_d = gpuarray.to_gpu(self.coefficients[0, :, :].real.astype(np.float32))
+            im_g_te_d = gpuarray.to_gpu(self.coefficients[0, :, :].imag.astype(np.float32))
+            re_g_tm_d = gpuarray.to_gpu(self.coefficients[1, :, :].real.astype(np.float32))
+            im_g_tm_d = gpuarray.to_gpu(self.coefficients[1, :, :].imag.astype(np.float32))
+            
+            re_e_x_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+            im_e_x_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+            re_e_y_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+            im_e_y_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+            re_e_z_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+            im_e_z_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+            
+            kernel_source = cu.pwe_electric_field_evaluation_code%(xr.size, len(self.k_parallel), 
+                                                                   len(self.azimuthal_angles), (1/self.k).real, 
+                                                                   (1/self.k).imag)
+            
+            kernel_function = SourceModule(kernel_source).get_function("electric_field") 
+            
+            cuda_blocksize = 128
+            cuda_gridsize = (xr.size + cuda_blocksize - 1) // cuda_blocksize
+            
+            kernel_function(re_kp_d, im_kp_d, re_kz_d, im_kz_d, alpha_d, xr_d, yr_d, zr_d, re_g_te_d, im_g_te_d,
+                            re_g_tm_d, im_g_tm_d, re_e_x_d, im_e_x_d, re_e_y_d, im_e_y_d, re_e_z_d, im_e_z_d,
+                            block=(cuda_blocksize,1,1), grid=(cuda_gridsize,1))
+            
+            ex[self.valid(x, y, z)] = re_e_x_d.get() + 1j * im_e_x_d.get()
+            ey[self.valid(x, y, z)] = re_e_y_d.get() + 1j * im_e_y_d.get()
+            ez[self.valid(x, y, z)] = re_e_z_d.get() + 1j * im_e_z_d.get()
+            
+        else:  # run calculations on cpu
+            kpgrid = self.k_parallel_grid()
+            agrid = self.azimuthal_angle_grid()
+            kx = kpgrid * np.cos(agrid)
+            ky = kpgrid * np.sin(agrid)
+            kz = self.k_z_grid()
 
-        kpgrid = self.k_parallel_grid()
-        agrid = self.azimuthal_angle_grid()
-        kx = kpgrid * np.cos(agrid)
-        ky = kpgrid * np.sin(agrid)
-        kz = self.k_z_grid()
+            kr = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
+            kr += np.tensordot(xr, kx, axes=0)
+            kr += np.tensordot(yr, ky, axes=0)
+            kr += np.tensordot(zr, kz, axes=0)
+            
+            eikr = np.exp(1j * kr)
+        
+            integrand_x = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
+            integrand_y = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
+            integrand_z = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
 
-        kr = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
-        kr += np.tensordot(xr, kx, axes=0)
-        kr += np.tensordot(yr, ky, axes=0)
-        kr += np.tensordot(zr, kz, axes=0)
-        eikr = np.exp(1j * kr)
+            # pol=0
+            integrand_x += (-np.sin(agrid) * self.coefficients[0, :, :])[None, :, :] * eikr
+            integrand_y += (np.cos(agrid) * self.coefficients[0, :, :])[None, :, :] * eikr
 
-        integrand_x = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
-        integrand_y = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
-        integrand_z = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
+            # pol=1
+            integrand_x += (np.cos(agrid) * kz / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
+            integrand_y += (np.sin(agrid) * kz / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
+            integrand_z += (-kpgrid / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
 
-        # pol=0
-        integrand_x += (-np.sin(agrid) * self.coefficients[0, :, :])[None, :, :] * eikr
-        integrand_y += (np.cos(agrid) * self.coefficients[0, :, :])[None, :, :] * eikr
-
-        # pol=1
-        integrand_x += (np.cos(agrid) * kz / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
-        integrand_y += (np.sin(agrid) * kz / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
-        integrand_z += (-kpgrid / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
-
-        if len(self.k_parallel) > 1:
-            ex[self.valid(x, y, z)] = np.trapz(np.trapz(integrand_x, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
-            ey[self.valid(x, y, z)] = np.trapz(np.trapz(integrand_y, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
-            ez[self.valid(x, y, z)] = np.trapz(np.trapz(integrand_z, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
-        else:
-            ex[self.valid(x, y, z)] = np.squeeze(integrand_x)
-            ey[self.valid(x, y, z)] = np.squeeze(integrand_y)
-            ez[self.valid(x, y, z)] = np.squeeze(integrand_z)
+            if len(self.k_parallel) > 1:
+                ex[self.valid(x, y, z)] = np.trapz(np.trapz(integrand_x, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
+                ey[self.valid(x, y, z)] = np.trapz(np.trapz(integrand_y, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
+                ez[self.valid(x, y, z)] = np.trapz(np.trapz(integrand_z, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
+            else:
+                ex[self.valid(x, y, z)] = np.squeeze(integrand_x)
+                ey[self.valid(x, y, z)] = np.squeeze(integrand_y)
+                ez[self.valid(x, y, z)] = np.squeeze(integrand_z)
 
         return ex, ey, ez
 
