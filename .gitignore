@@ -18,3 +18,5 @@ scripts/
 .pydevproject
 .settings
 *.pyc
+*.prof
+*.lprof
