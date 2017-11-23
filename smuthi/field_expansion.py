@@ -762,20 +762,25 @@ def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
     rswe_mn_rpwe = np.array(reference_point) - np.array(pwe.reference_point)
 
     # phase factor for the translation of the reference point from rvec_iS to rvec_S
-    ejkriSS = np.exp(1j * np.tensordot(kvec, rswe_mn_rpwe, axes=([0], [0])))
+    ejkriSS = np.exp(1j * (kvec[0] * rswe_mn_rpwe[0] + kvec[1] * rswe_mn_rpwe[1] + kvec[2] * rswe_mn_rpwe[2]))
 
     # phase factor times pwe coefficients
     gejkriSS = pwe.coefficients * ejkriSS[None, :, :]  # indices: pol, jk, ja
+    
+    ct = kzvec / pwe.k
+    st = pwe.k_parallel / pwe.k
+    plm_list, pilm_list, taulm_list = sf.legendre_normalized(ct, st, l_max)
 
-    for tau in range(2):
-        for m in range(-m_max, m_max + 1):
-            emjma = np.exp(-1j * m * pwe.azimuthal_angles)
-            for l in range(max(1, abs(m)), l_max + 1):
+    
+    for m in range(-m_max, m_max + 1):
+        emjma_geijkriSS = np.exp(-1j * m * pwe.azimuthal_angles)[None, None, :] * gejkriSS
+        for l in range(max(1, abs(m)), l_max + 1):
+            for tau in range(2):
                 ak_integrand = np.zeros(kpgrid.shape, dtype=complex)
                 for pol in range(2):
-                    Bdag = vwf.transformation_coefficients_vwf(tau, l, m, pol=pol, kp=pwe.k_parallel, kz=kzvec, 
-                                                               dagger=True)
-                    ak_integrand += (np.outer(Bdag, emjma) * gejkriSS[pol, :, :])
+                    Bdag = vwf.transformation_coefficients_vwf(tau, l, m, pol=pol, pilm_list=pilm_list, 
+                                                               taulm_list=taulm_list, kz=kzvec, dagger=True)
+                    ak_integrand += Bdag[:, None] * emjma_geijkriSS[pol, :, :]
                 if len(pwe.k_parallel) > 1:
                     an = np.trapz(np.trapz(ak_integrand, pwe.azimuthal_angles) * pwe.k_parallel, pwe.k_parallel) * 4
                 else:
@@ -882,7 +887,7 @@ def pwe_to_ff_conversion(vacuum_wavelength, plane_wave_expansion):
                                                                             field object.
 
     Returns:
-        A smuthi.field_evaluation.FarField object containing the far field intensity.
+        A FarField object containing the far field intensity.
     """
     omega = coord.angular_frequency(vacuum_wavelength)
     k = plane_wave_expansion.k

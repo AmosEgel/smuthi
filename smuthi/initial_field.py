@@ -153,6 +153,8 @@ class GaussianBeam(InitialPropagatingWave):
             kind = 'downgoing'
 
         niG = layer_system.refractive_indices[iG]  # refractive index in excitation layer
+        if niG.imag:
+            warnings.warn('beam coming from absorbing medium')
         k_iG = niG * self.angular_frequency()
         z_iG = layer_system.reference_z(iG)
         loz = layer_system.lower_zlimit(iG)
@@ -198,7 +200,7 @@ class GaussianBeam(InitialPropagatingWave):
             layer_system (smuthi.layers.LayerSystem):           Stratified medium
 
         Returns:
-            A tuple of smuthi.field_evaluation.FarField objects, one for forward (i.e., into the top hemisphere) and one
+            A tuple of smuthi.field_expansion.FarField objects, one for forward (i.e., into the top hemisphere) and one
             for backward propagation (bottom hemisphere).
         """
         i_top = layer_system.number_of_layers() - 1
@@ -216,7 +218,7 @@ class GaussianBeam(InitialPropagatingWave):
             layer_system (smuthi.layers.LayerSystem):           Stratified medium
 
         Returns:
-            A smuthi.field_evaluation.FarField object holding the initial intensity information.
+            A smuthi.field_expansion.FarField object holding the initial intensity information.
         """
         if np.cos(self.polar_angle) > 0:  # bottom illumination
             ff = fldex.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
