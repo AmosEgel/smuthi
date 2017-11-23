@@ -40,12 +40,12 @@ W = pacou.direct_coupling_block(vacuum_wavelength=wl, receiving_particle=spheroi
 W_pvwf = pacou.direct_coupling_block_pvwf(vacuum_wavelength=wl, receiving_particle=spheroid2, emitting_particle=spheroid1,
                                           layer_system=lay_sys, steps=stp, kpar_k_max=kpkmax)
 
-def test_A_block_pvwf_coupling():
+def test_W_block_pvwf_coupling():
     err =  np.linalg.norm(W-W_pvwf) / np.linalg.norm(W) 
     print('error direct_coupling_block:', err)
     assert err < 1e-4
 
 if __name__ == '__main__':
     test_closest_points()
-    test_A_block_pvwf_coupling()
+    test_W_block_pvwf_coupling()
               

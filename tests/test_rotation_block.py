@@ -87,7 +87,7 @@ neff_discr = 2e-2
 coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr)
 
 
-# initialize particle object
+# initialize particle objects
 spheroid1 = part.Spheroid(position=[0, 0, 200], euler_angles=[0, 0, 0], refractive_index=2.4 + 0.0j, semi_axis_c=100,
                           semi_axis_a=50, l_max=8, m_max=8, t_matrix_method=None)
 spheroid2 = part.Spheroid(position=[0, 0, 200], euler_angles=[0.425 * math.pi, 0.25 * math.pi, 0], refractive_index=2.4 + 0.0j,
@@ -98,7 +98,7 @@ part_list2 = [spheroid2]
 # initialize layer system object
 lay_sys = lay.LayerSystem([0, 800, 0], [1, 1, 1])
 
-# initialize dipole object
+# initialize plane wave objects
 planewave = init.PlaneWave(vacuum_wavelength=ld, polar_angle=math.pi, azimuthal_angle=0, polarization=0, amplitude=1,
                            reference_point=rD)
 planewave2 = init.PlaneWave(vacuum_wavelength=ld, polar_angle=0.75 * math.pi, azimuthal_angle=1.425 *math.pi, polarization=0,

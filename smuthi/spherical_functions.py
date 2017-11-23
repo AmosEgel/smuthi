@@ -185,7 +185,7 @@ def wigner_d(l, m, m_prime, beta, wdsympy=False):
         l (int):          Degree :math:`l` (1, ..., lmax)
         m (int):          Order :math:`m` (-min(l,mmax),...,min(l,mmax))
         m_prime (int):    Order :math:`m_prime` (-min(l,mmax),...,min(l,mmax))
-        beta (float):     Second Euler angle in radians
+        beta (float):     Second Euler angle in rad
         wdsympy (bool):   If True, Wigner-d-functions come from the sympy toolbox 
         
     Returns:
@@ -206,6 +206,7 @@ def wigner_d(l, m, m_prime, beta, wdsympy=False):
             for nn in range(1, l + 1):
                 wig_d[nn] = sympy.legendre_poly(nn, np.cos(beta))          
         else:
+            # recursion formulation (Mishchenko, Scattering, Absorption and Emission of Light by small Particles, p.365 (B.22 - B.24))
             l_min = np.maximum(np.absolute(m), np.absolute(m_prime))
             wig_d[l_min - 1] = 0
             if m_prime >= m:
@@ -225,8 +226,7 @@ def wigner_d(l, m, m_prime, beta, wdsympy=False):
     
     else:
         wig_d[l] = complex(Rotation.d(l, m, m_prime, beta).doit())
-    
-    
+      
     return wig_d[l].real
 
 
@@ -245,7 +245,7 @@ def wigner_D(l , m, m_prime, alpha, beta, gamma, wdsympy=False):
     Returns:
         single complex value of Wigner-D-function 
     """       
-# Doicu, Light Scattering by Systems of Particles, p. 271ff (B.33ff)   
+    # Doicu, Light Scattering by Systems of Particles, p. 271ff (B.33ff)   
     if m >= 0 and m_prime >= 0:
         delta_m_mprime = 1
     elif m >= 0 and m_prime < 0:
@@ -258,7 +258,7 @@ def wigner_D(l , m, m_prime, alpha, beta, gamma, wdsympy=False):
     wig_D = ((-1) ** (m + m_prime) * np.exp(1j * m * alpha) * delta_m_mprime * wigner_d(l, m, m_prime, beta, wdsympy) 
             * np.exp(1j * m_prime * gamma))
 
-# Mishchenko, Scattering, Absorption and Emission of Light by small Particles, p.367 (B.38)
+    # Mishchenko, Scattering, Absorption and Emission of Light by small Particles, p.367 (B.38)
 #    wig_D = np.exp(-1j * m * alpha) * wigner_d(l, m, m_prime, beta) * np.exp(-1j * m_prime * gamma)    
    
     return wig_D

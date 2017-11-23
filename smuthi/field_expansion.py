@@ -907,9 +907,9 @@ def block_rotation_matrix_D_svwf(l_max, m_max, alpha, beta, gamma, wdsympy=False
     Args:
         l_max (int):      Maximal multipole degree
         m_max (int):      Maximal multipole order
-        alpha (float):    First Euler angle
-        beta (float):     Second Euler angle
-        gamma (float):    Third Euler angle
+        alpha (float):    First Euler angle, rotation around z-axis, in rad
+        beta (float):     Second Euler angle, rotation around y'-axis in rad
+        gamma (float):    Third Euler angle, rotation around z''-axis in rad
         wdsympy (bool):   If True, Wigner-d-functions come from the sympy toolbox
         
     Returns:

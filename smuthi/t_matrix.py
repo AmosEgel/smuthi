@@ -113,7 +113,7 @@ def rotate_t_matrix(T, l_max, m_max, euler_angles, wdsympy=False):
         T (numpy.matrix):                   T-matrix 
         l_max (int):                        Maximal multipole degree
         m_max (int):                        Maximal multipole order
-        euler_angles (numpy.matrix):        Euler angles [alpha, beta, gamma] in Rad
+        euler_angles (numpy.matrix):        Euler angles [alpha, beta, gamma] in (zy'z''-convention) in Rad
         
     Returns:
         rotated T-matrix (numpy.matrix)
@@ -125,12 +125,12 @@ def rotate_t_matrix(T, l_max, m_max, euler_angles, wdsympy=False):
         blocksize = fldex.blocksize(l_max, m_max)
         T_mat_rot = np.zeros([blocksize, blocksize], dtype=complex)
     
-# Doicu, Light Scattering by Systems of Particles, p. 70 (1.115)      
+        # Doicu, Light Scattering by Systems of Particles, p. 70 (1.115)      
         T_mat_rot = (np.dot(np.dot(np.transpose(fldex.block_rotation_matrix_D_svwf(l_max, m_max, -euler_angles[2], -euler_angles[1],
                             -euler_angles[0], wdsympy)),T), np.transpose(fldex.block_rotation_matrix_D_svwf(l_max, m_max,
                             euler_angles[0], euler_angles[1], euler_angles[2], wdsympy))))
 
-# Mishchenko, Scattering, Absorption and Emission of Light by small Particles, p.120 (5.29)
+        # Mishchenko, Scattering, Absorption and Emission of Light by small Particles, p.120 (5.29)
 #       T_rot_matrix = np.dot(np.dot(fldex.rotation_matrix_D(l_max, alpha, beta, gamma), T),
 #                             fldex.rotation_matrix_D(l_max, -gamma, -beta, -alpha))
 
