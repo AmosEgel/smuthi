@@ -11,7 +11,19 @@ License: SMUTHI is provided under the MIT license.
 
 Author: Amos Egel. Mail to amos.egel@kit.edu for support or to report a problem.
 
+The following persons have contributed to the project:
+
+ - Dominik Theobald (functions for the simulation of rotated particles, plane wave based particle coupling for 
+   non-spherical particles with overlapping circumscribing spheres) 
+ - Lorenzo Pattelli (logo)
+
+We thank Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use their NFM-DS Fortran code.
+
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
+
+What's new in version 0.8
+-------------------------
+Support for rotated particles, GPU support for the calculation of the near field.  
 
 What's new in version 0.7
 --------------------------
@@ -52,15 +64,7 @@ Planned updates for future versions
 ------------------------------------
 Things to be implemented next:
 
- - rotated particles
- - plane wave based coupling for close non spherical particles
- - faster (and less memory intense) evaluation of near field
+ - plane wave based coupling for close non-spherical particles
  - packages for the evaluation of bidirectional scattering distrubtion function and emission efficiency
 
 
-Credits
---------
-We thank
-
- - Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use their NFM-DS Fortran code
- - Lorenzo Pattelli for designing the Smuthi logo

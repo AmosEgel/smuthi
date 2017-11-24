@@ -101,6 +101,8 @@ feature requests or if you would like to contribute.
 The software is licensed under the `MIT license <https://en.wikipedia.org/wiki/MIT_License>`_ and includes contributions
 from the following persons:
 
+   - Dominik Theobald implemented functions for the simulation of particles with arbitrary orientation and for plane 
+     wave based particle coupling for non-spherical particles with overlapping circumscribing spheres.
    - Adrian Doicu, Thomas Wriedt and Yuri Eremin through the
      `NFM-DS <https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds>`_ package, a copy of which
      is distributed with Smuthi.
