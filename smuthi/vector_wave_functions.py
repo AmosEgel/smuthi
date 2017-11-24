@@ -6,6 +6,7 @@ import sympy
 import smuthi.memoizing as memo
 
 
+
 def plane_vector_wave_function(x, y, z, kp, alpha, kz, pol):
     r"""Electric field components of plane wave (PVWF).
 
@@ -355,3 +356,5 @@ def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
         a = complex(jfac * fac1 * fac2a * wig1 * wig2a)
         b = complex(jfac * fac1 * fac2b * wig1 * wig2b)
     return a, b
+
+

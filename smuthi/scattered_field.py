@@ -21,7 +21,7 @@ def total_far_field(initial_field, particle_list, layer_system, polar_angles='de
                                                     if 'default', use smuthi.coordinates.default_azimuthal_angles
 
     Returns:
-        A tuple of three FarField objects for total, initial and scattered far field. Mind that the scattered far field
+        A tuple of three smuthi.field_expansion.FarField objects for total, initial and scattered far field. Mind that the scattered far field
         has no physical meaning and is for illustration purposes only. 
     """ 
     if not (type(initial_field).__name__ == 'GaussianBeam' or type(initial_field).__name__ == 'DipoleSource'
@@ -112,7 +112,7 @@ def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_an
                                                     if 'default', use smuthi.coordinates.default_azimuthal_angles
 
     Returns:
-        A FarField object of the scattered field.
+        A smuthi.field_expansion.FarField object of the scattered field.
     """
     omega = coord.angular_frequency(vacuum_wavelength)
     if type(polar_angles) == str and polar_angles == 'default':
@@ -171,7 +171,7 @@ def scattering_cross_section(initial_field, particle_list, layer_system, polar_a
                                                     if 'default', use smuthi.coordinates.default_azimuthal_angles
 
     Returns:
-        A tuple of FarField objects, one for forward scattering (i.e., into the top hemisphere) and one for backward
+        A tuple of smuthi.field_expansion.FarField objects, one for forward scattering (i.e., into the top hemisphere) and one for backward
         scattering (bottom hemisphere).
     """
     if not type(initial_field).__name__ == 'PlaneWave':

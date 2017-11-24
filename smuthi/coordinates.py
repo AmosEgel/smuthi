@@ -62,3 +62,23 @@ def angular_frequency(vacuum_wavelength):
         Angular frequency in the units of c=1 (time units=length units). This is at the same time the vacuum wavenumber.
     """
     return 2 * np.pi / vacuum_wavelength
+
+
+def rotation_matrix(alpha=None, beta=None, gamma=None, euler_angles=None):
+    if euler_angles is not None:
+        alpha = euler_angles[0]
+        beta = euler_angles[1]
+        gamma = euler_angles[2]
+    rotation_matrix_3 = [[np.cos(gamma), np.sin(gamma), 0], [- np.sin(gamma), np.cos(gamma), 0], [0, 0, 1]]
+    rotation_matrix_2 = [[np.cos(beta), 0, - np.sin(beta)], [0, 1, 0], [np.sin(beta), 0, np.cos(beta)]]
+    rotation_matrix_1 = [[np.cos(alpha), np.sin(alpha), 0], [- np.sin(alpha), np.cos(alpha), 0], [0, 0, 1]] 
+    return np.dot(rotation_matrix_3, np.dot(rotation_matrix_2, rotation_matrix_1))
+
+
+def vector_rotation(r, alpha=None, beta=None, gamma=None, euler_angles=None):
+    return np.dot(rotation_matrix(alpha, beta, gamma, euler_angles), r)
+
+
+def inverse_vector_rotation(r, alpha=None, beta=None, gamma=None, euler_angles=None):
+    return np.dot(np.linalg.inv(rotation_matrix(alpha, beta, gamma, euler_angles)), r)
+

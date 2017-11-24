@@ -80,8 +80,6 @@ def t_matrix(vacuum_wavelength, n_medium, particle):
         radius = particle.radius
         t = t_matrix_sphere(k_medium, k_particle, radius, particle.l_max, particle.m_max)
     elif type(particle).__name__ == 'Spheroid':
-        if not particle.euler_angles == [0, 0, 0]:
-            raise ValueError('T-matrix for rotated particles currently not implemented.')
         t = nftaxs.tmatrix_spheroid(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=n_medium,
                                     particle_refractive_index=particle.refractive_index,
                                     semi_axis_c=particle.semi_axis_c, semi_axis_a=particle.semi_axis_a,
@@ -89,9 +87,9 @@ def t_matrix(vacuum_wavelength, n_medium, particle):
                                     nint=particle.t_matrix_method.get('nint', 200),
                                     nrank=particle.t_matrix_method.get('nrank', particle.l_max + 2),
                                     l_max=particle.l_max, m_max=particle.m_max)
-    elif type(particle).__name__ == 'FiniteCylinder':
         if not particle.euler_angles == [0, 0, 0]:
-            raise ValueError('T-matrix for rotated particles currently not implemented.')
+            t = rotate_t_matrix(t, particle.l_max, particle.m_max, particle.euler_angles, wdsympy=False)
+    elif type(particle).__name__ == 'FiniteCylinder':
         t = nftaxs.tmatrix_cylinder(vacuum_wavelength=vacuum_wavelength, layer_refractive_index=n_medium,
                                     particle_refractive_index=particle.refractive_index,
                                     cylinder_height=particle.cylinder_height,
@@ -100,15 +98,40 @@ def t_matrix(vacuum_wavelength, n_medium, particle):
                                     nint=particle.t_matrix_method.get('nint', 200),
                                     nrank=particle.t_matrix_method.get('nrank', particle.l_max + 2),
                                     l_max=particle.l_max, m_max=particle.m_max)
+        if not particle.euler_angles == [0, 0, 0]:
+            t = rotate_t_matrix(t, particle.l_max, particle.m_max, particle.euler_angles, wdsympy=False)
     else:
         raise ValueError('T-matrix for ' + type(particle).__name__ + ' currently not implemented.')
 
     return t
 
 
-def rotate_t_matrix(t, euler_angles):
-    """Placeholder for a proper T-matrix rotation routine"""
+def rotate_t_matrix(T, l_max, m_max, euler_angles, wdsympy=False):
+    """T-matrix of a particle in a rotated coordinate system (R), with respect to the labratrory coordinate system (L) 
+    
+    Args:
+        T (numpy.matrix):                   T-matrix 
+        l_max (int):                        Maximal multipole degree
+        m_max (int):                        Maximal multipole order
+        euler_angles (numpy.matrix):        Euler angles [alpha, beta, gamma] in (zy'z''-convention) in Rad
+        
+    Returns:
+        rotated T-matrix (numpy.matrix)
+    """
+    
     if euler_angles == [0, 0, 0]:
-        return t
+        return T
     else:
-        raise ValueError('Non-trivial rotation not yet implemented')
+        blocksize = fldex.blocksize(l_max, m_max)
+        T_mat_rot = np.zeros([blocksize, blocksize], dtype=complex)
+    
+        # Doicu, Light Scattering by Systems of Particles, p. 70 (1.115)      
+        T_mat_rot = (np.dot(np.dot(np.transpose(fldex.block_rotation_matrix_D_svwf(l_max, m_max, -euler_angles[2], -euler_angles[1],
+                            -euler_angles[0], wdsympy)),T), np.transpose(fldex.block_rotation_matrix_D_svwf(l_max, m_max,
+                            euler_angles[0], euler_angles[1], euler_angles[2], wdsympy))))
+
+        # Mishchenko, Scattering, Absorption and Emission of Light by small Particles, p.120 (5.29)
+#       T_rot_matrix = np.dot(np.dot(fldex.rotation_matrix_D(l_max, alpha, beta, gamma), T),
+#                             fldex.rotation_matrix_D(l_max, -gamma, -beta, -alpha))
+
+        return T_mat_rot

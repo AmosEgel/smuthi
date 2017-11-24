@@ -108,7 +108,7 @@ class PiecewiseFieldExpansion(FieldExpansion):
         for fex in self.expansion_list:
             dvg = np.logical_and(dvg, fex.diverging(x, y, z))
         return dvg
-    
+
     def electric_field(self, x, y, z):
         """Evaluate electric field.
         
@@ -266,7 +266,7 @@ class SphericalWaveExpansion(FieldExpansion):
         """
         n = multi_to_single_index(tau, l, m, self.l_max, self.m_max)
         return self.coefficients[n]
-    
+
     def electric_field(self, x, y, z):
         """Evaluate electric field.
         
@@ -482,7 +482,7 @@ class PlaneWaveExpansion(FieldExpansion):
                                      upper_z=min(self.upper_z, other.upper_z))
         pwe_sum.coefficients = self.coefficients + other.coefficients
         return pwe_sum
-    
+
     def electric_field(self, x, y, z):
         """Evaluate electric field.
         
@@ -974,3 +974,35 @@ def blocksize(l_max, m_max):
     Returns:
          Number of indices for one particle, which is the maximal index plus 1."""
     return multi_to_single_index(tau=1, l=l_max, m=m_max, l_max=l_max, m_max=m_max) + 1
+
+
+def block_rotation_matrix_D_svwf(l_max, m_max, alpha, beta, gamma, wdsympy=False):
+    """Rotation matrix for the rotation of SVWFs between a labratory coordinate system (L) and a rotated coordinate 
+    system (R)
+    
+    Args:
+        l_max (int):      Maximal multipole degree
+        m_max (int):      Maximal multipole order
+        alpha (float):    First Euler angle, rotation around z-axis, in rad
+        beta (float):     Second Euler angle, rotation around y'-axis in rad
+        gamma (float):    Third Euler angle, rotation around z''-axis in rad
+        wdsympy (bool):   If True, Wigner-d-functions come from the sympy toolbox
+        
+    Returns:
+        rotation matrix of dimension [blocksize, blocksize]
+    """
+    
+    b_size = blocksize(l_max, m_max)
+    rotation_matrix = np.zeros([b_size, b_size], dtype=complex)
+    
+    for l in range(l_max + 1):
+        mstop = min(l, m_max)
+        for m1 in range(-mstop, mstop + 1):
+            for m2 in range(-mstop, mstop + 1):
+                rotation_matrix_coefficient = sf.wigner_D(l, m1, m2, alpha, beta, gamma, wdsympy)
+                for tau in range(2):
+                    n1 = multi_to_single_index(tau, l, m1, l_max, m_max)
+                    n2 = multi_to_single_index(tau, l, m2, l_max, m_max)
+                    rotation_matrix[n1, n2] = rotation_matrix_coefficient
+
+    return rotation_matrix
