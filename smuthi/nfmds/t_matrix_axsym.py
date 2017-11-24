@@ -78,7 +78,7 @@ def tmatrix_cylinder(vacuum_wavelength=None, layer_refractive_index=None, partic
 def taxsym_run():
     """Call TAXSYM.f90 routine."""
     cwd = os.getcwd()
-    os.chdir(smuthi.nfmds.nfmds_installation_path + '/TMATSOURCES')
+    os.chdir(smuthi.nfmds.nfmds_temporary_folder + '/TMATSOURCES')
     with open('../nfmds.log', 'w') as nfmds_log:
         if sys.platform.startswith('win'):
             subprocess.call(['TAXSYM_SMUTHI.exe'], stdout=nfmds_log)
@@ -110,7 +110,7 @@ def taxsym_write_input_spheroid(vacuum_wavelength=None, layer_refractive_index=N
     if layer_refractive_index.imag:
         raise ValueError('Refractive index of surrounding medium  must be real(?)')
 
-    f = open(smuthi.nfmds.nfmds_installation_path + '/INPUTFILES/InputAXSYM.dat', 'w')
+    f = open(smuthi.nfmds.nfmds_temporary_folder + '/INPUTFILES/InputAXSYM.dat', 'w')
 
     f.write('OptProp\n')
     f.write(str(float(vacuum_wavelength)) + '\n')
@@ -277,7 +277,7 @@ def taxsym_write_input_cylinder(vacuum_wavelength=None, layer_refractive_index=N
     if layer_refractive_index.imag:
         raise ValueError('Refractive index of surrounding medium  must be real(?)')
 
-    f = open(smuthi.nfmds.nfmds_installation_path + '/INPUTFILES/InputAXSYM.dat', 'w')
+    f = open(smuthi.nfmds.nfmds_temporary_folder + '/INPUTFILES/InputAXSYM.dat', 'w')
 
     f.write('OptProp\n')
     f.write(str(float(vacuum_wavelength)) + '\n')
@@ -437,7 +437,7 @@ def taxsym_read_tmatrix(filename, l_max, m_max):
         T-matrix as numpy.ndarray
     """
 
-    with open(smuthi.nfmds.nfmds_installation_path + '/TMATFILES/Info' + filename, 'r') as info_file:
+    with open(smuthi.nfmds.nfmds_temporary_folder + '/TMATFILES/Info' + filename, 'r') as info_file:
         info_file_lines = info_file.readlines()
 
     assert 'The scatterer is an axisymmetric particle' in ' '.join(info_file_lines)
@@ -449,7 +449,7 @@ def taxsym_read_tmatrix(filename, l_max, m_max):
         if line.split()[0:5] == ['-', 'number', 'of', 'azimuthal', 'modes,']:
             m_rank = int(line.split()[-1][0:-1])
 
-    with open(smuthi.nfmds.nfmds_installation_path + '/TMATFILES/' + filename, 'r') as tmat_file:
+    with open(smuthi.nfmds.nfmds_temporary_folder + '/TMATFILES/' + filename, 'r') as tmat_file:
         tmat_lines = tmat_file.readlines()
 
     t_nfmds = [[]]

@@ -4,26 +4,24 @@ import os
 import subprocess
 import sys
 from distutils.dir_util import copy_tree
+import tempfile
 
 nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.nfmds', 'NFM-DS')
+temp_fold = tempfile.TemporaryDirectory(prefix='smuthi_nfmds_')
+nfmds_temporary_folder = temp_fold.name
+print('Copying NFMDS to temporary directory ', nfmds_temporary_folder)
 
-try:
-    with open(nfmds_sources_dirname + '/_nfmds_installation_path.txt', 'r') as rfile:
-        nfmds_installation_path = rfile.read()
-except:  # install
-    nfmds_installation_path = os.path.abspath(input('Please type a path where NFM-DS will be installed!\n') + '/NFM-DS')
-    copy_tree(nfmds_sources_dirname, nfmds_installation_path)
-    try:
-        with open(nfmds_sources_dirname + '/_nfmds_installation_path.txt', 'w') as wfile:
-            wfile.write(nfmds_installation_path)
-    except:
-        print('Could not write to ' + nfmds_sources_dirname + '/_nfmds_installation_path.txt.')
-        print('Consider to run once with admin rights to keep NFM-DS installation.')
+copy_tree(nfmds_sources_dirname, nfmds_temporary_folder)
 
-    if sys.platform.startswith('linux'):
+if sys.platform.startswith('linux'):
+    # does the executable exist?
+    if not os.access(nfmds_temporary_folder + '/TMATSOURCES/TAXSYM_SMUTHI.out', os.X_OK):
         cwd = os.getcwd()
-        os.chdir(nfmds_installation_path + '/TMATSOURCES')
-        print('Compiling sources ...')
+        os.chdir(nfmds_temporary_folder + '/TMATSOURCES')
+        sys.stdout.write('Compiling sources ...')
+        sys.stdout.flush()
         subprocess.call(['gfortran', 'TAXSYM_SMUTHI.f90', '-o', 'TAXSYM_SMUTHI.out'])
-        print('... done.')
+        sys.stdout.write(' done.\n')
+        sys.stdout.flush()
         os.chdir(cwd)
+        

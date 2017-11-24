@@ -20,7 +20,7 @@ def read_input_yaml(filename):
     Returns:
         smuthi.simulation.Simulation object containing the params of the input file
     """
-    print('\nReading ' + os.path.abspath(filename))
+    print('Reading ' + os.path.abspath(filename))
     with open(filename, 'r') as input_file:
         input_data = yaml.load(input_file.read())
 
