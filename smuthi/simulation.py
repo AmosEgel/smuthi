@@ -65,7 +65,19 @@ class Simulation:
             shutil.copyfile(input_file, self.output_dir + '/input.dat')
         else:
             self.output_dir = False
+    
+    def __getstate__(self):
+        """Return state values to be pickled."""
+        return (self.layer_system, self.particle_list, self.initial_field, self.k_parallel, self.solver_type,
+                self.solver_tolerance, self.store_coupling_matrix, self.coupling_matrix_lookup_resolution, 
+                self.coupling_matrix_interpolator_kind, self.post_processing, self.length_unit, self.save_after_run)
 
+    def __setstate__(self, state):
+        """Restore state from the unpickled state values."""
+        (self.layer_system, self.particle_list, self.initial_field, self.k_parallel, self.solver_type,
+         self.solver_tolerance, self.store_coupling_matrix, self.coupling_matrix_lookup_resolution,
+         self.coupling_matrix_interpolator_kind, self.post_processing, self.length_unit, self.save_after_run) = state
+        
     def print_simulation_header(self):
         version = pkg_resources.get_distribution("smuthi").version
         welcome_msg = ("\n" + "*" * 32 + "\n    SMUTHI version " + version + "\n" + "*" * 32 + "\n")

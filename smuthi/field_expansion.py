@@ -502,7 +502,7 @@ class PlaneWaveExpansion(FieldExpansion):
         yr = y[self.valid(x, y, z)] - self.reference_point[1]
         zr = z[self.valid(x, y, z)] - self.reference_point[2]
         
-        if cu.use_gpu and xr.size:  # run calculations on gpu
+        if cu.use_gpu and xr.size and len(self.k_parallel) > 1:  # run calculations on gpu
             
             re_k_d = gpuarray.to_gpu(np.array(self.k).real.astype(np.float32))
             im_k_d = gpuarray.to_gpu(np.array(self.k).imag.astype(np.float32)) 
