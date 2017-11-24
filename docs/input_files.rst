@@ -84,43 +84,48 @@ In the case of non-spherical particles, you can also specify a structure :code:`
 calculation of the T-matrix using the NFM-DS module. For further information about the meaning of these parameters, see
 the `NFM-DS documentation <https://scattport.org/images/scattering-code/NFM-DS_program-description.pdf>`_.
 
+Rotated spheroids or cylinders are defined by specifying the polar and azimuthal angle of the symmetry axis with respect
+to the laboratory coordinate system. 
+
 The parameters for the scattering particles can be listed directly in the input file, in the following format::
 
 
-  scattering particles:
-  - shape: sphere
-    radius: 100
-    refractive index: 2.4
-    extinction coefficient: 0.05
-    position: [0, 100, 150]
-    l_max: 3
-    m_max: 3
-  - shape: finite cylinder
-    cylinder radius: 120
-    cylinder height: 150
-    refractive index: 2.7
-    extinction coefficient: 0
-    position: [350, -100, 250]
-    euler angles: [0, 0, 0]
-    l_max: 4
-    m_max: 4
-    NFM-DS settings:
-      use discrete sources: true
-      nint: 200                 
-      nrank: 8                  
-  - shape: spheroid
-    semi axis c: 80
-    semi axis a: 140
-    refractive index: 2.5
-    extinction coefficient: 0.05
-    position: [-350, 50, 350]
-    euler angles: [0, 0, 0]
-    l_max: 3
-    m_max: 3
-    NFM-DS settings:
-      use discrete sources: true
-      nint: 200                 
-      nrank: 8                  
+ scattering particles:
+ - shape: sphere
+   radius: 100                       
+   refractive index: 2.4
+   extinction coefficient: 0.05
+   position: [0, 100, 150]           
+   l_max: 3                          
+   m_max: 3                          
+ - shape: finite cylinder
+   cylinder radius: 120              
+   cylinder height: 150              
+   refractive index: 2.7
+   extinction coefficient: 0
+   position: [350, -100, 250]
+   polar angle: 60                    
+   azimuthal angle: 30               
+   l_max: 4
+   m_max: 4
+   NFM-DS settings:                  
+     use discrete sources: true      
+     nint: 200                       
+     nrank: 8                        
+ - shape: spheroid
+   semi axis c: 80                   
+   semi axis a: 140                  
+   refractive index: 2.5
+   extinction coefficient: 0.05
+   position: [-350, 50, 350]
+   polar angle: 45                    
+   azimuthal angle: 45               
+   l_max: 3
+   m_max: 3
+   NFM-DS settings:
+     use discrete sources: true
+     nint: 200
+     nrank: 8  
 
 
 Alternatively, the scattering particles can be specified in a separate file, which needs to be located in the SMUTHI
@@ -375,14 +380,14 @@ The file containing the particle specifications needs to be written in the follo
    ...      ...     ...     ...     ...     ...     ...     ...
 
    # cylinders
-   # x, y, z, cylinder radius, cylinder height, refractive index, exctinction coefficient, l_max, m_max
-   250      -100    250	    120     150     2.7     0       4       4
-   ...      ...     ...     ...     ...     ...     ...     ...     ...
+   # x, y, z, cylinder radius, cylinder height, polar angle, azimuthal angle, refractive index, exctinction coefficient, l_max, m_max
+   250      -100    250	    120     150     60		30		2.7     0       4       4
+   ...      ...     ...     ...     ...     ...     ...     ...     ...		...		...
 
    # spheroids
-   # x, y, z, semi-axis c, semi-axis a, refractive index, exctinction coefficient, l_max, m_max
-   -250     0       350     80      140     2.5     0.05    3       3
-   ...      ...     ...     ...     ...     ...     ...     ...     ...
+   # x, y, z, semi-axis c, semi-axis a, polar angle, azimuthal angle, refractive index, exctinction coefficient, l_max, m_max
+   -250     0       350     80      140     45		45		2.5     0.05    3       3
+   ...      ...     ...     ...     ...     ...     ...     ...     ...		...		...
 
 An examplary particle specifiacations can be downloaded from
 :download:`here <../smuthi/data/example_particle_specs.dat>`.

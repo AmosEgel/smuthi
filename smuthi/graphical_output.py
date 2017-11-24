@@ -10,7 +10,8 @@ import tempfile
 import shutil
 import imageio
 import os
-
+import warnings
+            
 
 def plot_layer_interfaces(dim1min, dim1max, layer_system):
     """Add lines to plot to display layer system interfaces
@@ -37,61 +38,57 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
         particle_list (list): List of smuthi.particles.Particle objects
         max_particle_distance (float):  Plot only particles that ar not further away from image plane
     """
+    
+    ax = plt.gca()
+    
     for particle in particle_list:
         pos = particle.position
-        if xmin == xmax:
-            if abs(xmin - pos[0]) < max_particle_distance:
-                if type(particle).__name__ == 'Sphere':
-                    plt.gca().add_patch(Circle((pos[1], pos[2]), particle['radius'], facecolor='w', edgecolor='k'))
-                elif type(particle).__name__ == 'Spheroid':
-                    if not particle.euler_angles == [0, 0, 0]:
-                        raise ValueError('rotated particles currently not supported')
-                    plt.gca().add_patch(Ellipse(xy=(pos[1], pos[2]), width=2 * particle['semi axis a'],
-                                                height=2 * particle.semi_axis_c, facecolor='w', edgecolor='k'))
-                    circumscribing_radius = max([particle.semi_axis_a, particle.semi_axis_c])
-                    plt.gca().add_patch(Circle((pos[1], pos[2]), circumscribing_radius, linestyle='dashed',
-                                               facecolor='none', edgecolor='k'))
+        if xmin == xmax and abs(xmin - pos[0]) < max_particle_distance:
+            plane_coord = 0
+            draw_coord = [1, 2]
+        elif ymin == ymax and abs(ymin - pos[1]) < max_particle_distance:
+            plane_coord = 1
+            draw_coord = [0, 2]
+        elif zmin == zmax and abs(zmin - pos[2]) < max_particle_distance:
+            plane_coord = 2
+            draw_coord = [0, 1]
+                    
+            
+        if type(particle).__name__ == 'Sphere':
+            ax.add_patch(Circle((pos[draw_coord[0]], pos[draw_coord[1]]), particle.radius, facecolor='w', 
+                                       edgecolor='k'))
+        else:
+            if not particle.euler_angles == [0, 0, 0]:
+                warnings.warn("Drawing rotated particles currently not supported - drawing black disc with size"
+                              + " of circumscribing sphere instead")
+                ax.add_patch(Circle((pos[draw_coord[0]], pos[draw_coord[1]]), particle.circumscribing_sphere_radius(), 
+                                    facecolor='k', edgecolor='k'))
+                ax.text(pos[draw_coord[0]], pos[draw_coord[1]], 'rotated ' + type(particle).__name__,
+                        verticalalignment='center', horizontalalignment='center', color='blue', fontsize=5)
+            else:
+                ax.add_patch(Circle((pos[draw_coord[0]], pos[draw_coord[1]]), particle.circumscribing_sphere_radius(), 
+                                    linestyle='dashed', facecolor='none', edgecolor='k'))
+
+                if type(particle).__name__ == 'Spheroid':
+                    width = 2 * particle.semi_axis_a
+                    if plane_coord == 2:
+                        height = 2 * particle.semi_axis_a
+                    else:
+                        height = 2 * particle.semi_axis_c
+                    ax.add_patch(Ellipse(xy=(pos[draw_coord[0]], pos[draw_coord[1]]), width=width, heigth=height,
+                                         facecolor='w', edgecolor='k'))
+
                 elif type(particle).__name__ == 'FiniteCylinder':
                     cylinder_radius = particle.cylinder_radius
                     cylinder_height = particle.cylinder_height
-                    plt.gca().add_patch(Rectangle((pos[1] - cylinder_radius, pos[2] - cylinder_height / 2),
-                                                  2 * cylinder_radius, cylinder_height, facecolor='w', edgecolor='k'))
-                    circumscribing_radius = np.sqrt(particle.cylinder_height ** 2 / 4 + particle.cylinder_radius ** 2)
-                    plt.gca().add_patch(Circle((pos[1], pos[2]), circumscribing_radius, linestyle='dashed',
-                                               facecolor='none', edgecolor='k'))
-
-        elif ymin == ymax:
-            if abs(ymin - pos[1]) < max_particle_distance:
-                if type(particle).__name__ == 'Sphere':
-                    plt.gca().add_patch(Circle((pos[0], pos[2]), particle.radius, facecolor='w', edgecolor='k'))
-                elif type(particle).__name__ == 'Spheroid':
-                    if not particle.euler_angles == [0, 0, 0]:
-                        raise ValueError('rotated particles currently not supported')
-                    plt.gca().add_patch(Ellipse(xy=(pos[0], pos[2]), width=2 * particle.semi_axis_a,
-                                                height=2 * particle.semi_axis_c, facecolor='w', edgecolor='k'))
-                    circumscribing_radius = max([particle.semi_axis_a, particle.semi_axis_c])
-                    plt.gca().add_patch(Circle((pos[0], pos[2]), circumscribing_radius, linestyle='dashed',
-                                               facecolor='none', edgecolor='k'))
-                elif type(particle).__name__ == 'FiniteCylinder':
-                    cylinder_radius = particle.cylinder_radius
-                    cylinder_height = particle.cylinder_height
-                    plt.gca().add_patch(Rectangle((pos[0] - cylinder_radius, pos[2] - cylinder_height / 2),
-                                                  2 * cylinder_radius, cylinder_height, facecolor='w', edgecolor='k'))
-                    circumscribing_radius = np.sqrt(cylinder_height ** 2 / 4 + cylinder_radius ** 2)
-                    plt.gca().add_patch(Circle((pos[0], pos[2]), circumscribing_radius, linestyle='dashed',
-                                               facecolor='none', edgecolor='k'))
-
-        elif zmin == zmax:
-            if abs(zmin - pos[2]) < max_particle_distance:
-                if type(particle).__name__ == 'Sphere':
-                    plt.gca().add_patch(Circle((pos[0], pos[1]), particle.radius, facecolor='w', edgecolor='k'))
-                elif type(particle).__name__ == 'Spheroid':
-                    if not particle.euler_angles == [0, 0, 0]:
-                        raise ValueError('rotated particles currently not supported')
-                    plt.gca().add_patch(Circle((pos[0], pos[1]), particle.semi_axis_a, facecolor='w', edgecolor='k'))
-                elif type(particle).__name__ == 'FiniteCylinder':
-                    cylinder_radius = particle.cylinder_radius
-                    plt.gca().add_patch(Circle((pos[0], pos[1]), cylinder_radius, facecolor='w', edgecolor='k'))
+                    if plane_coord == 2:
+                        ax.add_patch(Circle((pos[draw_coord[0]], pos[draw_coord[1]]), particle.cylinder_radius,
+                                            facecolor='w', edgecolor='k'))
+                    else:
+                        ax.add_patch(Rectangle((pos[draw_coord[0]]-particle.cylinder_radius, 
+                                                pos[draw_coord[1]]-particle.cylinder_height/2), 
+                                               2*particle.cylinder_radius, particle.cylinder_height, facecolor='w', 
+                                               edgecolor='k'))
 
 
 def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, save_animations=False, save_data=False,

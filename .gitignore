@@ -20,3 +20,4 @@ scripts/
 *.pyc
 *.prof
 *.lprof
+*_nfmds_installation_path.txt

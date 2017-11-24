@@ -91,18 +91,24 @@ def read_input_yaml(filename):
                         if particle_type == 'spheroid':
                             c = numeric_line_data[3]
                             a = numeric_line_data[4]
-                            n = numeric_line_data[5] + 1j * numeric_line_data[6]
-                            l_max = numeric_line_data[7]
-                            m_max = numeric_line_data[8]
-                            particle_list.append(part.Spheroid(position=pos, refractive_index=n, semi_axis_c=c,
-                                                               semi_axis_a=a, l_max=l_max, m_max=m_max))
+                            beta = numeric_line_data[5]
+                            alpha = numeric_line_data[6]
+                            n = numeric_line_data[7] + 1j * numeric_line_data[8]
+                            l_max = numeric_line_data[9]
+                            m_max = numeric_line_data[10]
+                            particle_list.append(part.Spheroid(position=pos, polar_angle=beta, azimuthal_angle=beta, 
+                                                               refractive_index=n, semi_axis_c=c, semi_axis_a=a, 
+                                                               l_max=l_max, m_max=m_max))
                         if particle_type == 'finite cylinder':
                             r = numeric_line_data[3]
                             h = numeric_line_data[4]
-                            n = numeric_line_data[5] + 1j * numeric_line_data[6]
-                            l_max = numeric_line_data[7]
-                            m_max = numeric_line_data[8]
-                            particle_list.append(part.FiniteCylinder(position=pos, refractive_index=n,
+                            beta = numeric_line_data[5]
+                            alpha = numeric_line_data[6]
+                            n = numeric_line_data[7] + 1j * numeric_line_data[8]
+                            l_max = numeric_line_data[9]
+                            m_max = numeric_line_data[10]
+                            particle_list.append(part.FiniteCylinder(position=pos, polar_angle=beta, 
+                                                                     azimuthal_angle=beta, refractive_index=n,
                                                                      cylinder_radius=r, cylinder_height=h, l_max=l_max,
                                                                      m_max=m_max))
     else:
@@ -114,35 +120,32 @@ def read_input_yaml(filename):
             if prtcl['shape'] == 'sphere':
                 r = float(prtcl['radius'])
                 particle_list.append(part.Sphere(position=pos, refractive_index=n, radius=r, l_max=l_max, m_max=m_max))
-            elif prtcl['shape'] == 'spheroid':
-                c = float(prtcl['semi axis c'])
-                a = float(prtcl['semi axis a'])
-                euler_angles = [float(prtcl['euler angles'][0]), float(prtcl['euler angles'][1]),
-                                float(prtcl['euler angles'][2])]
-                nfmds_settings = prtcl.get('NFM-DS settings', {})
-                use_ds = nfmds_settings.get('use discrete sources', True)
-                nint = nfmds_settings.get('nint', 200)
-                nrank = nfmds_settings.get('nrank', l_max + 2)
-                t_matrix_method = {'use discrete sources': use_ds, 'nint': nint, 'nrank': nrank}
-                particle_list.append(part.Spheroid(position=pos, refractive_index=n, semi_axis_a=a, semi_axis_c=c,
-                                                   l_max=l_max, m_max=m_max, euler_angles=euler_angles,
-                                                   t_matrix_method=t_matrix_method))
-            elif prtcl['shape'] == 'finite cylinder':
-                h = float(prtcl['cylinder height'])
-                r = float(prtcl['cylinder radius'])
-                euler_angles = [float(prtcl['euler angles'][0]), float(prtcl['euler angles'][1]),
-                                float(prtcl['euler angles'][2])]
-                nfmds_settings = prtcl.get('NFM-DS settings', {})
-                use_ds = nfmds_settings.get('use discrete sources', True)
-                nint = nfmds_settings.get('nint', 200)
-                nrank = nfmds_settings.get('nrank', l_max + 2)
-                t_matrix_method = {'use discrete sources': use_ds, 'nint': nint, 'nrank': nrank}
-
-                particle_list.append(part.FiniteCylinder(position=pos, refractive_index=n, cylinder_radius=r,
-                                                         cylinder_height=h, l_max=l_max, m_max=m_max,
-                                                         euler_angles=euler_angles, t_matrix_method=t_matrix_method))
             else:
-                raise ValueError('Currently, only spheres, spheroids and finite cylinders are implemented')
+                nfmds_settings = prtcl.get('NFM-DS settings', {})
+                use_ds = nfmds_settings.get('use discrete sources', True)
+                nint = nfmds_settings.get('nint', 200)
+                nrank = nfmds_settings.get('nrank', l_max + 2)
+                t_matrix_method = {'use discrete sources': use_ds, 'nint': nint, 'nrank': nrank}
+                polar_angle=prtcl.get('polar angle', 0)
+                azimuthal_angle=prtcl.get('azimuthal angle', 0)
+
+                if prtcl['shape'] == 'spheroid':
+                    c = float(prtcl['semi axis c'])
+                    a = float(prtcl['semi axis a'])
+                    particle_list.append(part.Spheroid(position=pos, polar_angle=polar_angle, 
+                                                       azimuthal_angle=azimuthal_angle, refractive_index=n,
+                                                       semi_axis_a=a, semi_axis_c=c, l_max=l_max, m_max=m_max,
+                                                       t_matrix_method=t_matrix_method))
+                elif prtcl['shape'] == 'finite cylinder':
+                    h = float(prtcl['cylinder height'])
+                    r = float(prtcl['cylinder radius'])
+                    particle_list.append(part.FiniteCylinder(position=pos, polar_angle=polar_angle,
+                                                             azimuthal_angle=azimuthal_angle,
+                                                             refractive_index=n, cylinder_radius=r,
+                                                             cylinder_height=h, l_max=l_max, m_max=m_max,
+                                                             t_matrix_method=t_matrix_method))
+                else:
+                    raise ValueError('Currently, only spheres, spheroids and finite cylinders are implemented')
     simulation.particle_list = particle_list
 
     # layer system

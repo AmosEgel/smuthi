@@ -69,7 +69,8 @@ scattering particles:
   refractive index: 2.7
   extinction coefficient: 0
   position: [350, -100, 250]
-  euler angles: [0, 0, 0]           # [alpha,beta,gamma] in the specified angle unit (currently only [0,0,0] possible)
+  polar angle: 60                   # Polar orientation of the cylinder axis of revolution, in the specified angle units 
+  azimuthal angle: 30               # Azimuthal orientation, in the specified angle units
   l_max: 4
   m_max: 4
   NFM-DS settings:                  # The NFM-DS algorithm computes the T-matrix of non-spherical particles.
@@ -85,7 +86,8 @@ scattering particles:
   refractive index: 2.5
   extinction coefficient: 0.05
   position: [-350, 50, 350]
-  euler angles: [0, 0, 0]
+  polar angle: 45                   # Polar orientation of the spheroid symmetry axis, in the specified angle units 
+  azimuthal angle: 45               # Azimuthal orientation, in the specified angle units
   l_max: 3
   m_max: 3
   NFM-DS settings:
@@ -210,7 +212,7 @@ coupling matrix lookup resolution: 0        # Set to positive value to enable th
 interpolation order: linear                 # Set to 'linear' (faster) or 'cubic' (more precise). Only applicable if
                                             # the coupling matrix lookup is enabled (resolution > 0).
 
-enable GPU: false                           # Set to 'true' to benefint from greatly accelerated calculations using the
+enable GPU: true                           # Set to 'true' to benefint from greatly accelerated calculations using the
                                             # graphics processing unit. Requires a CUDA-enabled NVIDIA GPU, a suitable
                                             # version of the CUDA toolkit and the PyCuda package installed.
                                             # (default=false)

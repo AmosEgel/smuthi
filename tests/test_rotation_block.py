@@ -64,14 +64,16 @@ rD2 = [0, 0, 200]
 waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 4]
 neff_discr = 2e-2
 
+polar_angle = 0.25 * np.pi
+azimuthal_angle = 0.425 * np.pi
+
 coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr)
 
 
 # initialize particle objects
-spheroid1 = part.Spheroid(position=[0, 0, 200], euler_angles=[0, 0, 0], refractive_index=2.4, semi_axis_c=100,
-                          semi_axis_a=50, l_max=8, m_max=8, t_matrix_method=None)
-spheroid2 = part.Spheroid(position=[0, 0, 200], euler_angles=[0.425 * np.pi, 0.25 * np.pi, 0], refractive_index=2.4,
-                          semi_axis_c=100, semi_axis_a=50, l_max=8, m_max=8, t_matrix_method=None)
+spheroid1 = part.Spheroid(position=[0, 0, 200], refractive_index=2.4, semi_axis_c=100, semi_axis_a=50, l_max=8, m_max=8)
+spheroid2 = part.Spheroid(position=[0, 0, 200], polar_angle=polar_angle, azimuthal_angle=azimuthal_angle, 
+                          refractive_index=2.4, semi_axis_c=100, semi_axis_a=50, l_max=8, m_max=8)
 part_list = [spheroid1]
 part_list2 = [spheroid2]
 
@@ -79,10 +81,10 @@ part_list2 = [spheroid2]
 lay_sys = lay.LayerSystem([0, 800, 0], [1, 1, 1])
 
 # initialize plane wave objects
-planewave = init.PlaneWave(vacuum_wavelength=ld, polar_angle=np.pi, azimuthal_angle=0, polarization=0, amplitude=1,
+planewave = init.PlaneWave(vacuum_wavelength=ld, polar_angle=0, azimuthal_angle=0, polarization=0, amplitude=1,
                            reference_point=rD)
-planewave2 = init.PlaneWave(vacuum_wavelength=ld, polar_angle=0.75 * np.pi, azimuthal_angle=1.425 *np.pi, polarization=0,
-                            amplitude=1, reference_point=rD2)
+planewave2 = init.PlaneWave(vacuum_wavelength=ld, polar_angle=polar_angle, azimuthal_angle=azimuthal_angle, 
+                            polarization=0, amplitude=1, reference_point=rD2)
 
 # run simulation
 simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=planewave)
