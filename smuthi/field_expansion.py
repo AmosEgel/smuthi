@@ -902,7 +902,8 @@ def blocksize(l_max, m_max):
 
 
 def block_rotation_matrix_D_svwf(l_max, m_max, alpha, beta, gamma, wdsympy=False):
-    """Rotation matrix for the rotation of SVWFs between a labratory coordinate system (L) and a rotated coordinate system (R)
+    """Rotation matrix for the rotation of SVWFs between a labratory coordinate system (L) and a rotated coordinate 
+    system (R)
     
     Args:
         l_max (int):      Maximal multipole degree
@@ -919,18 +920,14 @@ def block_rotation_matrix_D_svwf(l_max, m_max, alpha, beta, gamma, wdsympy=False
     b_size = blocksize(l_max, m_max)
     rotation_matrix = np.zeros([b_size, b_size], dtype=complex)
     
-    row = 0
-    for ll in range(1, l_max + 1):
-        for aa, bb in zip(range(-m_max, m_max + 1), range(-ll, ll + 1)):
-            mm = max(aa, bb)                   
-            column = 0
-            for ll_prime in range(1, l_max + 1):
-                for cc, dd in zip(range(-m_max, m_max + 1), range(-ll_prime, ll_prime +1)):
-                    mm_prime = max(cc, dd)
-                    if ll == ll_prime:
-                        rotation_matrix[row, column] = sf.wigner_D(ll, mm, mm_prime, alpha, beta, gamma, wdsympy)
-                        rotation_matrix[row + int(b_size / 2), column + int(b_size / 2)] = rotation_matrix[row, column]
-                    column +=  1
-            row += 1
+    for l in range(l_max + 1):
+        mstop = min(l, m_max)
+        for m1 in range(-mstop, mstop + 1):
+            for m2 in range(-mstop, mstop + 1):
+                rotation_matrix_coefficient = sf.wigner_D(l, m1, m2, alpha, beta, gamma, wdsympy)
+                for tau in range(2):
+                    n1 = multi_to_single_index(tau, l, m1, l_max, m_max)
+                    n2 = multi_to_single_index(tau, l, m2, l_max, m_max)
+                    rotation_matrix[n1, n2] = rotation_matrix_coefficient
 
     return rotation_matrix

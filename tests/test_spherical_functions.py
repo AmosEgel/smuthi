@@ -3,6 +3,18 @@
 
 import smuthi.spherical_functions
 import numpy as np
+from sympy.physics.quantum.spin import Rotation
+
+
+def test_wignerd():
+    l_test = 5
+    m_test = -3
+    m_prime_test = 4
+    beta_test = 0.64
+    wigd = smuthi.spherical_functions.wigner_d(l_test, m_test, m_prime_test, beta_test, wdsympy=False)
+    wigd_sympy = complex(Rotation.d(l_test, m_test, m_prime_test, beta_test).doit()).real
+    err = abs((wigd - wigd_sympy) / wigd)
+    assert err < 1e-10
 
 
 def test_Plm_against_prototype():
@@ -121,6 +133,7 @@ def test_dxxh_against_h():
 
 
 if __name__ == '__main__':
+    test_wignerd()
     test_dxxh_against_h()
     test_dxxh_against_prototype()
     test_dxxj_against_j()

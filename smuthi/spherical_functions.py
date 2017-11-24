@@ -191,7 +191,6 @@ def wigner_d(l, m, m_prime, beta, wdsympy=False):
     Returns:
         real value of Wigner-d-function
     """
-    
     wig_d = np.zeros(l + 1, dtype=complex)
     
     if wdsympy == False:
@@ -207,22 +206,23 @@ def wigner_d(l, m, m_prime, beta, wdsympy=False):
                 wig_d[nn] = sympy.legendre_poly(nn, np.cos(beta))          
         else:
             # recursion formulation (Mishchenko, Scattering, Absorption and Emission of Light by small Particles, p.365 (B.22 - B.24))
-            l_min = np.maximum(np.absolute(m), np.absolute(m_prime))
+            l_min = max(abs(m), abs(m_prime))
             wig_d[l_min - 1] = 0
             if m_prime >= m:
                 zeta = 1
             else:
                 zeta = (-1) ** (m - m_prime)
         
-            wig_d[l_min] = (zeta * 2 ** (-l_min) * (math.factorial(2 * l_min) 
-                            / (math.factorial(np.absolute(m - m_prime)) * math.factorial(np.absolute(m + m_prime)))) ** 0.5
-                            * (1 - np.cos(beta)) ** (np.absolute(m - m_prime) / 2) 
-                            * (1 + np.cos(beta)) ** (np.absolute(m + m_prime) / 2 ))
+            wig_d[l_min] = (zeta * 2.0 ** (-l_min) * (factorial(2 * l_min) / (factorial(abs(m - m_prime)) 
+                                                                              * factorial(abs(m + m_prime)))) ** 0.5
+                            * (1 - np.cos(beta)) ** (abs(m - m_prime) / 2) 
+                            * (1 + np.cos(beta)) ** (abs(m + m_prime) / 2 ))
     
             for ll in range(l_min, l):
                 wig_d[ll + 1] = (((2 * ll + 1) * (ll * (ll + 1) * np.cos(beta) - m * m_prime) * wig_d[ll] 
-                                - (ll + 1) * (ll ** 2 - m ** 2) ** 0.5 * (ll ** 2 - m_prime ** 2) ** 0.5 * wig_d[ll - 1])
-                                / (ll * ((ll + 1) ** 2 - m ** 2) ** 0.5 * ((ll + 1) ** 2 - m_prime ** 2) ** 0.5))
+                                - (ll + 1) * (ll ** 2 - m ** 2) ** 0.5 * (ll ** 2 - m_prime ** 2) ** 0.5 
+                                * wig_d[ll - 1]) / (ll * ((ll + 1) ** 2 - m ** 2) ** 0.5 
+                                                    * ((ll + 1) ** 2 - m_prime ** 2) ** 0.5))
     
     else:
         wig_d[l] = complex(Rotation.d(l, m, m_prime, beta).doit())

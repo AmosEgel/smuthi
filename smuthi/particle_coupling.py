@@ -4,7 +4,6 @@ coupling matrix entries. The second half of the module contains functions for th
 are used to approximate the coupling matrices by interoplation."""
 
 import numpy as np
-import math
 import scipy.special
 import scipy.interpolate
 import smuthi.coordinates as coord
@@ -16,6 +15,7 @@ import smuthi.cuda_sources as cu
 import matplotlib.pyplot as plt
 import sys
 from tqdm import tqdm
+from scipy.signal.filter_design import bessel
 try:
     import pycuda.autoinit
     import pycuda.driver as drv
@@ -695,37 +695,42 @@ def size_format(b):
         return '%.1f' % float(b/1000000000000) + 'TB'
 
 
-def spheroids_closest_points(minor_halfaxis1, major_halfaxis1, center1, orientation1,
-                             minor_halfaxis2, major_halfaxis2, center2, orientation2):
-    """ Computation of the two closest points of two adjacent spheroids
+def spheroids_closest_points(ab_halfaxis1, c_halfaxis1, center1, orientation1, ab_halfaxis2, c_halfaxis2, center2, 
+                             orientation2):
+    """ Computation of the two closest points of two adjacent spheroids.
+    For details, see: Stephen B. Pope, Algorithms for Ellipsoids, Sibley School of Mechanical & Aerospace Engineering, 
+    Cornell University, Ithaca, New York, February 2008
     
     Args:
-        minor_halfaxis1 (int):         Minor-halfaxis (exists twice) of spheroid 1
-        major_halfaxis1 (int):         Major-halfaxis (exists once) of spheroid 1
-        center1 (numpy.array):          Center coordinates of spheroid 1
-        orientation1 (numpy.array):     Orientation angles of spheroid 1
-        minor_halfaxis2 (int):         Minor-halfaxis (exists twice) of spheroid 2
-        major_halfaxis2 (int):         Major-halfaxis (exists once) of spheroid 2
-        center2 (numpy.array):          Center coordinates of spheroid 2
-        orientation2 (numpy.array):     Orientation angles of spheroid 2
+        ab_halfaxis1 (float):        Half axis orthogonal to symmetry axis of spheroid 1
+        c_halfaxis1 (float):         Half axis parallel to symmetry axis of spheroid 1
+        center1 (numpy.array):       Center coordinates of spheroid 1
+        orientation1 (numpy.array):  Orientation angles of spheroid 1
+        ab_halfaxis2 (float):        Half axis orthogonal to symmetry axis of spheroid 2
+        c_halfaxis2 (float):         Half axis parallel to symmetry axis of spheroid 2
+        center2 (numpy.array):       Center coordinates of spheroid 2
+        orientation2 (numpy.array):  Orientation angles of spheroid 2
         
     Retruns:
-        Dictonary that contains fields 'p1', 'p2', 'normale' which connects p1 and p2 and normalized to 1,
-        and the rotation angles 'alpha' and 'beta'
+        Tuple containing:
+          - closest point on first particle (numpy.array)
+          - closest point on second particle (numpy.array)
+          - first rotation Euler angle alpha (float)
+          - second rotation Euler angle beta (float)
     """
     
     def rotation_matrix(ang):
-        rot_mat = (np.array([[math.cos(ang[0]) * math.cos(ang[1]), -math.sin(ang[0]), math.cos(ang[0]) * math.sin(ang[1])],
-                             [math.sin(ang[0]) * math.cos(ang[1]), math.cos(ang[0]), math.sin(ang[0]) * math.sin(ang[1])],
-                             [-math.sin(ang[1]), 0, math.cos(ang[1])]]))
+        rot_mat = (np.array([[np.cos(ang[0]) * np.cos(ang[1]), -np.sin(ang[0]), np.cos(ang[0]) * np.sin(ang[1])],
+                             [np.sin(ang[0]) * np.cos(ang[1]), np.cos(ang[0]), np.sin(ang[0]) * np.sin(ang[1])],
+                             [-np.sin(ang[1]), 0, np.cos(ang[1])]]))
         return rot_mat
+    
     rot_matrix_1 = rotation_matrix(orientation1)
     rot_matrix_2 = rotation_matrix(orientation2)
         
-    # all coordinates are transformed from [1 == 1nm] to [1 == 100nm]
-    a1, a2 = minor_halfaxis1 / 100, minor_halfaxis2 / 100
-    c1, c2 = major_halfaxis1 / 100, major_halfaxis2 / 100
-    ctr1, ctr2 = np.dot(center1, 1 / 100), np.dot(center2, 1 / 100)
+    a1, a2 = ab_halfaxis1, ab_halfaxis2
+    c1, c2 = c_halfaxis1, c_halfaxis2
+    ctr1, ctr2 = np.array(center1), np.array(center2)
     
     eigenvalue_matrix_1 = np.array([[1 / a1 ** 2, 0, 0], [0, 1 / a1 ** 2, 0], [0, 0, 1 / c1 ** 2]])
     eigenvalue_matrix_2 = np.array([[1 / a2 ** 2, 0, 0], [0, 1 / a2 ** 2, 0], [0, 0, 1 / c2 ** 2]])
@@ -735,8 +740,8 @@ def spheroids_closest_points(minor_halfaxis1, major_halfaxis1, center1, orientat
     S = np.matrix.getH(np.linalg.cholesky(E1))
     
     # transformation of spheroid E1 into the unit-sphere with its center at origin / same transformation on E2
-#    E1_prime = np.dot(np.transpose(np.linalg.inv(S)), np.dot(E1, np.linalg.inv(S)))
-#    ctr1_prime = ctr1 - ctr1 
+    # E1_prime = np.dot(np.transpose(np.linalg.inv(S)), np.dot(E1, np.linalg.inv(S)))
+    # ctr1_prime = ctr1 - ctr1 
     E2_prime = np.dot(np.transpose(np.linalg.inv(S)), np.dot(E2, np.linalg.inv(S)))
     ctr2_prime = -(np.dot(S, (ctr1 - ctr2)))  
     E2_prime_L = np.linalg.cholesky(E2_prime)
@@ -764,13 +769,13 @@ def spheroids_closest_points(minor_halfaxis1, major_halfaxis1, center1, orientat
                              + np.transpose(ctr2_prime))
         if optimization_result['success'] == True:
             if np.linalg.norm(x_vec) <= 1:
-                raise ValueError("particle error: particle's intersect")
+                raise ValueError("particle error: particles intersect")
             elif np.linalg.norm(x_vec) < np.linalg.norm(ctr2_prime):
                 flag = True
             else:
-                print('wrong minima ...')
+                print('wrong minimum ...')
         else:
-            print('No minima found ...')
+            print('No minimum found ...')
 
     p2_prime = x_vec
     p2 = np.dot(np.linalg.inv(S), p2_prime) + ctr1
@@ -790,188 +795,117 @@ def spheroids_closest_points(minor_halfaxis1, major_halfaxis1, center1, orientat
             if np.linalg.norm(p1 - p) < np.linalg.norm(ctr1 - p):
                 flag = True
             else:
-                print('wrong minima ...')
+                print('wrong minimum ...')
         else:
-            print('No minima found ...')
+            print('No minimum found ...')
     
-    normale = p2 - p1
-    normale = np.dot(normale, 1 / np.max(np.absolute(normale)))
-    azimuth = math.atan2(normale[1], normale[0])
-    elevation = math.atan2(normale[2], (normale[0] ** 2 + normale[1] ** 2) ** 0.5)
+    p1p2 = p2 - p1
+    azimuth = np.arctan2(p1p2[1], p1p2[0])
+    elevation = np.arctan2(p1p2[2], (p1p2[0] ** 2 + p1p2[1] ** 2) ** 0.5)
 
-    if normale[2] < 0:
-        beta = (math.pi / 2) + elevation
+    if p1p2[2] < 0:
+        beta = (np.pi / 2) + elevation
     else:
-        beta = (-math.pi / 2) + elevation
+        beta = (-np.pi / 2) + elevation
     alpha = -azimuth
               
-    res = {'alpha' : alpha, 'beta' : beta, 'normale' : normale, 'p1' : p1 * 100, 'p2' : p2 * 100}
-    
-    return res
-
-def A_block_pvwf_coupling(emitting_particle, receiving_particle, steps, kpar_k_max, alpha, beta, rfi, vacuum_wavelength):
-    """ Computation of the translation operator A_n_nprime(particle1, particle2)
-    
-    Args:
-        receiving_particle (smuthi.particles.Particle):     Particle that receives the scattered field
-        emitting_particle (smuthi.particles.Particle):      Particle that emits the scattered field
-        steps (int):                                        Number of integration steps
-        kpar_k_max (float):                                 Maximal value of (kpar / k ) up to which the integral is determined
-        alpha (float):                                      Azimuthal angle of the coordinate system rotation in Rad
-        beta (float):                                       Polar angle of the coordinate system rotation in Rad
-        rfi (float):                                        Refractive index of the ambiance medium
-        vacuum_wavelength (float):                          Vacuum wavelength of respective light
-        
-    Returns: 
-        Translation operator A_block(numpy.array)
-    """
-
-    pp1 = np.array(emitting_particle.position, dtype=float)
-    pp2 = np.array(receiving_particle.position, dtype=float)
-    l_max = max([particle.l_max for particle in [receiving_particle, emitting_particle]])
-    m_max = max([particle.m_max for particle in [receiving_particle, emitting_particle]])
-    blocksize = fldex.blocksize(l_max, m_max)
-   
-    # generate index lookup
-    tp = np.zeros([blocksize ** 2, 6], dtype=int)
-    for tauii in range(2):
-        for lii in range(1, l_max + 1):
-            for aa, bb in zip(range(-m_max, m_max + 1), range(-lii, lii + 1)):
-                mii = max(aa, bb)
-                jmult = fldex.multi_to_single_index(tauii, lii, mii, l_max, m_max)
-                for kk in range(blocksize):
-                    tp[jmult + blocksize * kk, 0] = tauii 
-                    tp[jmult + blocksize * kk, 1] = lii
-                    tp[jmult + blocksize * kk, 2] = mii
-                    tp[jmult * blocksize + kk, 3] = tauii 
-                    tp[jmult * blocksize + kk, 4] = lii
-                    tp[jmult * blocksize + kk, 5] = mii
-    # intialize result            
-    A_block = np.zeros([blocksize ** 2], dtype=complex)
-    # distance vector in rotated coordinate system
-    r2mnr1_Lab = pp2 - pp1 
-    r2mnr1 = np.dot(np.dot([[math.cos(beta), 0, math.sin(beta)], [0, 1, 0], [- math.sin(beta), 0, math.cos(beta)]],
-                    [[math.cos(alpha), - math.sin(alpha), 0], [math.sin(alpha), math.cos(alpha), 0], [0, 0, 1]]), r2mnr1_Lab)
-    r2mnr1_cyl = np.zeros([3, 1])
-    r2mnr1_cyl[0], r2mnr1_cyl[1] = (r2mnr1[0] ** 2 + r2mnr1[1] ** 2) ** 0.5, math.atan2(r2mnr1[1], r2mnr1[0])
-    r2mnr1_cyl[2] = r2mnr1[2]
-    
-    k = rfi * 2 * math.pi / vacuum_wavelength
-    kpar_max = kpar_k_max * k 
-    
-    # integral discretization     
-    aa = 0
-    kpar = np.zeros(steps, dtype=complex)
-    for ii in np.linspace(0 , kpar_max, num=steps):
-        if ii <= 0.8 * k or ii >= 1.2 * k:
-            kpar[aa] = ii
-        else:
-            kpar[aa] = ii + 1j * ((1 / (1600 * k ** 2)) * ii ** 2 - (1 / (800 * k)) * ii + 3 / 5000)
-        aa += 1  
-    kz = np.sqrt(k ** 2 - kpar ** 2 )
-    
-    # intialize integral, transformation coeffitions and bessel function
-    integral = np.zeros([blocksize, 2], dtype=complex)    
-    B_arr = np.zeros([steps, blocksize, 2], dtype=complex)       
-    B_dagger_arr = np.zeros([steps, blocksize, 2], dtype=complex)
-    bessel_arr = np.zeros([steps, (2* m_max + 1) ** 2], dtype=complex)
-    
-    ii = 0
-    for mm in range(-m_max, m_max + 1):
-        for nn in range(-m_max, m_max + 1):
-            bessel_arr[:, ii] = (np.exp(1j * r2mnr1_cyl[1] * (mm - nn)) 
-                                * scipy.special.jn(mm - nn, np.transpose(kpar) * r2mnr1_cyl[0]))
-            ii += 1
-        
-    if r2mnr1_cyl[2] < 0:
-        kz_var = -kz
-    else:
-        kz_var = kz
-        
-    const_arr = kpar / (kz * k) * np.exp(1j * (kz_var * r2mnr1_cyl[2]))
-    for gg in range(0, blocksize):
-        for hh in range(0, 2):
-            B_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg, 0], tp[gg, 1], tp[gg, 2], hh, kp=kpar, kz=kz_var,
-                                pilm_list=None, taulm_list=None, dagger=False)
-            B_dagger_arr[:, gg, hh] = vwf.transformation_coefficients_vwf(tp[gg * blocksize + 1, 3], tp[gg * blocksize + 1, 4],
-                                        tp[gg * blocksize + 1, 5], hh, kp=kpar, kz=kz_var, pilm_list=None, taulm_list=None,
-                                        dagger=True)
-    # integration        
-    for ii in range(0, blocksize):
-        mm = np.array([aa for aa in range(blocksize)])
-        for jj in range(2):
-            integrand = (const_arr[:, None] * B_arr[:, mm, jj] * B_dagger_arr[:, ii, jj][:, None] 
-                        * bessel_arr[:, (tp[ii * blocksize + mm, 2] + m_max) * (2 * m_max + 1) + tp[ii * blocksize + mm, 5] + m_max])
-            integral[:, jj] = np.trapz(np.transpose(integrand), kpar)
-                
-        A_block[mm + blocksize * ii] = (4 * 1j ** (tp[ii * blocksize + mm, 2] - tp[ii * blocksize + mm, 5]) 
-                                        * (integral[:, 0] + integral[:, 1]))
-
-    A_block = np.transpose(np.reshape(A_block, [blocksize, blocksize]))
-                
-    return A_block
+    return p1, p2, alpha, beta
 
 
-def direct_coupling_block_pvwf(vacuum_wavelength, receiving_particle, emitting_particle, layer_system, steps, kpar_k_max):
+def direct_coupling_block_pvwf_mediated(vacuum_wavelength, receiving_particle, emitting_particle, layer_system, 
+                                        k_parallel):
     """Direct particle coupling matrix :math:`W` for two particles (via plane vector wave functions).
+    For details, see: 
+    Dominik Theobald et al., Phys. Rev. A 96, 033822, DOI: 10.1103/PhysRevA.96.033822 or arXiv:1708.04808 
+
 
     Args:
         vacuum_wavelength (float):                          Vacuum wavelength :math:`\lambda` (length unit)
         receiving_particle (smuthi.particles.Particle):     Particle that receives the scattered field
         emitting_particle (smuthi.particles.Particle):      Particle that emits the scattered field
         layer_system (smuthi.layers.LayerSystem):           Stratified medium in which the coupling takes place
-        steps (int):                                        Number of integration steps
-        kpar_k_max (float):                                 Maximal value of (kpar / k ) up to which the integral is determined        
+        k_parallel (numpy.array):                           In-plane wavenumber for plane wave expansion
 
     Returns:
-        Direct coupling matrix block as numpy array.
+        Direct coupling matrix block (numpy array).
     """    
-    # finding the two cloesest points of the emitting and receiving particle and thereby a plane separating the spheroids
-    closest_point_dic = spheroids_closest_points(emitting_particle.semi_axis_a, emitting_particle.semi_axis_c,
-                                                 emitting_particle.position, emitting_particle.euler_angles,
-                                                 receiving_particle.semi_axis_a, receiving_particle.semi_axis_c,
-                                                 receiving_particle.position, receiving_particle.euler_angles)
+    if type(receiving_particle).__name__ != 'Spheroid' or type(emitting_particle).__name__ != 'Spheroid':
+        raise NotImplementedError('plane wave coupling currently implemented only for spheroids')
     
-    l_max = max([particle.l_max for particle in [receiving_particle, emitting_particle]])
-    m_max = max([particle.m_max for particle in [receiving_particle, emitting_particle]])   
-    rfi = layer_system.refractive_indices[layer_system.layer_number(receiving_particle.position[2])]
+    lmax1 = receiving_particle.l_max
+    mmax1 = receiving_particle.m_max
+    lmax2 = emitting_particle.l_max
+    mmax2 = emitting_particle.m_max
+    lmax = max([lmax1, lmax2])
+    m_max = max([mmax1, mmax2]) 
+    blocksize1 = fldex.blocksize(lmax1, mmax1)
+    blocksize2 = fldex.blocksize(lmax2, mmax2)
     
-    A_block = A_block_pvwf_coupling(emitting_particle, receiving_particle, steps, kpar_k_max,
-                                    closest_point_dic['alpha'], closest_point_dic['beta'], rfi, vacuum_wavelength)   
-    W_block = np.dot(np.dot(np.transpose(fldex.block_rotation_matrix_D_svwf(l_max, m_max, 0, closest_point_dic['beta'],
-                     closest_point_dic['alpha'])), np.transpose(A_block)), np.transpose(fldex.block_rotation_matrix_D_svwf(l_max,
-                     m_max, -closest_point_dic['alpha'], -closest_point_dic['beta'], 0)))
+    n_medium = layer_system.refractive_indices[layer_system.layer_number(receiving_particle.position[2])]
+      
+    # finding the orientation of a plane separating the spheroids
+    _, _, alpha, beta = spheroids_closest_points(
+        emitting_particle.semi_axis_a, emitting_particle.semi_axis_c, emitting_particle.position, 
+        emitting_particle.euler_angles, receiving_particle.semi_axis_a, receiving_particle.semi_axis_c,
+        receiving_particle.position, receiving_particle.euler_angles)
     
-    return W_block
-
-   
-def direct_coupling_matrix_pvwf(vacuum_wavelength, particle_list, layer_system, steps, kpar_k_max):
-    """Return the direct particle coupling matrix W for a particle collection in a layered medium (via plane vector wave functions).
-
-    Args:
-        vacuum_wavelength (float):                                  Wavelength in length unit
-        particle_list (list of smuthi.particles.Particle obejcts:   Scattering particles
-        layer_system (smuthi.layers.LayerSystem):                   The stratified medium
-   
-    Returns:
-        Ensemble coupling matrix as numpy array.
-    """
-    # indices
-    blocksizes = [fldex.blocksize(particle.l_max, particle.m_max)
-                  for particle in particle_list]
-
+    # positions
+    r1 = np.array(receiving_particle.position)
+    r2 = np.array(emitting_particle.position)
+    r21_lab = r1 - r2  # laboratory coordinate system
+    
+    # distance vector in rotated coordinate system
+    r21_rot = np.dot(np.dot([[np.cos(beta), 0, np.sin(beta)], [0, 1, 0], [- np.sin(beta), 0, np.cos(beta)]],
+                           [[np.cos(alpha), - np.sin(alpha), 0], [np.sin(alpha), np.cos(alpha), 0], [0, 0, 1]]), 
+                    r21_lab)
+    rho21 = (r21_rot[0] ** 2 + r21_rot[1] ** 2) ** 0.5 
+    phi21 = np.arctan2(r21_rot[1], r21_rot[0])
+    z21 = r21_rot[2]
+    
+    # wavenumbers
+    omega = coord.angular_frequency(vacuum_wavelength)
+    k = omega * n_medium
+    kz = coord.k_z(k_parallel=k_parallel, vacuum_wavelength=vacuum_wavelength, refractive_index=n_medium)
+    if z21 < 0:
+        kz_var = -kz
+    else:
+        kz_var = kz
+        
+    # Bessel lookup 
+    bessel_list = []
+    for dm in range(mmax1 + mmax2 + 1):
+        bessel_list.append(scipy.special.jn(dm, k_parallel * rho21))
+    
+    # legendre function lookups
+    ct = kz_var / k
+    st = k_parallel / k
+    _, pilm_list, taulm_list = sf.legendre_normalized(ct, st, lmax)
+    
     # initialize result
-    w = np.zeros((sum(blocksizes), sum(blocksizes)), dtype=complex)
+    w = np.zeros((blocksize1, blocksize2), dtype=complex)
 
-    for s1, particle1 in enumerate(particle_list):
-        idx1 = np.array(range(sum(blocksizes[:s1]), sum(blocksizes[:s1+1])))
-        for s2, particle2 in enumerate(particle_list):
-            idx2 = range(sum(blocksizes[:s2]), sum(blocksizes[:s2+1]))
-            if s1 == s2:
-                w[idx1[:, None], idx2] = 0
-            else:
-                w[idx1[:, None], idx2] = direct_coupling_block_pvwf(vacuum_wavelength, particle1, particle2, layer_system, steps,
-                                                                    kpar_k_max)
-
-    return w
+    # prefactor
+    const_arr = k_parallel / (kz * k) * np.exp(1j * (kz_var * z21))
+                        
+    for m1 in range(-mmax1, mmax1 + 1):
+        for m2 in range(-mmax2, mmax2 + 1):
+            jmm_eimphi_bessel = 4 * 1j ** abs(m2 - m1) * np.exp(1j * phi21 * (m2 - m1)) * bessel_list[abs(m2 - m1)]
+            prefactor = const_arr * jmm_eimphi_bessel
+            for l1 in range(max(1, abs(m1)), lmax1 + 1):
+                for l2 in range(max(1, abs(m2)), lmax2 + 1):
+                    for tau1 in range(2):
+                        n1 = fldex.multi_to_single_index(tau1, l1, m1, lmax1, mmax1)
+                        for tau2 in range(2):
+                            n2 = fldex.multi_to_single_index(tau2, l2, m2, lmax2, mmax2)
+                            for pol in range(2):
+                                B = vwf.transformation_coefficients_vwf(tau1, l1, m1, pol, pilm_list=pilm_list, 
+                                                                        taulm_list=taulm_list, dagger=True)
+                                B_dag = vwf.transformation_coefficients_vwf(tau2, l2, m2, pol, pilm_list=pilm_list,
+                                                                            taulm_list=taulm_list, dagger=False)
+                                integrand = prefactor * B * B_dag
+                                w[n1, n2] += np.trapz(integrand, k_parallel) 
+                                
+    rot_mat_1 = fldex.block_rotation_matrix_D_svwf(lmax1, mmax1, 0, beta, alpha)
+    rot_mat_2 = fldex.block_rotation_matrix_D_svwf(lmax2, mmax2, -alpha, -beta, 0)
     
+    return np.dot(np.dot(np.transpose(rot_mat_1), w), np.transpose(rot_mat_2))
