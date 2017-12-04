@@ -40,20 +40,25 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
     """
     
     ax = plt.gca()
-    
+
+    if xmin == xmax:
+        plane_coord = 0
+        draw_coord = [1, 2]
+    elif ymin == ymax:
+        plane_coord = 1
+        draw_coord = [0, 2]
+    elif zmin == zmax:
+        plane_coord = 2
+        draw_coord = [0, 1]
+    else:
+        raise ValueError('Field points must define a plane')
+
     for particle in particle_list:
         pos = particle.position
-        if xmin == xmax and abs(xmin - pos[0]) < max_particle_distance:
-            plane_coord = 0
-            draw_coord = [1, 2]
-        elif ymin == ymax and abs(ymin - pos[1]) < max_particle_distance:
-            plane_coord = 1
-            draw_coord = [0, 2]
-        elif zmin == zmax and abs(zmin - pos[2]) < max_particle_distance:
-            plane_coord = 2
-            draw_coord = [0, 1]
                     
-            
+        if abs((xmin, ymin, zmin)[plane_coord] - pos[plane_coord]) > max_particle_distance:
+            continue
+        
         if type(particle).__name__ == 'Sphere':
             ax.add_patch(Circle((pos[draw_coord[0]], pos[draw_coord[1]]), particle.radius, facecolor='w', 
                                        edgecolor='k'))
