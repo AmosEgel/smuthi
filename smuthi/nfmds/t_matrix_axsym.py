@@ -9,6 +9,7 @@ https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds
 
 import smuthi.field_expansion as fldex
 import smuthi.nfmds
+import smuthi.memoizing as memo
 import os
 import subprocess
 import numpy as np
@@ -16,6 +17,7 @@ import imp
 import sys
 
 
+@memo.Memoize
 def tmatrix_spheroid(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
                      semi_axis_c=None, semi_axis_a=None, l_max=None, m_max=None, use_ds=True, nint=None, nrank=None):
     """T-matrix for spheroid, using the TAXSYM.f90 routine from the NFM-DS.
@@ -45,6 +47,7 @@ def tmatrix_spheroid(vacuum_wavelength=None, layer_refractive_index=None, partic
     return taxsym_read_tmatrix(filename=filename, l_max=l_max, m_max=m_max)
 
 
+@memo.Memoize
 def tmatrix_cylinder(vacuum_wavelength=None, layer_refractive_index=None, particle_refractive_index=None,
                      cylinder_height=None, cylinder_radius=None, l_max=None, m_max=None, use_ds=True, nint=None, nrank=None):
     """Return T-matrix for finite cylinder, using the TAXSYM.f90 routine from the NFM-DS.

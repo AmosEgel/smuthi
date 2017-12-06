@@ -557,7 +557,11 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
 
     ct = np.array([0.0])
     st = np.array([1.0])
-    bessel_h = [sf.spherical_hankel(n, k_is * radial_distance_array) for n in range(2* l_max + 1)]
+    bessel_h = []
+    for n in range(2* l_max + 1):
+        bessel_h.append(sf.spherical_hankel(n, k_is * radial_distance_array))
+        bessel_h[-1][radial_distance_array <= 0] = np.nan
+        
     legendre, _, _ = sf.legendre_normalized(ct, st, 2 * l_max)
 
     for m1 in tqdm(range(-m_max, m_max + 1), desc='Direct coupling           ', file=sys.stdout,

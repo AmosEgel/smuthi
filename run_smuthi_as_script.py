@@ -1,4 +1,6 @@
 # This is an exemplary script to run SMUTHI from within python.
+# It evaluates the scattering response of a finite periodic grid of dielectric spheres that are located on a metallic
+# substrate coated with a dielectric layer. The system is excited by a plane wave under normal incidence.
 
 import numpy as np
 import smuthi.simulation
@@ -6,56 +8,79 @@ import smuthi.initial_field
 import smuthi.layers
 import smuthi.particles
 import smuthi.coordinates
-import smuthi.post_processing
+import smuthi.cuda_sources
 import smuthi.scattered_field
+import smuthi.graphical_output
 
-# ----------------------------------------------------------------------------------------------------------------------
-# Initialize simulation object
-simulation = smuthi.simulation.Simulation()
 
-# ----------------------------------------------------------------------------------------------------------------------
-# Define the vacuum wavelength and the initial field
-vacuum_wavelength = 550
-plane_wave_polar_angle = 30 * np.pi / 180  # polar angle of the incoming plane wave in radian
-plane_wave_azimuthal_angle = 45 * np.pi / 180  # azimuthal angle of the incoming plane wave in radian
-plane_wave_amplitude = 1
-plane_wave_polarization = 0  # 0 stands for TE, 1 stands for TM
+smuthi.cuda_sources.enable_gpu()  # Enable GPU acceleration (if available)
 
-plane_wave = smuthi.initial_field.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=plane_wave_polar_angle,
-                                            azimuthal_angle=plane_wave_azimuthal_angle,
-                                            polarization=plane_wave_polarization)
-simulation.initial_field = plane_wave
+# Initialize a plane wave object the initial field
+plane_wave = smuthi.initial_field.PlaneWave(vacuum_wavelength=550,
+                                            polar_angle=-np.pi,       # normal incidence, from top
+                                            azimuthal_angle=0,
+                                            polarization=0)           # 0 stands for TE, 1 stands for TM
 
-# ----------------------------------------------------------------------------------------------------------------------
-# Define the layer system
+# Initialize the layer system object
 layer_thicknesses = [0, 500, 0]
 layer_complex_refractive_indices = [1.5, 1.8 + 0.01j, 1]
 
-layer_system = smuthi.layers.LayerSystem(thicknesses=layer_thicknesses, 
-                                         refractive_indices=layer_complex_refractive_indices)
-simulation.layer_system = layer_system
-    
-# ----------------------------------------------------------------------------------------------------------------------
+three_layers = smuthi.layers.LayerSystem(thicknesses=[0, 50, 0],               # substrate, dielectric layer, ambient
+                                         refractive_indices=[1+6j, 1.49, 1])   # like aluminum, SiO2, air
+
 # Define the scattering particles
+particle_grid = []
+for x in range(-1500, 1501, 750):
+    for y in range(-1500, 1501, 750):
+        sphere = smuthi.particles.Sphere(position=[x, y, 150],
+                                         refractive_index=2.4,
+                                         radius=100,
+                                         l_max=3)    # choose l_max with regard to particle size and material
+                                                     # higher means more accurate but slower
+        particle_grid.append(sphere)
 
-sphere1 = smuthi.particles.Sphere(position=[100, 200, 300], refractive_index=2.4+0.05j, radius=120, l_max=3)
-sphere2 = smuthi.particles.Sphere(position=[-100, -300, 200], refractive_index=2.2+0.01j, radius=140, l_max=3)
-simulation.particle_list = [sphere1, sphere2]
-
-# ----------------------------------------------------------------------------------------------------------------------
 # Define contour for Sommerfeld integral
-contour_waypoints = [0, 0.8, 0.8 - 0.05j, 2.2 - 0.05j, 2.2, 5]
-contour_discretization = 1e-3
-simulation.wr_neff_contour = smuthi.coordinates.ComplexContour(neff_waypoints=contour_waypoints,
-                                                               neff_discretization=contour_discretization)
+smuthi.coordinates.set_default_k_parallel(vacuum_wavelength=plane_wave.vacuum_wavelength,
+                                          neff_resolution=5e-3,       # smaller value means more accurate but slower
+                                          neff_max=2)                 # should be larger than the highest refractive
+                                                                      # index of the layer system
 
-# ----------------------------------------------------------------------------------------------------------------------
-# Run simulation and show some output
+# Initialize and run simulation
+simulation = smuthi.simulation.Simulation(layer_system=three_layers,
+                                          particle_list=particle_grid,
+                                          initial_field=plane_wave,
+                                          solver_type='gmres',
+                                          solver_tolerance=1e-3,
+                                          store_coupling_matrix=False,
+                                          coupling_matrix_lookup_resolution=5,
+                                          coupling_matrix_interpolator_kind='cubic')
 simulation.run()
 
-scs = smuthi.scattered_field.scattering_cross_section(initial_field=simulation.initial_field,
-                                                      particle_list=simulation.particle_list,
-                                                      layer_system=simulation.layer_system)
+# Show the far field
+scattered_far_field = smuthi.scattered_field.scattered_far_field(vacuum_wavelength=plane_wave.vacuum_wavelength,
+                                                                 particle_list=simulation.particle_list,
+                                                                 layer_system=simulation.layer_system)
 
-print('Total scattering cross section:')
-print(sum(scs.integral()))
+output_directory = 'smuthi_output/smuthi_as_script'
+
+smuthi.graphical_output.show_far_field(far_field=scattered_far_field,
+                                       save_plots=True,
+                                       show_plots=False,
+                                       outputdir=output_directory+'/far_field_plots')
+
+# Show the near field
+smuthi.graphical_output.show_near_field(quantities_to_plot=['E_y', 'norm_E', 'E_scat_y', 'norm_E_scat'],
+                                        save_plots=True,
+                                        show_plots=False,
+                                        save_animations=True,
+                                        outputdir=output_directory+'/near_field_plots',
+                                        xmin=-1700,
+                                        xmax=1700,
+                                        ymin=10,
+                                        ymax=10,
+                                        zmin=-100,
+                                        zmax=2200,
+                                        resolution=20,
+                                        interpolate=10,
+                                        simulation=simulation,
+                                        max_field=1.5)

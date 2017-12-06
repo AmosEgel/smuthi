@@ -108,7 +108,7 @@ class PiecewiseFieldExpansion(FieldExpansion):
         for fex in self.expansion_list:
             dvg = np.logical_and(dvg, fex.diverging(x, y, z))
         return dvg
-
+    
     def electric_field(self, x, y, z):
         """Evaluate electric field.
         
@@ -266,7 +266,7 @@ class SphericalWaveExpansion(FieldExpansion):
         """
         n = multi_to_single_index(tau, l, m, self.l_max, self.m_max)
         return self.coefficients[n]
-
+    
     def electric_field(self, x, y, z):
         """Evaluate electric field.
         
@@ -482,7 +482,7 @@ class PlaneWaveExpansion(FieldExpansion):
                                      upper_z=min(self.upper_z, other.upper_z))
         pwe_sum.coefficients = self.coefficients + other.coefficients
         return pwe_sum
-
+    
     def electric_field(self, x, y, z):
         """Evaluate electric field.
         

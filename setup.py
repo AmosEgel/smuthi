@@ -29,7 +29,7 @@ def read(fname):
 
 setup(
     name="SMUTHI",
-    version="0.8.1",
+    version="0.8.2",
     author="Amos Egel",
     author_email="amos.egel@kit.edu",
     url='https://gitlab.com/AmosEgel/smuthi',

@@ -112,7 +112,11 @@ if 'conda' in sys.version or 'continuum' in sys.version:
 else:
     spherical_bessel = scipy.special.spherical_jn
     def spherical_hankel(n, x):
-        return scipy.special.spherical_jn(n, x) + 1j * scipy.special.spherical_yn(n, x)
+        spherj = scipy.special.spherical_jn(n, x)
+        sphery = scipy.special.spherical_yn(n, x)
+        if hasattr(x, '__len__'):
+            sphery[x==0] = np.nan
+        return spherj + 1j * sphery
 
 
 

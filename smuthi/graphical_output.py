@@ -11,6 +11,7 @@ import shutil
 import imageio
 import os
 import warnings
+import sys
             
 
 def plot_layer_interfaces(dim1min, dim1max, layer_system):
@@ -142,6 +143,9 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         max_particle_distance (float):  Show particles that are closer than that distance to the image plane (length
                                         unit, default = inf).
     """
+    sys.stdout.write("Compute near field ... ")
+    sys.stdout.flush()
+    
     if (not os.path.exists(outputdir)) and (save_plots or save_animations or save_data):
         os.makedirs(outputdir)
     
