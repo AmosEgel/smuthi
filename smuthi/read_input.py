@@ -39,12 +39,12 @@ def read_input_yaml(filename):
     coord.default_azimuthal_angles = np.arange(0, 2 * np.pi + angle_resolution / 2, angle_resolution)
     coord.default_polar_angles = np.arange(0, np.pi + angle_resolution / 2, angle_resolution)
     
-    neff_resolution = input_data.get('neff resolution', 1e-2)
-    neff_max = input_data.get('neff max')
+    neff_resolution = float(input_data.get('n_effective resolution', 1e-2))
+    neff_max = input_data.get('max n_effective')
     if neff_max is None:
         ref_ind = [float(n) for n in input_data['layer system']['refractive indices']]
         neff_max = max(np.array(ref_ind).real) + 1
-    neff_imag = input_data.get('neff imaginary deflection', 5e-2)
+    neff_imag = float(input_data.get('n_effective imaginary deflection', 5e-2))
     coord.set_default_k_parallel(vacuum_wavelength=wl, neff_resolution=neff_resolution, neff_max=neff_max, 
                                  neff_imag=neff_imag)
     
