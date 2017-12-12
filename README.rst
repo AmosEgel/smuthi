@@ -17,7 +17,8 @@ The following persons have contributed to the project:
    non-spherical particles with overlapping circumscribing spheres) 
  - Lorenzo Pattelli (logo)
 
-We thank Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use their NFM-DS Fortran code.
+We thank Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use their NFM-DS Fortran code, 
+and Ilia Rasskazov for useful comments.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
 

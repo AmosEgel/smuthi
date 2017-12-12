@@ -567,7 +567,7 @@ class DipoleCollection(InitialField):
         """
         pfe = self.piecewise_field_expansion(layer_system=layer_system)
         return pfe.electric_field(x, y, z)
-
+    
     def dissipated_power(self, particle_list, layer_system, k_parallel='default', azimuthal_angles='default'):
         r"""Compute the power that the dipole collection feeds into the system.
 
@@ -608,8 +608,9 @@ class DipoleCollection(InitialField):
         y_positions = np.array([dipole.position[1] for dipole in self.dipole_list])
         z_positions = np.array([dipole.position[2] for dipole in self.dipole_list])
         
+        layer_numbers = set([layer_system.layer_number(z) for z in z_positions])
         scat_fld_exp = sf.scattered_field_piecewise_expansion(self.vacuum_wavelength, particle_list, layer_system, 
-                                                              k_parallel, azimuthal_angles)
+                                                              k_parallel, azimuthal_angles, layer_numbers)
         
         e_x_scat, e_y_scat, e_z_scat = scat_fld_exp.electric_field(x_positions, y_positions, z_positions)
         

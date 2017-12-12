@@ -285,7 +285,7 @@ def extinction_cross_section(initial_field, particle_list, layer_system):
 
 
 def scattered_field_piecewise_expansion(vacuum_wavelength, particle_list, layer_system, k_parallel='default', 
-                                        azimuthal_angles='default'):
+                                        azimuthal_angles='default', layer_numbers=None):
     """Compute a piecewise field expansion of the scattered field.
 
     Args:
@@ -296,15 +296,19 @@ def scattered_field_piecewise_expansion(vacuum_wavelength, particle_list, layer_
                                                     if 'default', use smuthi.coordinates.default_k_parallel
         azimuthal_angles (numpy.ndarray or str):    azimuthal angles array
                                                     if 'default', use smuthi.coordinates.default_azimuthal_angles
+        layer_numbers (list):                       if specified, append only plane wave expansions for these layers
         
 
     Returns:
         scattered field as smuthi.field_expansion.PiecewiseFieldExpansion object
 
     """
-
+    
+    if layer_numbers is None:
+        layer_numbers = range(layer_system.number_of_layers())
+        
     sfld = fldex.PiecewiseFieldExpansion()
-    for i in tqdm(range(layer_system.number_of_layers()), desc='Scatt. field expansion    ', file=sys.stdout,
+    for i in tqdm(layer_numbers, desc='Scatt. field expansion    ', file=sys.stdout,
                                         bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}'):
         # layer mediated scattered field ---------------------------------------------------------------------------
         k = coord.angular_frequency(vacuum_wavelength) * layer_system.refractive_indices[i]
