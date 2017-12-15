@@ -109,6 +109,8 @@ from the following persons:
 
 Big thanks go to Lorenzo Pattelli for designing the Smuthi logo.
 
+Ilia Rasskazov and Konstantin Ladutenko have helped with useful comments and bug reports.
+
 The creation of Smuthi was funded by the `DFG <http://www.dfg.de/>`_ through the research project
 `LAMBDA <http://gepris.dfg.de/gepris/projekt/278746617>`_ within the priority programme
 `tailored disorder <http://gepris.dfg.de/gepris/projekt/255652081>`_.

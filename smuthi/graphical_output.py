@@ -81,7 +81,7 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
                         height = 2 * particle.semi_axis_a
                     else:
                         height = 2 * particle.semi_axis_c
-                    ax.add_patch(Ellipse(xy=(pos[draw_coord[0]], pos[draw_coord[1]]), width=width, heigth=height,
+                    ax.add_patch(Ellipse(xy=(pos[draw_coord[0]], pos[draw_coord[1]]), width=width, height=height,
                                          facecolor='w', edgecolor='k'))
 
                 elif type(particle).__name__ == 'FiniteCylinder':

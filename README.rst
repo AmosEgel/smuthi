@@ -18,7 +18,7 @@ The following persons have contributed to the project:
  - Lorenzo Pattelli (logo)
 
 We thank Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use their NFM-DS Fortran code, 
-and Ilia Rasskazov for useful comments.
+and Ilia Rasskazov as well as Konstantin Ladutenko for bug reports and useful comments.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
 
