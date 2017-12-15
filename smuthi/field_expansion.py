@@ -15,6 +15,7 @@ try:
 except:
     pass
 import copy
+import math
 
 
 class FieldExpansion:
@@ -483,17 +484,19 @@ class PlaneWaveExpansion(FieldExpansion):
         pwe_sum.coefficients = self.coefficients + other.coefficients
         return pwe_sum
     
-    def electric_field(self, x, y, z):
+    def electric_field(self, x, y, z, chunksize=50):
         """Evaluate electric field.
         
         Args:
             x (numpy.ndarray):    x-coordinates of query points
             y (numpy.ndarray):    y-coordinates of query points
             z (numpy.ndarray):    z-coordinates of query points
+            chunksize (int):      number of field points that are simultaneously evaluated when running in CPU mode
          
         Returns:
             Tuple of (E_x, E_y, E_z) numpy.ndarray objects with the Cartesian coordinates of complex electric field.
         """
+        # todo: replace chunksize argument by automatic estimate (considering available RAM)
         ex = np.zeros(x.shape, dtype=complex)
         ey = np.zeros(x.shape, dtype=complex)
         ez = np.zeros(x.shape, dtype=complex)
@@ -555,34 +558,53 @@ class PlaneWaveExpansion(FieldExpansion):
             ky = kpgrid * np.sin(agrid)
             kz = self.k_z_grid()
 
-            kr = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
-            kr += np.tensordot(xr, kx, axes=0)
-            kr += np.tensordot(yr, ky, axes=0)
-            kr += np.tensordot(zr, kz, axes=0)
-            
-            eikr = np.exp(1j * kr)
+            e_x_flat = np.zeros(xr.size, dtype=np.complex64)
+            e_y_flat = np.zeros(xr.size, dtype=np.complex64)
+            e_z_flat = np.zeros(xr.size, dtype=np.complex64)
+
+            for i_chunk in range(math.ceil(xr.size / chunksize)):
+                chunk_idcs = range(i_chunk * chunksize, min((i_chunk + 1) * chunksize, xr.size))
+                xr_chunk = xr.flatten()[chunk_idcs]
+                yr_chunk = yr.flatten()[chunk_idcs]
+                zr_chunk = zr.flatten()[chunk_idcs]
+
+                kr = np.zeros((len(xr_chunk), len(self.k_parallel), len(self.azimuthal_angles)), dtype=np.complex64)
+                kr += np.tensordot(xr_chunk, kx, axes=0)
+                kr += np.tensordot(yr_chunk, ky, axes=0)
+                kr += np.tensordot(zr_chunk, kz, axes=0)
+
+                eikr = np.exp(1j * kr)
         
-            integrand_x = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
-            integrand_y = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
-            integrand_z = np.zeros((len(xr), len(self.k_parallel), len(self.azimuthal_angles)), dtype=complex)
+                integrand_x = np.zeros((len(xr_chunk), len(self.k_parallel), len(self.azimuthal_angles)),
+                                       dtype=np.complex64)
+                integrand_y = np.zeros((len(yr_chunk), len(self.k_parallel), len(self.azimuthal_angles)),
+                                       dtype=np.complex64)
+                integrand_z = np.zeros((len(zr_chunk), len(self.k_parallel), len(self.azimuthal_angles)),
+                                       dtype=np.complex64)
 
-            # pol=0
-            integrand_x += (-np.sin(agrid) * self.coefficients[0, :, :])[None, :, :] * eikr
-            integrand_y += (np.cos(agrid) * self.coefficients[0, :, :])[None, :, :] * eikr
+                # pol=0
+                integrand_x += (-np.sin(agrid) * self.coefficients[0, :, :])[None, :, :] * eikr
+                integrand_y += (np.cos(agrid) * self.coefficients[0, :, :])[None, :, :] * eikr
+                # pol=1
+                integrand_x += (np.cos(agrid) * kz / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
+                integrand_y += (np.sin(agrid) * kz / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
+                integrand_z += (-kpgrid / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
 
-            # pol=1
-            integrand_x += (np.cos(agrid) * kz / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
-            integrand_y += (np.sin(agrid) * kz / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
-            integrand_z += (-kpgrid / self.k * self.coefficients[1, :, :])[None, :, :] * eikr
+                if len(self.k_parallel) > 1:
+                    e_x_flat[chunk_idcs] = np.trapz(np.trapz(integrand_x, self.azimuthal_angles)
+                                                    * self.k_parallel, self.k_parallel)
+                    e_y_flat[chunk_idcs] = np.trapz(np.trapz(integrand_y, self.azimuthal_angles)
+                                                    * self.k_parallel, self.k_parallel)
+                    e_z_flat[chunk_idcs] = np.trapz(np.trapz(integrand_z, self.azimuthal_angles)
+                                                    * self.k_parallel, self.k_parallel)
+                else:
+                    e_x_flat[chunk_idcs] = np.squeeze(integrand_x)
+                    e_y_flat[chunk_idcs] = np.squeeze(integrand_y)
+                    e_z_flat[chunk_idcs] = np.squeeze(integrand_z)
 
-            if len(self.k_parallel) > 1:
-                ex[self.valid(x, y, z)] = np.trapz(np.trapz(integrand_x, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
-                ey[self.valid(x, y, z)] = np.trapz(np.trapz(integrand_y, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
-                ez[self.valid(x, y, z)] = np.trapz(np.trapz(integrand_z, self.azimuthal_angles) * self.k_parallel, self.k_parallel)
-            else:
-                ex[self.valid(x, y, z)] = np.squeeze(integrand_x)
-                ey[self.valid(x, y, z)] = np.squeeze(integrand_y)
-                ez[self.valid(x, y, z)] = np.squeeze(integrand_z)
+            ex[self.valid(x, y, z)] = e_x_flat.reshape(xr.shape)
+            ey[self.valid(x, y, z)] = e_y_flat.reshape(xr.shape)
+            ez[self.valid(x, y, z)] = e_z_flat.reshape(xr.shape)
 
         return ex, ey, ez
 

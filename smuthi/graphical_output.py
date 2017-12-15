@@ -85,8 +85,6 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
                                          facecolor='w', edgecolor='k'))
 
                 elif type(particle).__name__ == 'FiniteCylinder':
-                    cylinder_radius = particle.cylinder_radius
-                    cylinder_height = particle.cylinder_height
                     if plane_coord == 2:
                         ax.add_patch(Circle((pos[draw_coord[0]], pos[draw_coord[1]]), particle.cylinder_radius,
                                             facecolor='w', edgecolor='k'))

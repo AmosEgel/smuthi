@@ -1,5 +1,5 @@
 # ======================================================================================================================
-# Example input file for SMUTHI version 0.7.0.
+# Example input file for SMUTHI version 0.8
 # ======================================================================================================================
 
 # SMUTHI input files are written in the YAML format. In general, parameters are specified in the format:
@@ -166,7 +166,7 @@ initial field:
 # Sommerfeld contour-integrals.
 # ----------------------------------------------------------------------------------------------------------------------
 
-n_effective resolution: 1e-3                # Determines the sampling of the expansion/contour, where
+n_effective resolution: 5e-3                # Determines the sampling of the expansion/contour, where
                                             # n_effective = k_parallel / omega refers to the effective refractive index
                                             # of the partial wave (default=1e-2). A smaller value leads to more precise
                                             # results and to a longer computation time.
