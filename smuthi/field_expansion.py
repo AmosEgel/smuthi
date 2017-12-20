@@ -209,7 +209,7 @@ class SphericalWaveExpansion(FieldExpansion):
                  inner_r=0, outer_r=np.inf):
         self.k = k
         self.l_max = l_max
-        if m_max:
+        if m_max is not None:
             self.m_max = m_max
         else:
             self.m_max = l_max

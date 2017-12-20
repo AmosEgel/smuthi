@@ -468,7 +468,7 @@ def taxsym_read_tmatrix(filename, l_max, m_max):
 
     t_matrix = np.zeros((fldex.blocksize(l_max, m_max), fldex.blocksize(l_max, m_max)), dtype=complex)
 
-    for m in range(-l_max, l_max + 1):
+    for m in range(-m_max, m_max + 1):
         n_max_nfmds = n_rank - max(1, abs(m)) + 1
         for tau1 in range(2):
             for l1 in range(max(1, abs(m)), l_max + 1):
