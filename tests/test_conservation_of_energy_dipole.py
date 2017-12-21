@@ -32,6 +32,7 @@ simulation.run()
 
 power_hom = dipole.dissipated_power_homogeneous_background(layer_system=simulation.layer_system)
 power = dipole.dissipated_power(particle_list=simulation.particle_list, layer_system=simulation.layer_system)
+power2 = dipole.dissipated_power_alternative(particle_list=simulation.particle_list, layer_system=simulation.layer_system)
 ff_tup = sf.total_far_field(simulation.initial_field, simulation.particle_list, simulation.layer_system)
 
 
@@ -40,6 +41,7 @@ def test_energy_conservation():
     err = abs((power - ff_power) / ff_power)
     print('ff power', ff_power)
     print('diss power', power)
+    print('diss power old', power2)
     print('hom power', power_hom)
     print('error', err)
     assert err < 1e-4

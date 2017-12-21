@@ -50,6 +50,10 @@ simulation.run()
 # evaluate power
 power_list = simulation.initial_field.dissipated_power(particle_list=simulation.particle_list,
                                                        layer_system=simulation.layer_system)
+
+power_list_alt = simulation.initial_field.dissipated_power_alternative(particle_list=simulation.particle_list,
+                                                                       layer_system=simulation.layer_system)
+
 power = sum(power_list)
 ff_tup = sf.total_far_field(simulation.initial_field, simulation.particle_list, simulation.layer_system)
 
@@ -59,6 +63,7 @@ def test_energy_conservation():
     err = abs((power - ff_power) / ff_power)
     print('ff power', ff_power)
     print('diss power list', power_list)
+    print('diss power list alt', power_list_alt)
     print('diss power', power)
     print('error', err)
     assert err < 1e-4

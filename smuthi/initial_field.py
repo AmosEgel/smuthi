@@ -483,6 +483,60 @@ class DipoleSource(InitialField):
         Returns:
             dissipated power as float
         """
+
+        virtual_particle = part.Particle(position=self.position, l_max=1, m_max=1)
+        k = layer_system.wavenumber(layer_system.layer_number(self.position[2]), self.vacuum_wavelength)
+        scattered_field_swe = fldex.SphericalWaveExpansion(k=k, l_max=1, m_max=1, kind='regular',
+                                                           reference_point=self.position)
+
+        for particle in particle_list:
+            wd = pc.direct_coupling_block(vacuum_wavelength=self.vacuum_wavelength,
+                                          receiving_particle=virtual_particle,
+                                          emitting_particle=particle,
+                                          layer_system=layer_system)
+
+            wr = pc.layer_mediated_coupling_block(vacuum_wavelength=self.vacuum_wavelength,
+                                                  receiving_particle=virtual_particle,
+                                                  emitting_particle=particle,
+                                                  layer_system=layer_system,
+                                                  k_parallel=self.k_parallel)
+
+            scattered_field_swe.coefficients += np.dot(wd + wr, particle.scattered_field.coefficients)
+
+        e_x_scat, e_y_scat, e_z_scat = scattered_field_swe.electric_field(x=self.position[0],
+                                                                          y=self.position[1],
+                                                                          z=self.position[2])
+
+        e_x_in, e_y_in, e_z_in = self.electric_field(x=self.position[0], y=self.position[1], z=self.position[2],
+                                                     layer_system=layer_system, include_direct_field=False)
+
+        power = self.angular_frequency() / 2 * (np.conjugate(self.dipole_moment[0]) * (e_x_scat + e_x_in)
+                                                + np.conjugate(self.dipole_moment[1]) * (e_y_scat + e_y_in)
+                                                + np.conjugate(self.dipole_moment[2]) * (e_z_scat + e_z_in)).imag
+        return self.dissipated_power_homogeneous_background(layer_system) + power
+
+    def dissipated_power_alternative(self, particle_list, layer_system):
+        r"""Compute the power that the dipole feeds into the system.
+
+        It is computed according to
+
+        .. math::
+            P = P_0 + \frac{\omega}{2} \mathrm{Im} (\mathbf{\mu}^* \cdot \mathbf{E}(\mathbf{r}_D))
+
+        where :math:`P_0` is the power that the dipole would feed into an infinte homogeneous medium with the same
+        refractive index as the layer that contains the dipole, :math:`\mathbf{r}_D` is the location of the dipole,
+        :math:`\omega` is the angular frequency, :math:`\mathbf{\mu}` is the dipole moment and :math:`\mathbf{E}`
+        includes the reflections of the dipole field from the layer interfaces, as well as the scattered field from all
+        particles. In contrast to dissipated_power, this routine relies on the scattered field piecewise expansion and
+        and might thus be slower.
+
+        Args:
+            particle_list (list of smuthi.particles.Particle objects): scattering particles
+            layer_system (smuthi.layers.LayerSystem): stratified medium
+
+        Returns:
+            dissipated power as float
+        """
         scat_fld_exp = sf.scattered_field_piecewise_expansion(self.vacuum_wavelength, particle_list, layer_system, 
                                                               self.k_parallel, self.azimuthal_angles)
         e_x_scat, e_y_scat, e_z_scat = scat_fld_exp.electric_field(self.position[0], self.position[1], self.position[2])
@@ -567,7 +621,7 @@ class DipoleCollection(InitialField):
         """
         pfe = self.piecewise_field_expansion(layer_system=layer_system)
         return pfe.electric_field(x, y, z)
-    
+
     def dissipated_power(self, particle_list, layer_system, k_parallel='default', azimuthal_angles='default'):
         r"""Compute the power that the dipole collection feeds into the system.
 
@@ -581,6 +635,75 @@ class DipoleCollection(InitialField):
         dipole, :math:`\omega` is the angular frequency, :math:`\mathbf{\mu}_i` is the dipole moment and
         :math:`\mathbf{E}_i` includes the reflections of the dipole field from the layer interfaces, as well as the
         scattered field from all particles and the fields from all other dipoles.
+        In contrast to dissipated_power_alternative, this routine uses the particle coupling routines and might be
+        faster for many particles and few dipoles.
+
+        Args:
+            particle_list (list of smuthi.particles.Particle objects): scattering particles
+            layer_system (smuthi.layers.LayerSystem): stratified medium
+            k_parallel (ndarray or str): array of in-plane wavenumbers for plane wave expansions. If 'default', use
+                                         smuthi.coordinates.default_k_parallel
+            azimuthal_angles (ndarray or str): array of azimuthal angles for plane wave expansions. If 'default', use
+                                               smuthi.coordinates.default_azimuthal_angles
+
+        Returns:
+            dissipated power of each dipole (list of floats)
+        """
+        sys.stdout.write('Dipole array dissipated power evaluation:\n')
+        sys.stdout.flush()
+
+        power_list = []
+
+        x_positions = np.array([dipole.position[0] for dipole in self.dipole_list])
+        y_positions = np.array([dipole.position[1] for dipole in self.dipole_list])
+        z_positions = np.array([dipole.position[2] for dipole in self.dipole_list])
+
+        e_x_in_list, e_y_in_list, e_z_in_list = [], [], []
+
+        for dipole in tqdm(self.dipole_list, desc='Cross contribution        ', file=sys.stdout,
+                           bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}'):
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="invalid value encountered in multiply")
+                warnings.filterwarnings("ignore", message="divide by zero encountered in true_divide")
+                warnings.filterwarnings("ignore", message="invalid value encountered in true_divide")
+
+                e_x_in, e_y_in, e_z_in = dipole.electric_field(x=x_positions,
+                                                               y=y_positions,
+                                                               z=z_positions,
+                                                               layer_system=layer_system)
+            e_x_in_list.append(e_x_in)
+            e_y_in_list.append(e_y_in)
+            e_z_in_list.append(e_z_in)
+
+        for i, dipole in enumerate(tqdm(self.dipole_list, desc='Self contribution         ', file=sys.stdout,
+                                   bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}')):
+            e_x_in = sum([e_x_in[i] for i_other, e_x_in in enumerate(e_x_in_list) if i_other != i])
+            e_y_in = sum([e_y_in[i] for i_other, e_y_in in enumerate(e_y_in_list) if i_other != i])
+            e_z_in = sum([e_z_in[i] for i_other, e_z_in in enumerate(e_z_in_list) if i_other != i])
+
+            p = (dipole.dissipated_power(particle_list, layer_system) +
+                 dipole.angular_frequency() / 2 * (np.conjugate(dipole.dipole_moment[0]) * e_x_in +
+                                                   np.conjugate(dipole.dipole_moment[1]) * e_y_in +
+                                                   np.conjugate(dipole.dipole_moment[2]) * e_z_in).imag)
+            power_list.append(p)
+
+        return power_list
+
+    def dissipated_power_alternative(self, particle_list, layer_system, k_parallel='default',
+                                     azimuthal_angles='default'):
+        r"""Compute the power that the dipole collection feeds into the system.
+
+        It is computed according to
+
+        .. math::
+            P = \sum_i P_{0, i} + \frac{\omega}{2} \mathrm{Im} (\mathbf{\mu}_i^* \cdot \mathbf{E}_i(\mathbf{r}_i))
+
+        where :math:`P_{0,i}` is the power that the i-th dipole would feed into an infinte homogeneous medium with the
+        same refractive index as the layer that contains that dipole, :math:`\mathbf{r}_i` is the location of the i-th
+        dipole, :math:`\omega` is the angular frequency, :math:`\mathbf{\mu}_i` is the dipole moment and
+        :math:`\mathbf{E}_i` includes the reflections of the dipole field from the layer interfaces, as well as the
+        scattered field from all particles and the fields from all other dipoles. In contrast to dissipated_power, this
+        routine uses the scattered field piecewise expansion and might be faster for few particles or many dipoles.
 
         Args:
             particle_list (list of smuthi.particles.Particle objects): scattering particles
@@ -621,6 +744,8 @@ class DipoleCollection(InitialField):
                                         bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}'):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message="invalid value encountered in multiply")
+                warnings.filterwarnings("ignore", message="divide by zero encountered in true_divide")
+                warnings.filterwarnings("ignore", message="invalid value encountered in true_divide")
                 e_x_in_direct, e_y_in_direct, e_z_in_direct = dipole.electric_field(
                     x=x_positions, y=y_positions, z=z_positions, layer_system=layer_system, include_layer_response=False)
             
