@@ -13,7 +13,7 @@ class CustomInstallCommand(install):
     def run(self):
         install.run(self)
         # compile nfmds
-        if sys.platform.startswith('linux'):
+        if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
             nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.nfmds', 'NFM-DS')
             os.chdir(nfmds_sources_dirname + '/TMATSOURCES')
             sys.stdout.write('Compiling sources at ' + nfmds_sources_dirname + ' ...')

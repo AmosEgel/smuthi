@@ -13,7 +13,7 @@ print('Copying NFMDS to temporary directory ', nfmds_temporary_folder)
 
 copy_tree(nfmds_sources_dirname, nfmds_temporary_folder)
 
-if sys.platform.startswith('linux'):
+if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
     # does the executable exist?
     if not os.access(nfmds_temporary_folder + '/TMATSOURCES/TAXSYM_SMUTHI.out', os.X_OK):
         cwd = os.getcwd()
