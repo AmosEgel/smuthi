@@ -85,7 +85,7 @@ def taxsym_run():
     with open('../nfmds.log', 'w') as nfmds_log:
         if sys.platform.startswith('win'):
             subprocess.call(['TAXSYM_SMUTHI.exe'], stdout=nfmds_log)
-        elif sys.platform.startswith('linux'):
+        elif sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
             subprocess.call(['./TAXSYM_SMUTHI.out'], stdout=nfmds_log)
         else:
             raise AssertionError('Platform neither windows nor linux.')
