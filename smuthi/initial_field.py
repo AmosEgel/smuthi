@@ -462,7 +462,7 @@ class DipoleSource(InitialField):
                                             + np.conjugate(self.dipole_moment[2]) * (e_z_in)).imag
         return p
 
-    def dissipated_power(self, particle_list, layer_system):
+    def dissipated_power(self, particle_list, layer_system, show_progress=True):
         r"""Compute the power that the dipole feeds into the system.
 
         It is computed according to
@@ -478,28 +478,35 @@ class DipoleSource(InitialField):
 
         Args:
             particle_list (list of smuthi.particles.Particle objects): scattering particles
-            layer_system (smuthi.layers.LayerSystem): stratified medium
-
+            layer_system (smuthi.layers.LayerSystem):                  stratified medium
+            show_progress (bool):                                      if true, display progress
+            
         Returns:
             dissipated power as float
         """
 
-        virtual_particle = part.Particle(position=self.position, l_max=1, m_max=1)
         k = layer_system.wavenumber(layer_system.layer_number(self.position[2]), self.vacuum_wavelength)
+        virtual_particle = part.Particle(position=self.position, l_max=1, m_max=1)
         scattered_field_swe = fldex.SphericalWaveExpansion(k=k, l_max=1, m_max=1, kind='regular',
                                                            reference_point=self.position)
-
-        for particle in particle_list:
+        
+        if show_progress:
+            iterator = tqdm(particle_list, desc='Dipole dissipated power   ', file=sys.stdout,
+                            bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}')
+        else:
+            iterator = particle_list
+                    
+        for particle in iterator:
             wd = pc.direct_coupling_block(vacuum_wavelength=self.vacuum_wavelength,
-                                          receiving_particle=virtual_particle,
-                                          emitting_particle=particle,
-                                          layer_system=layer_system)
+                                        receiving_particle=virtual_particle,
+                                        emitting_particle=particle,
+                                        layer_system=layer_system)
 
             wr = pc.layer_mediated_coupling_block(vacuum_wavelength=self.vacuum_wavelength,
-                                                  receiving_particle=virtual_particle,
-                                                  emitting_particle=particle,
-                                                  layer_system=layer_system,
-                                                  k_parallel=self.k_parallel)
+                                                receiving_particle=virtual_particle,
+                                                emitting_particle=particle,
+                                                layer_system=layer_system,
+                                                k_parallel=self.k_parallel)
 
             scattered_field_swe.coefficients += np.dot(wd + wr, particle.scattered_field.coefficients)
 
@@ -661,7 +668,7 @@ class DipoleCollection(InitialField):
         e_x_in_list, e_y_in_list, e_z_in_list = [], [], []
 
         for dipole in tqdm(self.dipole_list, desc='Cross contribution        ', file=sys.stdout,
-                           bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}'):
+                           bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message="invalid value encountered in multiply")
                 warnings.filterwarnings("ignore", message="divide by zero encountered in true_divide")
@@ -675,13 +682,13 @@ class DipoleCollection(InitialField):
             e_y_in_list.append(e_y_in)
             e_z_in_list.append(e_z_in)
 
-        for i, dipole in enumerate(tqdm(self.dipole_list, desc='Self contribution         ', file=sys.stdout,
-                                   bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}')):
+        for i, dipole in enumerate(tqdm(self.dipole_list, desc='Self and particle contr.  ', file=sys.stdout,
+                                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}')):
             e_x_in = sum([e_x_in[i] for i_other, e_x_in in enumerate(e_x_in_list) if i_other != i])
             e_y_in = sum([e_y_in[i] for i_other, e_y_in in enumerate(e_y_in_list) if i_other != i])
             e_z_in = sum([e_z_in[i] for i_other, e_z_in in enumerate(e_z_in_list) if i_other != i])
 
-            p = (dipole.dissipated_power(particle_list, layer_system) +
+            p = (dipole.dissipated_power(particle_list, layer_system, False) +
                  dipole.angular_frequency() / 2 * (np.conjugate(dipole.dipole_moment[0]) * e_x_in +
                                                    np.conjugate(dipole.dipole_moment[1]) * e_y_in +
                                                    np.conjugate(dipole.dipole_moment[2]) * e_z_in).imag)
@@ -740,7 +747,7 @@ class DipoleCollection(InitialField):
         e_x_in_direct_list, e_y_in_direct_list, e_z_in_direct_list = [], [], []
         e_x_in_response_list, e_y_in_response_list, e_z_in_response_list = [], [], []
         
-        for dipole in tqdm(self.dipole_list, desc='Initial field             ', file=sys.stdout,
+        for dipole in tqdm(self.dipole_list, desc='Self and cross contrib.   ', file=sys.stdout,
                                         bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}'):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message="invalid value encountered in multiply")

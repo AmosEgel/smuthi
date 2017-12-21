@@ -160,7 +160,7 @@ class LinearSystem:
                     iter_num += 1
                 b, info = scipy.sparse.linalg.gmres(self.master_matrix.linear_operator, rhs, rhs, 
                                                     tol=self.solver_tolerance, callback=status_msg)
-                sys.stdout.write('\n')
+#                sys.stdout.write('\n')
             else:
                 raise ValueError('This solver type is currently not implemented.')
 

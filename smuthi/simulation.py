@@ -81,7 +81,7 @@ class Simulation:
     def print_simulation_header(self):
         version = pkg_resources.get_distribution("smuthi").version
         #welcome_msg = ("\n" + "=" * 42 + "\n SMUTHI version " + version + " - starting simulation\n" + "=" * 42 + "\n")
-        welcome_msg = ("\nStarting simulation.\n")
+        welcome_msg = ("Starting simulation.\n")
         sys.stdout.write(welcome_msg)
         sys.stdout.flush()
 
