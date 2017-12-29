@@ -44,9 +44,17 @@ class LinearSystem:
                                  accurate but a bit slower than linear.
                                                            
     """
-    def __init__(self, particle_list, initial_field, layer_system, k_parallel='default', solver_type='LU', 
-                 solver_tolerance=1e-4, store_coupling_matrix=True, coupling_matrix_lookup_resolution=None, 
-                 interpolator_kind='cubic', cuda_blocksize=128):
+    def __init__(self, 
+                 particle_list, 
+                 initial_field, 
+                 layer_system, 
+                 k_parallel='default', 
+                 solver_type='LU', 
+                 solver_tolerance=1e-4, 
+                 store_coupling_matrix=True, 
+                 coupling_matrix_lookup_resolution=None, 
+                 interpolator_kind='cubic', 
+                 cuda_blocksize=128):
         
         self.k_parallel = k_parallel
         self.solver_type = solver_type
@@ -59,11 +67,15 @@ class LinearSystem:
         dummy_matrix = SystemMatrix(self.particle_list)
         sys.stdout.write('Number of unknowns: %i\n' % dummy_matrix.shape[0])
 
-        for particle in tqdm(particle_list, desc='Initial field coefficients', file=sys.stdout,
+        for particle in tqdm(particle_list, 
+                             desc='Initial field coefficients', 
+                             file=sys.stdout,
                              bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
             particle.initial_field = initial_field.spherical_wave_expansion(particle, layer_system)
       
-        for particle in tqdm(particle_list, desc='T-matrices                ', file=sys.stdout,
+        for particle in tqdm(particle_list, 
+                             desc='T-matrices                ', 
+                             file=sys.stdout,
                              bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
             niS = layer_system.refractive_indices[layer_system.layer_number(particle.position[2])]
             particle.t_matrix = tmt.t_matrix(initial_field.vacuum_wavelength, niS, particle)
@@ -74,54 +86,68 @@ class LinearSystem:
             z_list = [particle.position[2] for particle in particle_list]
             is_list = [layer_system.layer_number(z) for z in z_list]
             if not is_list.count(is_list[0]) == len(is_list):  # all particles in same layer?
-                warnings.warn("Particles are not all in same layer. Fall back to direct coupling matrix computation "
-                              "(no lookup).")
+                warnings.warn("Particles are not all in same layer. "
+                              "Fall back to direct coupling matrix computation (no lookup).")
                 coupling_matrix_lookup_resolution = None
             if store_coupling_matrix:
-                warnings.warn("Explicit matrix compuatation using lookup currently not implemented. Disabling lookup.")
+                warnings.warn("Explicit matrix compuatation using lookup currently not implemented. "
+                              "Disabling lookup.")
                 coupling_matrix_lookup_resolution = None
             else:  # use lookup
                 if not interpolator_kind in ('linear', 'cubic'):
-                    warnings.warn(interpolator_kind + ' interpolation not implemented. Use "linear" instead')
+                    warnings.warn(interpolator_kind + ' interpolation not implemented. '
+                                  'Use "linear" instead')
                     interpolator_kind = 'linear'
 
                 z_list = [particle.position[2] for particle in particle_list]
                 if z_list.count(z_list[0]) == len(z_list):  # all particles at same height: use radial lookup
                     if cu.use_gpu:
-                        sys.stdout.write('Coupling matrix computation by ' + interpolator_kind + ' interpolation '
-                                         'of radial lookup on GPU.\n')
+                        sys.stdout.write('Coupling matrix computation by ' + interpolator_kind 
+                                         + ' interpolation of radial lookup on GPU.\n')
                         sys.stdout.flush()
                         self.coupling_matrix = CouplingMatrixRadialLookupCUDA(
-                            vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
-                            layer_system=layer_system, k_parallel=self.k_parallel,
-                            resolution=coupling_matrix_lookup_resolution, cuda_blocksize=cuda_blocksize,
+                            vacuum_wavelength=initial_field.vacuum_wavelength, 
+                            particle_list=particle_list,
+                            layer_system=layer_system, 
+                            k_parallel=self.k_parallel,
+                            resolution=coupling_matrix_lookup_resolution, 
+                            cuda_blocksize=cuda_blocksize,
                             interpolator_kind=interpolator_kind)
                     else:
-                        sys.stdout.write('Coupling matrix computation by ' + interpolator_kind + ' interpolation '
-                                         'of radial lookup on CPU.\n')
+                        sys.stdout.write('Coupling matrix computation by ' + interpolator_kind 
+                                         + ' interpolation of radial lookup on CPU.\n')
                         sys.stdout.flush()
                         self.coupling_matrix = CouplingMatrixRadialLookupCPU(
-                            vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
-                            layer_system=layer_system, k_parallel=self.k_parallel,
-                            resolution=coupling_matrix_lookup_resolution, interpolator_kind=interpolator_kind)
+                            vacuum_wavelength=initial_field.vacuum_wavelength, 
+                            particle_list=particle_list,
+                            layer_system=layer_system, 
+                            k_parallel=self.k_parallel,
+                            resolution=coupling_matrix_lookup_resolution, 
+                            interpolator_kind=interpolator_kind)
                 else:  #  not all particles at same height: use volume lookup
                     if cu.use_gpu:
                         sys.stdout.write('Coupling matrix computation by ' + interpolator_kind + ' interpolation '
                                          'of 3D lookup on GPU.\n')
                         sys.stdout.flush()
                         self.coupling_matrix = CouplingMatrixVolumeLookupCUDA(
-                            vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
-                            layer_system=layer_system, k_parallel=self.k_parallel,
-                            resolution=coupling_matrix_lookup_resolution, interpolator_kind=interpolator_kind)
+                            vacuum_wavelength=initial_field.vacuum_wavelength, 
+                            particle_list=particle_list,
+                            layer_system=layer_system, 
+                            k_parallel=self.k_parallel,
+                            resolution=coupling_matrix_lookup_resolution, 
+                            interpolator_kind=interpolator_kind)
                     else:
                         sys.stdout.write('Coupling matrix computation by ' + interpolator_kind + ' interpolation '
                                          'of 3D lookup on CPU.\n')
 
                         sys.stdout.flush()
                         self.coupling_matrix = CouplingMatrixVolumeLookupCPU(
-                            vacuum_wavelength=initial_field.vacuum_wavelength, particle_list=particle_list,
-                            layer_system=layer_system, k_parallel=self.k_parallel,
-                            resolution=coupling_matrix_lookup_resolution, interpolator_kind=interpolator_kind)
+                            vacuum_wavelength=initial_field.vacuum_wavelength, 
+                            particle_list=particle_list,
+                            layer_system=layer_system, 
+                            k_parallel=self.k_parallel,
+                            resolution=coupling_matrix_lookup_resolution, 
+                            interpolator_kind=interpolator_kind)
           
         if coupling_matrix_lookup_resolution is None:
             if not store_coupling_matrix:
@@ -130,34 +156,43 @@ class LinearSystem:
             sys.stdout.write('Explicit coupling matrix computation on CPU.\n')
             sys.stdout.flush()
             self.coupling_matrix = CouplingMatrixExplicit(vacuum_wavelength=initial_field.vacuum_wavelength,
-                                                          particle_list=particle_list, layer_system=layer_system,
+                                                          particle_list=particle_list, 
+                                                          layer_system=layer_system,
                                                           k_parallel=self.k_parallel)
         
-        self.master_matrix = MasterMatrix(t_matrix=self.t_matrix, coupling_matrix=self.coupling_matrix)
+        self.master_matrix = MasterMatrix(t_matrix=self.t_matrix, 
+                                          coupling_matrix=self.coupling_matrix)
       
     def solve(self):
-        """Compute scattered field coefficients and store them in the particles' spherical wave expansion objects."""
+        """Compute scattered field coefficients and store them 
+        in the particles' spherical wave expansion objects."""
         sys.stdout.flush()
         if len(self.particle_list) > 0:
             if self.solver_type == 'LU':
                 sys.stdout.write('Solve (LU decomposition)  : ...')
                 if not hasattr(self.master_matrix.linear_operator, 'A'):
-                    raise ValueError('LU factorization only possible with the option "store coupling matrix".')
+                    raise ValueError('LU factorization only possible '
+                                     'with the option "store coupling matrix".')
                 if not hasattr(self.master_matrix, 'LU_piv'):
-                    lu, piv = scipy.linalg.lu_factor(self.master_matrix.linear_operator.A, overwrite_a=False)
+                    lu, piv = scipy.linalg.lu_factor(self.master_matrix.linear_operator.A, 
+                                                     overwrite_a=False)
                     self.master_matrix.LU_piv = (lu, piv)
-                b = scipy.linalg.lu_solve(self.master_matrix.LU_piv, self.t_matrix.right_hand_side())
+                b = scipy.linalg.lu_solve(self.master_matrix.LU_piv, 
+                                          self.t_matrix.right_hand_side())
                 sys.stdout.write(' done\n')
             elif self.solver_type == 'gmres':
                 rhs = self.t_matrix.right_hand_side()
                 start_time = time.time()
                 def status_msg(rk):
                     global iter_num
-                    iter_msg = ('Solve (GMRES)             : Iter ' + str(iter_num) + ' | Rel. residual: '
-                                + "{:.2e}".format(np.linalg.norm(rk) / np.linalg.norm(rhs)) + ' | elapsed: '
-                                + str(int(time.time() - start_time)) + 's')
+                    iter_msg = ('Solve (GMRES)             : Iter ' + str(iter_num) 
+                                + ' | Rel. residual: '
+                                + "{:.2e}".format(np.linalg.norm(rk) / np.linalg.norm(rhs)) 
+                                + ' | elapsed: ' + str(int(time.time() - start_time)) + 's')
                     sys.stdout.write('\r' + iter_msg)
                     iter_num += 1
+                global iter_num
+                iter_num = 0
                 b, info = scipy.sparse.linalg.gmres(self.master_matrix.linear_operator, rhs, rhs, 
                                                     tol=self.solver_tolerance, callback=status_msg)
 #                sys.stdout.write('\n')
@@ -382,6 +417,7 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
 
         sys.stdout.write('Prepare CUDA kernel and device lookup data ... ')
         sys.stdout.flush()
+        start_time = time.time()
         
         if interpolator_kind == 'linear':
             coupling_source = cu.linear_volume_lookup_source%(self.blocksize, self.shape[0], len(self.sum_z_array), 
@@ -429,8 +465,9 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
         re_lookup_mn_d = gpuarray.to_gpu(re_lookup_mn)
         im_lookup_mn_d = gpuarray.to_gpu(im_lookup_mn)
 
-        sys.stdout.write('done\n')
+        sys.stdout.write('done | elapsed: ' + str(int(time.time() - start_time)) + 's\n')
         sys.stdout.flush()
+        
 
         cuda_gridsize = (self.shape[0] + cuda_blocksize - 1) // cuda_blocksize
 
@@ -493,6 +530,7 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
       
         sys.stdout.write('Prepare CUDA kernel and device lookup data ... ')
         sys.stdout.flush()
+        start_time = time.time()
                 
         if interpolator_kind == 'linear':
             coupling_source = cu.linear_radial_lookup_source%(self.blocksize, self.shape[0], 
@@ -532,7 +570,7 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
         re_lookup_d = gpuarray.to_gpu(re_lookup)
         im_lookup_d = gpuarray.to_gpu(im_lookup)
       
-        sys.stdout.write('done\n')
+        sys.stdout.write('done | elapsed: ' + str(int(time.time() - start_time)) + 's\n')
         sys.stdout.flush()
       
         cuda_gridsize = (self.shape[0] + cuda_blocksize - 1) // cuda_blocksize

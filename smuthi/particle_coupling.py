@@ -322,14 +322,6 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     l_max = max([particle.l_max for particle in particle_list])
     m_max = max([particle.m_max for particle in particle_list])
     blocksize = fldex.blocksize(l_max, m_max)
-    m_list = [None for i in range(blocksize)]
-    l_list = [None for i in range(blocksize)]
-    tau_list = [None for i in range(blocksize)]
-    for m in range(-m_max, m_max + 1):
-        for l in range(max(1, abs(m)), l_max + 1):
-            for tau in range(2):
-                n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
-                m_list[n] = m
     
     particle_x_array = np.array([particle.position[0] for particle in particle_list])
     particle_y_array = np.array([particle.position[1] for particle in particle_list])
@@ -371,9 +363,13 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
                    bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
         bessel_h.append(sf.spherical_hankel(dm, k_is * r_array))
     
-    for m1 in tqdm(range(-l_max, l_max + 1), desc='Direct coupling           ', file=sys.stdout,
-                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
-        for m2 in range(-l_max, l_max + 1):
+    pbar = tqdm(total=blocksize**2, 
+                desc='Direct coupling           ', 
+                file=sys.stdout,
+                bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}')
+            
+    for m1 in range(-l_max, l_max+1):
+        for m2 in range(-l_max, l_max+1):
             for l1 in range(max(1, abs(m1)), l_max + 1):
                 for l2 in range(max(1, abs(m2)), l_max + 1):
                     A = np.zeros((len_rho, len_dz), dtype=complex)
@@ -390,6 +386,8 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
                                 w[:, :, n1, n2] = A
                             else:
                                 w[:, :, n1, n2] = B
+                            pbar.update()
+    pbar.close()
 
     # switch off direct coupling contribution near rho=0:
     w[rho_array < particle_rho_array[~np.eye(particle_rho_array.shape[0],dtype=bool)].min() / 2, :, :, :] = 0  
@@ -422,10 +420,13 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     st_k = k_parallel / k_is
     _, pilm_pl, taulm_pl = sf.legendre_normalized(ct_k, st_k, l_max)
     _, pilm_mn, taulm_mn = sf.legendre_normalized(-ct_k, st_k, l_max)
+    
+    m_list = [None for i in range(blocksize)]
     for tau in range(2):
         for m in range(-m_max, m_max + 1):
             for l in range(max(1, abs(m)), l_max + 1):
                 n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
+                m_list[n] = m
                 for pol in range(2):
                     B_dag[pol, 0, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
                                                                                     taulm_list=taulm_pl, dagger=True)
@@ -435,15 +436,15 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
                                                                              taulm_list=taulm_pl, dagger=False)
                     B[pol, 1, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
                                                                              taulm_list=taulm_mn, dagger=False)
-                   
-    # bessel function and jacobi factor
-    bessel_list = []
-    for dm in tqdm(range(2 * l_max + 1), desc='Bessel function lookup    ', file=sys.stdout,
-                bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
-        bessel_list.append(scipy.special.jv(dm, k_parallel[None, :] * rho_array[:, None]))
-
-    bessel_jacobi = [bessel_list[dm] * (k_parallel / (kz_is * k_is))[None, :] for dm in range(2*l_max+1)]
     
+    # pairs of (n1, n2), listed by abs(m1-m2)
+    n1n2_combinations = [[] for dm in range(2*m_max+1)]
+    for n1 in range(blocksize):
+        m1 = m_list[n1]
+        for n2 in range(blocksize):
+            m2 = m_list[n2]
+            n1n2_combinations[abs(m1-m2)].append((n1,n2))
+                   
     wr_pl = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=np.complex64)
     wr_mn = np.zeros((len_rho, len_dz, blocksize, blocksize), dtype=np.complex64)
     
@@ -459,12 +460,21 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
         re_dwr_d = gpuarray.to_gpu(np.zeros((len_rho, len_sz), dtype=np.float32))
         im_dwr_d = gpuarray.to_gpu(np.zeros((len_rho, len_sz), dtype=np.float32))
     
-    for n1 in tqdm(range(blocksize), desc='Layer mediated coupling   ', file=sys.stdout,
-                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
-        m1 = m_list[n1]
-        for n2 in range(blocksize):
+    pbar = tqdm(total=blocksize**2, 
+                desc='Layer mediated coupling   ', 
+                file=sys.stdout,
+                bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}')
+            
+    for dm in range(2*m_max+1):
+        bessel = scipy.special.jv(dm, (k_parallel[None,:]*rho_array[:,None]))
+        besjac = bessel * (k_parallel / (kz_is * k_is))[None,:]
+
+        for n1n2 in n1n2_combinations[dm]:
+            n1 = n1n2[0]
+            m1 = m_list[n1]
+            n2 = n1n2[1]
             m2 = m_list[n2]
-            besjac = bessel_jacobi[abs(m1 - m2)]
+    
             belbee_pl = np.zeros((len_dz, len_kp), dtype=complex)
             belbee_mn = np.zeros((len_dz, len_kp), dtype=complex)
             for pol in range(2):
@@ -499,12 +509,13 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
                 integrand = besjac[:, None, :] * belbee_mn[None, :, :]
                 wr_mn[:, :, n1, n2] = 2 * (1j)**abs(m2 - m1) * ((integrand[:, :, :-1] + integrand[:, :, 1:])
                                                                 * dkp[None, None, :]).sum(axis=-1)
-
+            pbar.update()
+    pbar.close()
+    
     return wr_pl, w + wr_mn, rho_array, sz_array, dz_array
 
 
-def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None,
-                                 enable_cuda=False):
+def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system, k_parallel='default', resolution=None):
     """Prepare Sommerfeld integral lookup table to allow for a fast calculation of the coupling matrix by interpolation.
     This function is called when all particles are on the same z-position.
     
@@ -537,6 +548,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     l_max = max([particle.l_max for particle in particle_list])
     m_max = max([particle.m_max for particle in particle_list])
     blocksize = fldex.blocksize(l_max, m_max)
+    
     x_array = np.array([particle.position[0] for particle in particle_list])
     y_array = np.array([particle.position[1] for particle in particle_list])
     rho_array = np.sqrt((x_array[:, None] - x_array[None, :]) ** 2 + (y_array[:, None] - y_array[None, :]) ** 2)
@@ -564,9 +576,13 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
         
     legendre, _, _ = sf.legendre_normalized(ct, st, 2 * l_max)
 
-    for m1 in tqdm(range(-m_max, m_max + 1), desc='Direct coupling           ', file=sys.stdout,
-                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
-        for m2 in range(-m_max, m_max + 1):
+    pbar = tqdm(total=blocksize**2, 
+                desc='Direct coupling           ', 
+                file=sys.stdout,
+                bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}')
+
+    for m1 in range(-m_max, m_max+1):
+        for m2 in range(-m_max, m_max+1):
             for l1 in range(max(1, abs(m1)), l_max + 1):
                 for l2 in range(max(1, abs(m2)), l_max + 1):
                     A = np.zeros(len_rho, dtype=complex)
@@ -583,7 +599,8 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
                                 w[:, n1, n2] = A  # remember that w = A.T
                             else:
                                 w[:, n1, n2] = B
-
+                            pbar.update()
+    pbar.close()
     close_to_zero = radial_distance_array < rho_array[~np.eye(rho_array.shape[0],dtype=bool)].min() / 2 
     w[close_to_zero, :, :] = 0  # switch off direct coupling contribution near rho=0
 
@@ -601,11 +618,11 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     emn2jkz = np.exp(-2j * kz_is * dz)
        
     # layer response
-    L = np.zeros((2, 2, 2, len_kp), dtype=complex)  # pol, pl/mn1, pl/mn2, kp
+    L = np.zeros((2,2,2,len_kp), dtype=complex)  # pol, pl/mn1, pl/mn2, kp
     for pol in range(2):
-        L[pol, :, :, :] = lay.layersystem_response_matrix(pol, layer_system.thicknesses,
-                                                          layer_system.refractive_indices, k_parallel,
-                                                          coord.angular_frequency(vacuum_wavelength), i_s, i_s)
+        L[pol,:,:,:] = lay.layersystem_response_matrix(pol, layer_system.thicknesses,
+                                                       layer_system.refractive_indices, k_parallel,
+                                                       coord.angular_frequency(vacuum_wavelength), i_s, i_s)
    
     # transformation coefficients
     B_dag = np.zeros((2, 2, blocksize, len_kp), dtype=complex)  # pol, pl/mn, n, kp
@@ -622,23 +639,23 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
                 n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
                 m_list[n] = m
                 for pol in range(2):
-                    B_dag[pol, 0, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
-                                                                                    taulm_list=taulm_pl, dagger=True)
-                    B_dag[pol, 1, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
-                                                                                    taulm_list=taulm_mn, dagger=True)
-                    B[pol, 0, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
-                                                                             taulm_list=taulm_pl, dagger=False)
-                    B[pol, 1, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
-                                                                             taulm_list=taulm_mn, dagger=False)
+                    B_dag[pol,0,n,:] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
+                                                                           taulm_list=taulm_pl, dagger=True)
+                    B_dag[pol,1,n,:] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
+                                                                           taulm_list=taulm_mn, dagger=True)
+                    B[pol,0,n,:] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
+                                                                       taulm_list=taulm_pl, dagger=False)
+                    B[pol,1,n,:] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
+                                                                       taulm_list=taulm_mn, dagger=False)
+    
+    # pairs of (n1, n2), listed by abs(m1-m2)
+    n1n2_combinations = [[] for dm in range(2*m_max+1)]
+    for n1 in range(blocksize):
+        m1 = m_list[n1]
+        for n2 in range(blocksize):
+            m2 = m_list[n2]
+            n1n2_combinations[abs(m1-m2)].append((n1,n2))
                    
-    # bessel function and jacobi factor
-    bessel_list = []
-    for dm in tqdm(range(2 * l_max + 1), desc='Bessel function lookup    ', file=sys.stdout,
-                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
-        bessel_list.append(scipy.special.jv(dm, k_parallel[None, :] * radial_distance_array[:, None]))
-    
-    bessel_jacobi = [bessel_list[dm] * (k_parallel / (kz_is * k_is))[None, :] for dm in range(2*l_max+1)]
-    
     wr = np.zeros((len_rho, blocksize, blocksize), dtype=complex)
     
     dkp = np.diff(k_parallel)
@@ -653,19 +670,33 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
         re_dwr_d = gpuarray.to_gpu(np.zeros(len_rho, dtype=np.float32))
         im_dwr_d = gpuarray.to_gpu(np.zeros(len_rho, dtype=np.float32))    
     
-    for n1 in tqdm(range(blocksize), desc='Layer mediated coupling   ', file=sys.stdout,
-                   bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}'):
+    n1n2_combinations = [[] for dm in range(2*m_max+1)]
+    for n1 in range(blocksize):
         m1 = m_list[n1]
         for n2 in range(blocksize):
             m2 = m_list[n2]
-            besjac = bessel_jacobi[abs(m1 - m2)]
+            n1n2_combinations[abs(m1-m2)].append((n1,n2))
+    
+    pbar = tqdm(total=blocksize**2, 
+                desc='Layer mediated coupling   ', 
+                file=sys.stdout,
+                bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}')
+            
+    for dm in range(2*m_max+1):
+        bessel = scipy.special.jv(dm, (k_parallel[None,:]*radial_distance_array[:,None]))
+        besjac = bessel * (k_parallel / (kz_is * k_is))[None,:]
+        for n1n2 in n1n2_combinations[dm]:
+            n1 = n1n2[0]
+            m1 = m_list[n1]
+            n2 = n1n2[1]
+            m2 = m_list[n2]
             
             belbe = np.zeros(len_kp, dtype=complex)  # n1, n2, kp
             for pol in range(2):
-                belbe += L[pol, 0, 0, :] * B_dag[pol, 0, n1, :] * B[pol, 0, n2, :]
-                belbe += L[pol, 1, 0, :] * B_dag[pol, 1, n1, :] * B[pol, 0, n2, :] * emn2jkz
-                belbe += L[pol, 0, 1, :] * B_dag[pol, 0, n1, :] * B[pol, 1, n2, :] * epl2jkz
-                belbe += L[pol, 1, 1, :] * B_dag[pol, 1, n1, :] * B[pol, 1, n2, :]
+                belbe += L[pol,0,0,:] * B_dag[pol,0,n1,:] * B[pol,0,n2,:]
+                belbe += L[pol,1,0,:] * B_dag[pol,1,n1,:] * B[pol,0,n2,:] * emn2jkz
+                belbe += L[pol,0,1,:] * B_dag[pol,0,n1,:] * B[pol,1,n2,:] * epl2jkz
+                belbe += L[pol,1,1,:] * B_dag[pol,1,n1,:] * B[pol,1,n2,:]
             
             if cu.use_gpu:
                 re_belbe_d = gpuarray.to_gpu(np.float32(belbe[None, :].real))
@@ -674,14 +705,20 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
                 re_besjac_d = gpuarray.to_gpu(np.float32(besjac.real))
                 im_besjac_d = gpuarray.to_gpu(np.float32(besjac.imag))
             
-                helper_function(re_besjac_d.gpudata, im_besjac_d.gpudata, re_belbe_d.gpudata, im_belbe_d.gpudata, 
-                                re_dkp_d.gpudata, im_dkp_d.gpudata, re_dwr_d.gpudata, im_dwr_d.gpudata, 
+                helper_function(re_besjac_d.gpudata, im_besjac_d.gpudata, 
+                                re_belbe_d.gpudata, im_belbe_d.gpudata, 
+                                re_dkp_d.gpudata, im_dkp_d.gpudata, 
+                                re_dwr_d.gpudata, im_dwr_d.gpudata, 
                                 block=(cuda_blocksize, 1, 1), grid=(cuda_gridsize, 1))
-                wr[:, n1, n2] = 4 * (1j) ** abs(m2 - m1) * (re_dwr_d.get() + 1j * im_dwr_d.get()) 
+                
+                wr[:,n1,n2] = 4 * (1j)**abs(m2-m1) * (re_dwr_d.get() + 1j*im_dwr_d.get()) 
+
             else:
                 integrand = besjac * belbe[None, :]  # rho, kp 
-                wr[:, n1, n2] = 2 * (1j) ** abs(m2 - m1) * ((integrand[:, :-1] + integrand[:, 1:]) 
-                                                            * dkp[None, :]).sum(axis=-1)  # trapezoidal rule
+                wr[:,n1,n2] = 2 * (1j)**abs(m2-m1) * ((integrand[:,:-1] + integrand[:,1:]) 
+                                                            * dkp[None,:]).sum(axis=-1)  # trapezoidal rule
+            pbar.update()
+    pbar.close()
     
     return w + wr, radial_distance_array
 
