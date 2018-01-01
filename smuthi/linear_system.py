@@ -552,7 +552,6 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
 
         i_particle = 0
         for i, particle in enumerate(particle_list):
-            print(i)
             for m in range(-particle.m_max, particle.m_max + 1):
                 for l in range(max(1, abs(m)), particle.l_max + 1):
                     for tau in range(2):
