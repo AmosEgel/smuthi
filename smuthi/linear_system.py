@@ -230,7 +230,7 @@ class SystemMatrix:
         """
         blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list[:(i + 1)]]
         return range(sum(blocksizes[:i]), sum(blocksizes))
-  
+
     def index(self, i, tau, l, m):
         r"""
         Args:
@@ -373,7 +373,6 @@ class CouplingMatrixVolumeLookupCPU(CouplingMatrixVolumeLookup):
                 self.lookup_minus_imag[n1][n2] = scipy.interpolate.RectBivariateSpline(
                     x=self.rho_array, y=self.diff_z_array, z=self.lookup_table_minus[:, :, n1, n2].imag,
                     kx=interpolation_order, ky=interpolation_order)
-#                @profile
         def matvec(in_vec):
             out_vec = np.zeros(shape=in_vec.shape, dtype=complex)
             for n1 in range(self.blocksize):
@@ -436,18 +435,23 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
         y_array = np.zeros(self.shape[0], dtype=np.float32)
         z_array = np.zeros(self.shape[0], dtype=np.float32)
 
+        i_particle = 0
         for i, particle in enumerate(particle_list):
             for m in range(-particle.m_max, particle.m_max + 1):
                 for l in range(max(1, abs(m)), particle.l_max + 1):
                     for tau in range(2):
-                        n_lookup_array[self.index(i, tau, l, m)] = fldex.multi_to_single_index(
-                            tau, l, m, self.l_max, self.m_max)
-                        m_particle_array[self.index(i, tau, l, m)] = m
+                        i_taulm = fldex.multi_to_single_index(tau, l, m, particle.l_max, particle.m_max)
+                        idx = i_particle + i_taulm
+
+                        n_lookup_array[idx] = fldex.multi_to_single_index(tau, l, m, self.l_max, self.m_max)
+                        m_particle_array[idx] = m
 
                         # scale the x and y position to the lookup resolution:
-                        x_array[self.index(i, tau, l, m)] = particle.position[0]
-                        y_array[self.index(i, tau, l, m)] = particle.position[1]
-                        z_array[self.index(i, tau, l, m)] = particle.position[2]
+                        x_array[idx] = particle.position[0]
+                        y_array[idx] = particle.position[1]
+                        z_array[idx] = particle.position[2]
+
+            i_particle += fldex.blocksize(particle.l_max, particle.m_max)
 
         re_lookup_pl = self.lookup_table_plus.real.astype(dtype=np.float32)
         im_lookup_pl = self.lookup_table_plus.imag.astype(dtype=np.float32)
@@ -527,7 +531,7 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
                  cuda_blocksize=128, interpolator_kind='linear'):
       
         CouplingMatrixRadialLookup.__init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel, resolution)
-      
+
         sys.stdout.write('Prepare CUDA kernel and device lookup data ... ')
         sys.stdout.flush()
         start_time = time.time()
@@ -545,19 +549,27 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
         m_particle_array = np.zeros(self.shape[0], dtype=np.float32)
         x_array = np.zeros(self.shape[0], dtype=np.float32)
         y_array = np.zeros(self.shape[0], dtype=np.float32)
-      
+
+        i_particle = 0
         for i, particle in enumerate(particle_list):
+            print(i)
             for m in range(-particle.m_max, particle.m_max + 1):
                 for l in range(max(1, abs(m)), particle.l_max + 1):
                     for tau in range(2):
-                        n_lookup_array[self.index(i, tau, l, m)] = fldex.multi_to_single_index(
-                            tau, l, m, self.l_max, self.m_max)
-                        m_particle_array[self.index(i, tau, l, m)] = m
-                       
+
+                        #idx = self.index(i, tau, l, m)
+                        i_taulm = fldex.multi_to_single_index(tau, l, m, particle.l_max, particle.m_max)
+                        idx = i_particle + i_taulm
+
+                        n_lookup_array[idx] = fldex.multi_to_single_index(tau, l, m, self.l_max, self.m_max)
+                        m_particle_array[idx] = m
+
                         # scale the x and y position to the lookup resolution:
-                        x_array[self.index(i, tau, l, m)] = particle.position[0]
-                        y_array[self.index(i, tau, l, m)] = particle.position[1]
-      
+                        x_array[idx] = particle.position[0]
+                        y_array[idx] = particle.position[1]
+
+            i_particle += fldex.blocksize(particle.l_max, particle.m_max)
+
         # lookup as numpy array in required shape
         re_lookup = self.lookup_table.real.astype(np.float32)
         im_lookup = self.lookup_table.imag.astype(np.float32)
@@ -574,7 +586,7 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
         sys.stdout.flush()
       
         cuda_gridsize = (self.shape[0] + cuda_blocksize - 1) // cuda_blocksize
-       
+
         def matvec(in_vec):
             re_in_vec_d = gpuarray.to_gpu(np.float32(in_vec.real))
             im_in_vec_d = gpuarray.to_gpu(np.float32(in_vec.imag))
