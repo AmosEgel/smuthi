@@ -13,6 +13,7 @@ except:
 
 use_gpu = False
 
+default_blocksize = 128
 
 def enable_gpu(enable=True):
     """Sets the use_gpu flag to enable/disable the use of CUDA kernels.
