@@ -368,8 +368,8 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
                 file=sys.stdout,
                 bar_format='{l_bar}{bar}| elapsed: {elapsed} remaining: {remaining}')
             
-    for m1 in range(-l_max, l_max+1):
-        for m2 in range(-l_max, l_max+1):
+    for m1 in range(-m_max, m_max+1):
+        for m2 in range(-m_max, m_max+1):
             for l1 in range(max(1, abs(m1)), l_max + 1):
                 for l2 in range(max(1, abs(m2)), l_max + 1):
                     A = np.zeros((len_rho, len_dz), dtype=complex)
