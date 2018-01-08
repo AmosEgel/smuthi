@@ -2,6 +2,7 @@
 """Provide class to manage a simulation."""
 
 import smuthi.linear_system as lsys
+import smuthi.coordinates as coord
 import sys
 import os
 import matplotlib.pyplot as plt
@@ -70,13 +71,15 @@ class Simulation:
         """Return state values to be pickled."""
         return (self.layer_system, self.particle_list, self.initial_field, self.k_parallel, self.solver_type,
                 self.solver_tolerance, self.store_coupling_matrix, self.coupling_matrix_lookup_resolution, 
-                self.coupling_matrix_interpolator_kind, self.post_processing, self.length_unit, self.save_after_run)
+                self.coupling_matrix_interpolator_kind, self.post_processing, self.length_unit, self.save_after_run,
+                coord.default_k_parallel, coord.default_polar_angles, coord.default_azimuthal_angles)
 
     def __setstate__(self, state):
         """Restore state from the unpickled state values."""
         (self.layer_system, self.particle_list, self.initial_field, self.k_parallel, self.solver_type,
          self.solver_tolerance, self.store_coupling_matrix, self.coupling_matrix_lookup_resolution,
-         self.coupling_matrix_interpolator_kind, self.post_processing, self.length_unit, self.save_after_run) = state
+         self.coupling_matrix_interpolator_kind, self.post_processing, self.length_unit, self.save_after_run,
+         coord.default_k_parallel, coord.default_polar_angles, coord.default_azimuthal_angles) = state
         
     def print_simulation_header(self):
         version = pkg_resources.get_distribution("smuthi").version
