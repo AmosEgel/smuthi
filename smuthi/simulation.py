@@ -99,16 +99,23 @@ class Simulation:
         with open(filename, 'wb') as fn:
             pickle.dump(self, fn, -1)
 
-    def run(self):
-        """Start the simulation."""
-        self.print_simulation_header()
-
-        self.linear_system = lsys.LinearSystem(particle_list=self.particle_list, initial_field=self.initial_field,
-                                               layer_system=self.layer_system, k_parallel=self.k_parallel,
-                                               solver_type=self.solver_type, solver_tolerance=self.solver_tolerance,
+    def initialize_linear_system(self):
+        self.linear_system = lsys.LinearSystem(particle_list=self.particle_list, 
+                                               initial_field=self.initial_field,
+                                               layer_system=self.layer_system, 
+                                               k_parallel=self.k_parallel,
+                                               solver_type=self.solver_type, 
+                                               solver_tolerance=self.solver_tolerance,
                                                store_coupling_matrix=self.store_coupling_matrix,
                                                coupling_matrix_lookup_resolution=self.coupling_matrix_lookup_resolution,
                                                interpolator_kind=self.coupling_matrix_interpolator_kind)
+    
+    def run(self):
+        """Start the simulation."""
+        self.print_simulation_header()
+        
+        self.initialize_linear_system()
+        self.linear_system.prepare()
         self.linear_system.solve()
 
         # post processing
@@ -132,6 +139,7 @@ class Logger(object):
 
     def write(self, message):
         self.terminal.write(message)
+        self.terminal.flush()
         self.log.write(message)
 
     def flush(self):

@@ -73,15 +73,12 @@ class LinearSystem:
         dummy_matrix = SystemMatrix(self.particle_list)
         sys.stdout.write('Number of unknowns: %i\n' % dummy_matrix.shape[0])
 
+    def prepare(self):
         self.compute_initial_field_coefficients()
-
         self.compute_t_matrix()
-
         self.compute_coupling_matrix()
-
-        self.master_matrix = MasterMatrix(t_matrix=self.t_matrix, 
+        self.master_matrix = MasterMatrix(t_matrix=self.t_matrix,
                                           coupling_matrix=self.coupling_matrix)
-
 
     def compute_initial_field_coefficients(self):
         """Evaluate initial field coefficients."""
@@ -185,7 +182,6 @@ class LinearSystem:
     def solve(self):
         """Compute scattered field coefficients and store them 
         in the particles' spherical wave expansion objects."""
-        sys.stdout.flush()
         if len(self.particle_list) > 0:
             if self.solver_type == 'LU':
                 sys.stdout.write('Solve (LU decomposition)  : ...')
@@ -199,6 +195,7 @@ class LinearSystem:
                 b = scipy.linalg.lu_solve(self.master_matrix.LU_piv, 
                                           self.t_matrix.right_hand_side())
                 sys.stdout.write(' done\n')
+                sys.stdout.flush()
             elif self.solver_type == 'gmres':
                 rhs = self.t_matrix.right_hand_side()
                 start_time = time.time()
