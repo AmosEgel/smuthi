@@ -37,7 +37,9 @@ dipole2 = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D2, position=rD2
 
 dipole3 = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D3, position=rD3)
 
-dipole_collection = init.DipoleCollection(vacuum_wavelength=ld)
+dipole_collection = init.DipoleCollection(vacuum_wavelength=ld, 
+                                          compute_swe_by_pwe=False, 
+                                          compute_dissipated_power_by_pwe=False)
 dipole_collection.append(dipole1)
 dipole_collection.append(dipole2)
 dipole_collection.append(dipole3)
@@ -51,9 +53,6 @@ simulation.run()
 power_list = simulation.initial_field.dissipated_power(particle_list=simulation.particle_list,
                                                        layer_system=simulation.layer_system)
 
-power_list_alt = simulation.initial_field.dissipated_power_alternative(particle_list=simulation.particle_list,
-                                                                       layer_system=simulation.layer_system)
-
 power = sum(power_list)
 ff_tup = sf.total_far_field(simulation.initial_field, simulation.particle_list, simulation.layer_system)
 
@@ -63,11 +62,27 @@ def test_energy_conservation():
     err = abs((power - ff_power) / ff_power)
     print('ff power', ff_power)
     print('diss power list', power_list)
-    print('diss power list alt', power_list_alt)
     print('diss power', power)
     print('error', err)
     assert err < 1e-4
 
+dipole_collection2 = init.DipoleCollection(vacuum_wavelength=ld, 
+                                          compute_swe_by_pwe=True, 
+                                          compute_dissipated_power_by_pwe=True)
+dipole_collection2.append(dipole1)
+dipole_collection2.append(dipole2)
+dipole_collection2.append(dipole3)
+
+# evaluate power
+power_list_alt = dipole_collection2.dissipated_power(particle_list=simulation.particle_list,
+                                                     layer_system=simulation.layer_system)
+
+def test_alternative_power():
+    err = abs((sum(power_list) - sum(power_list_alt)) / sum(power_list))
+    print('alt power error', err)
+    assert err < 1e-4
+        
 
 if __name__ == '__main__':
     test_energy_conservation()
+    test_alternative_power()

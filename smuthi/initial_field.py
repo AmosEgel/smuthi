@@ -600,11 +600,11 @@ class DipoleCollection(InitialField):
                                                 faster than the default for many dipoles (default=False).                       
     """
     def __init__(self, vacuum_wavelength, k_parallel_array='default', azimuthal_angles_array='default', 
-                 compute_swe_by_pwe=False, compute_dissipated_pwer_by_pwe=False):
+                 compute_swe_by_pwe=False, compute_dissipated_power_by_pwe=False):
         InitialField.__init__(self, vacuum_wavelength=vacuum_wavelength)
         self.dipole_list = []
         self.compute_swe_by_pwe = compute_swe_by_pwe
-        self.compute_dissipated_pwer_by_pwe = compute_dissipated_pwer_by_pwe
+        self.compute_dissipated_power_by_pwe = compute_dissipated_power_by_pwe
         self.k_parallel_array = k_parallel_array
         self.azimuthal_angles_array = azimuthal_angles_array        
 
@@ -702,7 +702,7 @@ class DipoleCollection(InitialField):
             dissipated power of each dipole (list of floats)
         """
         
-        if self.compute_dissipated_pwer_by_pwe:
+        if self.compute_dissipated_power_by_pwe:
             return self.dissipated_power_alternative(particle_list, 
                                                      layer_system, 
                                                      k_parallel, 
