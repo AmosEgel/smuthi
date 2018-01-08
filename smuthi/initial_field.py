@@ -7,6 +7,7 @@ import smuthi.vector_wave_functions as vwf
 import smuthi.particles as part
 import smuthi.particle_coupling as pc
 import smuthi.scattered_field as sf
+import smuthi.memoizing as memo
 import warnings
 import sys
 from tqdm import tqdm
@@ -582,23 +583,67 @@ class DipoleSource(InitialField):
 
 
 class DipoleCollection(InitialField):
+    """Class for the representation of a set of point dipole sources. Use the append method to add DipoleSource objects.
 
-    def __init__(self, vacuum_wavelength):
+    Args:
+        vacuum_wavelength (float):      vacuum wavelength (length units)
+        k_parallel_array (numpy.ndarray or str):          In-plane wavenumber. 
+                                                          If 'default', use smuthi.coordinates.default_k_parallel
+        azimuthal_angles_array (numpy.ndarray or str):    Azimuthal angles for plane wave expansions
+                                                          If 'default', use smuthi.coordinates.default_azimuthal_angles
+        compute_swe_by_pwe (bool):    If True, the initial field coefficients are computed through a plane wave 
+                                      expansion of the whole dipole collection field. This is slower for few dipoles
+                                      and particles, but can become faster than the default for many dipoles and 
+                                      particles (default=False).
+        compute_dissipated_power_by_pwe (bool): If True, evaluate dissipated power through a plane wave expansion of the 
+                                                whole scattered field. This is slower for few dipoles,  but can be 
+                                                faster than the default for many dipoles (default=False).                       
+    """
+    def __init__(self, vacuum_wavelength, k_parallel_array='default', azimuthal_angles_array='default', 
+                 compute_swe_by_pwe=False, compute_dissipated_pwer_by_pwe=False):
         InitialField.__init__(self, vacuum_wavelength=vacuum_wavelength)
         self.dipole_list = []
+        self.compute_swe_by_pwe = compute_swe_by_pwe
+        self.compute_dissipated_pwer_by_pwe = compute_dissipated_pwer_by_pwe
+        self.k_parallel_array = k_parallel_array
+        self.azimuthal_angles_array = azimuthal_angles_array        
 
     def append(self, dipole):
+        """Add dipole do collection.
+        
+        Args:
+            dipole (DipoleSource):    Dipole object to add.
+        """
         assert dipole.vacuum_wavelength == self.vacuum_wavelength
         self.dipole_list.append(dipole)
 
     def spherical_wave_expansion(self, particle, layer_system):
+        """Regular spherical wave expansion of the dipole collection including layer system response, at the locations 
+        of the particles. If self.compute_swe_by_pwe is True, use the dipole collection plane wave expansion, otherwise
+        use the individual dipoles spherical_wave_expansion method.
+
+        Args:
+            particle (smuthi.particles.Particle):    particle relative to which the swe is computed
+            layer_system (smuthi.layer.LayerSystem): stratified medium
+
+        Returns:
+            regular smuthi.field_expansion.SphericalWaveExpansion object
+        """
+        # compute by pwe?
+        if self.compute_swe_by_pwe and not any(
+            layer_system.layer_number(particle.position[2]) 
+            == np.array([layer_system.layer_number(dip.position[2]) for dip in self.dipole_list])):
+            # (make sure the particle is not in the same layer as one of the dipoles)
+            return InitialPropagatingWave.spherical_wave_expansion(self, particle, layer_system)
+        
+        # otherwise, compute by swe of virtual particles
         k = self.angular_frequency() * layer_system.refractive_indices[layer_system.layer_number(particle.position[2])]
         swe = fldex.SphericalWaveExpansion(k=k, l_max=particle.l_max, m_max=particle.m_max, kind='regular',
                                            reference_point=particle.position)
         for dipole in self.dipole_list:
             swe = swe + dipole.spherical_wave_expansion(particle, layer_system)
         return swe
-
+    
     def piecewise_field_expansion(self, layer_system):
         """Compute a piecewise field expansion of the dipole collection..
 
@@ -656,6 +701,13 @@ class DipoleCollection(InitialField):
         Returns:
             dissipated power of each dipole (list of floats)
         """
+        
+        if self.compute_dissipated_pwer_by_pwe:
+            return self.dissipated_power_alternative(particle_list, 
+                                                     layer_system, 
+                                                     k_parallel, 
+                                                     azimuthal_angles)
+        
         sys.stdout.write('Dipole array dissipated power evaluation:\n')
         sys.stdout.flush()
 
@@ -782,7 +834,8 @@ class DipoleCollection(InitialField):
             power_list.append(p)
 
         return power_list
-
+    
+    @memo.Memoize
     def plane_wave_expansion(self, layer_system, i, k_parallel_array=None, azimuthal_angles_array=None):
         """Plane wave expansion of the dipole collection's field.
 
@@ -796,6 +849,11 @@ class DipoleCollection(InitialField):
             tuple of to smuthi.field_expansion.PlaneWaveExpansion objects, one for upgoing and one for downgoing
             component
         """
+        if k_parallel_array is None:
+            k_parallel_array = self.k_parallel_array
+        if azimuthal_angles_array is None:
+            azimuthal_angles_array = self.azimuthal_angles_array        
+        
         virtual_particle_list = []
 
         for dipole in self.dipole_list:

@@ -1,5 +1,6 @@
 """Provide functionality to store intermediate results in lookup tables (memoize)"""
 import pickle
+import functools
 
 
 class Memoize:
@@ -16,3 +17,7 @@ class Memoize:
             #print("hit") # DEBUG INFO
         #print(len(self.memo))
         return self.memo[str]
+    
+    def __get__(self, obj, objtype):
+        '''Support instance methods.'''
+        return functools.partial(self.__call__, obj)
