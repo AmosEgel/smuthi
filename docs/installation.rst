@@ -39,7 +39,14 @@ or (Ubuntu)::
 
 NFM-DS
 -------
-When you run a Smuthi simulation (containing non-spherical particles) for the first time after installation, you will be asked
-to enter a path where it will install the NFM-DS Fortran package. This automatically created folder should not be
-removed or modified afterwards. Otherwise, the simulation of non-spherical particles becomes impossible and you might
-need to re-install Smuthi.
+When you run a Smuthi simulation (containing non-spherical particles),
+it will install the NFM-DS Fortran package into a temporary
+folder. This automatically created folder should not be removed or
+modified afterward. Otherwise, the simulation of non-spherical
+particles becomes impossible and you might need to re-run Smuthi or
+even reinstall it.
+
+You can also create an empty folder named :code:`smuthi_nfmds_bin_tmp`
+at your working path to keep NFM-DS binary between simulations. Smuthi
+will check the path, copy NFM-DS package, and compile it to use for
+all subsequent Smuthi simulations started from this working path.
