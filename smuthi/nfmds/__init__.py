@@ -9,9 +9,17 @@ import tempfile
 nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.nfmds', 'NFM-DS')
 temp_fold = tempfile.TemporaryDirectory(prefix='smuthi_nfmds_')
 nfmds_temporary_folder = temp_fold.name
-print('Copying NFMDS to temporary directory ', nfmds_temporary_folder)
+cwd = os.getcwd()
 
-copy_tree(nfmds_sources_dirname, nfmds_temporary_folder)
+bindir = os.path.join(cwd,'smuthi_nfmds_bin_tmp')
+if os.path.exists(bindir):
+    nfmds_temporary_folder = bindir
+
+nfmds_files = ['_README.txt', 'OUTPUTFILES', 'GEOMFILES', 'TMATFILES', 'TMATSOURCES', 'INPUTFILES']    
+if len(  set(os.listdir(nfmds_temporary_folder)) & set(nfmds_files) ) != 6:  
+    sys.stdout.write('Wrong number of files in NFMDS directory '+nfmds_temporary_folder+'\nCopying NFMDS files ...\n')
+    sys.stdout.flush()
+    copy_tree(nfmds_sources_dirname, nfmds_temporary_folder)
 
 if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
     # does the executable exist?
