@@ -6,12 +6,20 @@ import sys
 from distutils.dir_util import copy_tree
 import tempfile
 
-nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.nfmds', 'NFM-DS')
-temp_fold = tempfile.TemporaryDirectory(prefix='smuthi_nfmds_')
-nfmds_temporary_folder = temp_fold.name
 cwd = os.getcwd()
-
 bindir = os.path.join(cwd,'smuthi_nfmds_bin_tmp')
+
+nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.nfmds', 'NFM-DS')
+try:
+    temp_fold = tempfile.TemporaryDirectory(prefix='smuthi_nfmds_')
+except:
+    sys.stdout.write('Faild to create temporary directory ... Using '+bindir+' instead\n')
+    sys.stdout.flush()    
+    temp_fold = bindir
+    
+
+nfmds_temporary_folder = temp_fold.name
+
 if os.path.exists(bindir):
     nfmds_temporary_folder = bindir
 
