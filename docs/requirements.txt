@@ -1,1 +1,9 @@
-smuthi
+numpy
+scipy
+mpmath
+matplotlib
+pyyaml
+argparse
+imageio
+sympy
+tqdm
