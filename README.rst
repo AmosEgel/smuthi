@@ -16,9 +16,10 @@ The following persons have contributed to the project:
  - Dominik Theobald (functions for the simulation of rotated particles, plane wave based particle coupling for 
    non-spherical particles with overlapping circumscribing spheres) 
  - Lorenzo Pattelli (logo)
+ - Konstantin Ladutenko (refactoring of code, handling of persistent NFMDS install)
 
 We thank Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use their NFM-DS Fortran code, 
-and Ilia Rasskazov as well as Konstantin Ladutenko for bug reports and useful comments.
+and Ilia Rasskazov for bug reports and useful comments.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
 
