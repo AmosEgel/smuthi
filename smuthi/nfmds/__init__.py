@@ -32,6 +32,12 @@ if 'sphinx' in sys.modules:
 else:
     print('sphinx not in modules')
 
+
+if os.environ.get('READTHEDOCS') == 'True':
+    print('on rtd')
+else:
+    print('not on rtd')
+
 # check if executable exists, otherwise compile if not called by sphinx autodoc
 if ((sys.platform.startswith('linux') or sys.platform.startswith('darwin'))
     and not os.access(nfmds_folder + '/TMATSOURCES/TAXSYM_SMUTHI.out', os.X_OK)
