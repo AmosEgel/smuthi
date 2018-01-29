@@ -19,7 +19,7 @@ class CustomInstallCommand(install):
             os.chdir(nfmds_sources_dirname + '/TMATSOURCES')
             sys.stdout.write('Compiling sources at ' + nfmds_sources_dirname + ' ...')
             sys.stdout.flush()
-            #subprocess.call(['gfortran', 'TAXSYM_SMUTHI.f90', '-o', 'TAXSYM_SMUTHI.out'])
+            subprocess.call(['gfortran', 'TAXSYM_SMUTHI.f90', '-o', 'TAXSYM_SMUTHI.out'])
             sys.stdout.write(' done.\n')
             sys.stdout.flush()
 
