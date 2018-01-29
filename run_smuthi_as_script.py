@@ -22,9 +22,7 @@ plane_wave = smuthi.initial_field.PlaneWave(vacuum_wavelength=550,
                                             polarization=0)           # 0 stands for TE, 1 stands for TM
 
 # Initialize the layer system object
-layer_thicknesses = [0, 500, 0]
-layer_complex_refractive_indices = [1.5, 1.8 + 0.01j, 1]
-
+# The coordinate system is such that the interface between the first two layers defines the plane z=0.
 three_layers = smuthi.layers.LayerSystem(thicknesses=[0, 50, 0],               # substrate, dielectric layer, ambient
                                          refractive_indices=[1+6j, 1.49, 1])   # like aluminum, SiO2, air
 
@@ -80,7 +78,7 @@ smuthi.graphical_output.show_near_field(quantities_to_plot=['E_y', 'norm_E', 'E_
                                         ymax=10,
                                         zmin=-100,
                                         zmax=2200,
-                                        resolution=20,
-                                        interpolate=10,
+                                        resolution_step=100,
+                                        interpolate_step=20,
                                         simulation=simulation,
                                         max_field=1.5)

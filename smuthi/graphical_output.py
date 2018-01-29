@@ -96,7 +96,7 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
 
 
 def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, save_animations=False, save_data=False,
-                    outputdir='.', xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution=25, interpolate=None,
+                    outputdir='.', xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution_step=25, interpolate_step=None,
                     k_parallel='default', azimuthal_angles='default', simulation=None, max_field=None,
                     max_particle_distance=float('inf')):
     """Plot the electric near field along a plane. To plot along the xy-plane, specify zmin=zmax and so on.
@@ -130,8 +130,10 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         ymax (float):       Plot up to that y (length unit)
         zmin (float):       Plot from that z (length unit)
         zmax (float):       Plot up to that z (length unit)
-        resolution (float):     Compute the field with that spatial resolution (length unit)
-        interpolate (float):    Use spline interpolation with that resolution to plot a smooth field (length unit)
+        resolution_step (float):     Compute the field with that spatial resolution (length unit,
+                                     distance between computed points)
+        interpolate_step (float):    Use spline interpolation with that resolution to plot a smooth
+                                     field (length unit, distance between computed points)
         k_parallel (numpy.ndarray or str):         in-plane wavenumbers for the plane wave expansion
                                                    if 'default', use smuthi.coordinates.default_k_parallel
         azimuthal_angles (numpy.ndarray or str):   azimuthal angles for the plane wave expansion
@@ -141,7 +143,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         max_particle_distance (float):  Show particles that are closer than that distance to the image plane (length
                                         unit, default = inf).
     """
-    sys.stdout.write("Compute near field ... ")
+    sys.stdout.write("Compute near field ...\n")
     sys.stdout.flush()
     
     if (not os.path.exists(outputdir)) and (save_plots or save_animations or save_data):
@@ -152,22 +154,22 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
 
     vacuum_wavelength = simulation.initial_field.vacuum_wavelength
     if xmin == xmax:
-        dim1vec = np.linspace(ymin, ymax, (ymax - ymin) / resolution + 1, endpoint=True)
-        dim2vec = np.linspace(zmin, zmax, (zmax - zmin) / resolution + 1, endpoint=True)
+        dim1vec = np.linspace(ymin, ymax, (ymax - ymin)/resolution_step + 1, endpoint=True)
+        dim2vec = np.linspace(zmin, zmax, (zmax - zmin)/resolution_step + 1, endpoint=True)
         yarr, zarr = np.meshgrid(dim1vec, dim2vec)
         xarr = yarr - yarr + xmin
         dim1name = 'y (' + simulation.length_unit + ')'
         dim2name = 'z (' + simulation.length_unit + ')'
     elif ymin == ymax:
-        dim1vec = np.linspace(xmin, xmax, (xmax - xmin) / resolution + 1, endpoint=True)
-        dim2vec = np.linspace(zmin, zmax, (zmax - zmin) / resolution + 1, endpoint=True)
+        dim1vec = np.linspace(xmin, xmax, (xmax - xmin)/resolution_step + 1, endpoint=True)
+        dim2vec = np.linspace(zmin, zmax, (zmax - zmin)/resolution_step + 1, endpoint=True)
         xarr, zarr = np.meshgrid(dim1vec, dim2vec)
         yarr = xarr - xarr + ymin
         dim1name = 'x (' + simulation.length_unit + ')'
         dim2name = 'z (' + simulation.length_unit + ')'
     else:
-        dim1vec = np.linspace(xmin, xmax, (xmax - xmin) / resolution + 1, endpoint=True)
-        dim2vec = np.linspace(ymin, ymax, (ymax - ymin) / resolution + 1, endpoint=True)
+        dim1vec = np.linspace(xmin, xmax, (xmax - xmin)/resolution_step + 1, endpoint=True)
+        dim2vec = np.linspace(ymin, ymax, (ymax - ymin)/resolution_step + 1, endpoint=True)
         xarr, yarr = np.meshgrid(dim1vec, dim2vec)
         zarr = xarr - xarr + zmin
         dim1name = 'x (' + simulation.length_unit + ')'
@@ -175,18 +177,23 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         
     scat_fld_exp = sf.scattered_field_piecewise_expansion(vacuum_wavelength, simulation.particle_list, 
                                                           simulation.layer_system, k_parallel, azimuthal_angles)
+    sys.stdout.write("Evaluate fields ...\n")
+    sys.stdout.flush()
     e_x_scat_raw, e_y_scat_raw, e_z_scat_raw = scat_fld_exp.electric_field(xarr, yarr, zarr) 
     
     e_x_init_raw, e_y_init_raw, e_z_init_raw = simulation.initial_field.electric_field(xarr, yarr, zarr,
                                                                                        simulation.layer_system)
-    if interpolate is None:
+    if interpolate_step is None:
         e_x_scat, e_y_scat, e_z_scat = e_x_scat_raw, e_y_scat_raw, e_z_scat_raw
         e_x_init, e_y_init, e_z_init = e_x_init_raw, e_y_init_raw, e_z_init_raw
         dim1vecfine = dim1vec
         dim2vecfine = dim2vec
     else:
-        dim1vecfine = np.linspace(dim1vec[0], dim1vec[-1], (dim1vec[-1] - dim1vec[0]) / interpolate + 1, endpoint=True)
-        dim2vecfine = np.linspace(dim2vec[0], dim2vec[-1], (dim2vec[-1] - dim2vec[0]) / interpolate + 1, endpoint=True)
+        sys.stdout.write("Evaluate interpolation ...\n")
+        sys.stdout.flush()
+
+        dim1vecfine = np.linspace(dim1vec[0], dim1vec[-1], (dim1vec[-1] - dim1vec[0])/interpolate_step + 1, endpoint=True)
+        dim2vecfine = np.linspace(dim2vec[0], dim2vec[-1], (dim2vec[-1] - dim2vec[0])/interpolate_step + 1, endpoint=True)
 
         real_ex_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_scat_raw.real)
         imag_ex_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_scat_raw.imag)
@@ -224,7 +231,10 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
     else:
         vmin = -max_field
         vmax = max_field
-
+        
+    sys.stdout.write("Generate final plots ...\n")
+    sys.stdout.flush()
+    
     for jq, quantity in enumerate(quantities_to_plot):
 
         filename = 'E'
