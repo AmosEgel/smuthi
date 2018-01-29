@@ -12,9 +12,9 @@ class CustomInstallCommand(install):
     """Compile nfmds code."""
     def run(self):
         install.run(self)
-        # compile nfmds if not called by sphinx autodoc
+        # compile nfmds if not built on readthedocs
         if ((sys.platform.startswith('linux') or sys.platform.startswith('darwin'))
-            and not 'sphinx' in sys.modules):
+            and not os.environ.get('READTHEDOCS')):
             nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.nfmds', 'NFM-DS')
             os.chdir(nfmds_sources_dirname + '/TMATSOURCES')
             sys.stdout.write('Compiling sources at ' + nfmds_sources_dirname + ' ...')

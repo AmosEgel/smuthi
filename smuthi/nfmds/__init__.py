@@ -26,10 +26,10 @@ if len(set(os.listdir(nfmds_folder)) & set(nfmds_files)) != 6:
     sys.stdout.flush()
     copy_tree(nfmds_sources_dirname, nfmds_folder)
 
-# check if executable exists, otherwise compile if not called by sphinx autodoc
+# check if executable exists, otherwise compile if not built on readthedocs
 if ((sys.platform.startswith('linux') or sys.platform.startswith('darwin'))
     and not os.access(nfmds_folder + '/TMATSOURCES/TAXSYM_SMUTHI.out', os.X_OK)
-    and not 'sphinx' in sys.modules):
+    and not os.environ.get('READTHEDOCS')):
     cwd = os.getcwd()
     os.chdir(nfmds_folder + '/TMATSOURCES')
     sys.stdout.write('Compiling sources ...')
