@@ -12,8 +12,9 @@ class CustomInstallCommand(install):
     """Compile nfmds code."""
     def run(self):
         install.run(self)
-        # compile nfmds
-        if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
+        # compile nfmds if not called by sphinx autodoc
+        if ((sys.platform.startswith('linux') or sys.platform.startswith('darwin'))
+            and not 'sphinx' in sys.modules):
             nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.nfmds', 'NFM-DS')
             os.chdir(nfmds_sources_dirname + '/TMATSOURCES')
             sys.stdout.write('Compiling sources at ' + nfmds_sources_dirname + ' ...')
@@ -21,7 +22,7 @@ class CustomInstallCommand(install):
             subprocess.call(['gfortran', 'TAXSYM_SMUTHI.f90', '-o', 'TAXSYM_SMUTHI.out'])
             sys.stdout.write(' done.\n')
             sys.stdout.flush()
-            
+
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
