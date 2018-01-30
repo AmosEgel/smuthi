@@ -96,9 +96,9 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
 
 
 def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, save_animations=False, save_data=False,
-                    outputdir='.', xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution_step=25, interpolate_step=None,
-                    k_parallel='default', azimuthal_angles='default', simulation=None, max_field=None,
-                    max_particle_distance=float('inf')):
+                    outputdir='.', xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution_step=25, 
+                    interpolate_step=None, interpolation_order = 1, k_parallel='default', azimuthal_angles='default', 
+                    simulation=None, max_field=None, max_particle_distance=float('inf')):
     """Plot the electric near field along a plane. To plot along the xy-plane, specify zmin=zmax and so on.
 
     Args:
@@ -134,6 +134,8 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
                                      distance between computed points)
         interpolate_step (float):    Use spline interpolation with that resolution to plot a smooth
                                      field (length unit, distance between computed points)
+        interpolation_order (int):   Splines of that order are used to interpolate. Choose e.g. 1 for linear and 3 for
+                                     cubic spline interpolation.                                     
         k_parallel (numpy.ndarray or str):         in-plane wavenumbers for the plane wave expansion
                                                    if 'default', use smuthi.coordinates.default_k_parallel
         azimuthal_angles (numpy.ndarray or str):   azimuthal angles for the plane wave expansion
@@ -195,33 +197,45 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         dim1vecfine = np.linspace(dim1vec[0], dim1vec[-1], (dim1vec[-1] - dim1vec[0])/interpolate_step + 1, endpoint=True)
         dim2vecfine = np.linspace(dim2vec[0], dim2vec[-1], (dim2vec[-1] - dim2vec[0])/interpolate_step + 1, endpoint=True)
 
-        real_ex_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_scat_raw.real)
-        imag_ex_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_scat_raw.imag)
+        real_ex_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_scat_raw.real, 
+                                                              kx=interpolation_order, ky=interpolation_order)
+        imag_ex_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_scat_raw.imag, 
+                                                              kx=interpolation_order, ky=interpolation_order)
         e_x_scat = (real_ex_scat_interpolant(dim2vecfine, dim1vecfine)
                     + 1j * imag_ex_scat_interpolant(dim2vecfine, dim1vecfine))
 
-        real_ey_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_scat_raw.real)
-        imag_ey_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_scat_raw.imag)
+        real_ey_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_scat_raw.real, 
+                                                              kx=interpolation_order, ky=interpolation_order)
+        imag_ey_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_scat_raw.imag, 
+                                                              kx=interpolation_order, ky=interpolation_order)
         e_y_scat = (real_ey_scat_interpolant(dim2vecfine, dim1vecfine)
                     + 1j * imag_ey_scat_interpolant(dim2vecfine, dim1vecfine))
 
-        real_ez_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_scat_raw.real)
-        imag_ez_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_scat_raw.imag)
+        real_ez_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_scat_raw.real, 
+                                                              kx=interpolation_order, ky=interpolation_order)
+        imag_ez_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_scat_raw.imag, 
+                                                              kx=interpolation_order, ky=interpolation_order)
         e_z_scat = (real_ez_scat_interpolant(dim2vecfine, dim1vecfine)
                     + 1j * imag_ez_scat_interpolant(dim2vecfine, dim1vecfine))
 
-        real_ex_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_init_raw.real)
-        imag_ex_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_init_raw.imag)
+        real_ex_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_init_raw.real, 
+                                                              kx=interpolation_order, ky=interpolation_order)
+        imag_ex_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_init_raw.imag, 
+                                                              kx=interpolation_order, ky=interpolation_order)
         e_x_init = (real_ex_init_interpolant(dim2vecfine, dim1vecfine)
                     + 1j * imag_ex_init_interpolant(dim2vecfine, dim1vecfine))
 
-        real_ey_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_init_raw.real)
-        imag_ey_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_init_raw.imag)
+        real_ey_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_init_raw.real, 
+                                                              kx=interpolation_order, ky=interpolation_order)
+        imag_ey_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_init_raw.imag, 
+                                                              kx=interpolation_order, ky=interpolation_order)
         e_y_init = (real_ey_init_interpolant(dim2vecfine, dim1vecfine)
                     + 1j * imag_ey_init_interpolant(dim2vecfine, dim1vecfine))
 
-        real_ez_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_init_raw.real)
-        imag_ez_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_init_raw.imag)
+        real_ez_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_init_raw.real, 
+                                                              kx=interpolation_order, ky=interpolation_order)
+        imag_ez_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_init_raw.imag, 
+                                                              kx=interpolation_order, ky=interpolation_order)
         e_z_init = (real_ez_init_interpolant(dim2vecfine, dim1vecfine)
                     + 1j * imag_ez_init_interpolant(dim2vecfine, dim1vecfine))
 
