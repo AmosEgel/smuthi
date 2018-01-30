@@ -190,6 +190,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         e_x_init, e_y_init, e_z_init = e_x_init_raw, e_y_init_raw, e_z_init_raw
         dim1vecfine = dim1vec
         dim2vecfine = dim2vec
+        interpolate_step = resolution_step
     else:
         sys.stdout.write("Evaluate interpolation ...\n")
         sys.stdout.flush()
@@ -286,7 +287,14 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
                 e = e_z
                 filename = filename + '_z'
                 plt_title = 'z-component of ' + field_type_string
-            plt.pcolormesh(dim1vecfine, dim2vecfine, e.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
+            # plt.pcolormesh(dim1vecfine, dim2vecfine, e.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
+            step2 = interpolate_step/2
+            plt.imshow(e.real, vmin=vmin, vmax=vmax, cmap='RdYlBu',
+                       extent=[dim1vecfine.min()-step2, dim1vecfine.max()+step2,
+                               dim2vecfine.min()-step2, dim2vecfine.max()+step2],
+                               #interpolation="quadric",
+                               interpolation="none",
+                       origin='lower')
             plt.title(plt_title)
 
         plt.colorbar()
@@ -310,7 +318,14 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
                 for i_t, t in enumerate(np.linspace(0, 1, 20, endpoint=False)):
                     tempfig = plt.figure()
                     e_t = e * np.exp(-1j * t * 2 * np.pi)
-                    plt.pcolormesh(dim1vecfine, dim2vecfine, e_t.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
+                    # plt.pcolormesh(dim1vecfine, dim2vecfine, e_t.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
+                    step2 = interpolate_step/2
+                    plt.imshow(e_t.real, vmin=vmin, vmax=vmax, cmap='RdYlBu',
+                               extent=[dim1vecfine.min()-step2, dim1vecfine.max()+step2,
+                               dim2vecfine.min()-step2, dim2vecfine.max()+step2],
+                               #interpolation="quadric",
+                               interpolation="none",
+                            origin='lower')
                     plt.title(plt_title)
                     plt.colorbar()
                     plt.xlabel(dim1name)
