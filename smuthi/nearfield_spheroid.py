@@ -287,7 +287,7 @@ def pwe_nearfield_superposition(xmin, xmax, ymin, ymax, zmin, zmax, resolution, 
                     if (np.linalg.norm(np.abs(np.array([fp[k, l, 0] - simulation.particle_list[i].position[0], 
                                                         fp[k, l, 1] - simulation.particle_list[i].position[1],
                                                         fp[k, l, 2] - simulation.particle_list[i].position[2]])))
-                        / np.max([simulation.particle_list[i].semi_axis_a, simulation.particle_list[i].semi_axis_c])) >= 1: # this should be a 1
+                        / np.max([simulation.particle_list[i].semi_axis_a, simulation.particle_list[i].semi_axis_c])) >= 1.1: # this should be a 1
                        temp_array = np.append(temp_array, np.array([k , l, fp[k, l, 0], fp[k, l, 1], fp[k, l, 2]])[None,:],
                                               axis=0)
 
@@ -397,7 +397,7 @@ def pwe_nearfield_superposition(xmin, xmax, ymin, ymax, zmin, zmax, resolution, 
     
     
     
-    return field_list, Ey, dim1vec, dim2vec
+    return field_list, Ex, Ey, Ez, fp0, dim1vec, dim2vec
 
 
 #def cut_ellipse(semi_axis_a, semi_axis_c, center, orientation, plane):    
