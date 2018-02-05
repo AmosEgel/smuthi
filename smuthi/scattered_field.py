@@ -357,6 +357,9 @@ def scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, layer_nu
         A tuple of PlaneWaveExpansion objects for upgoing and downgoing waves.
     """
 
+    sys.stdout.write('Evaluating scattered field plane wave expansion in layer number %i ...\n'%layer_number)
+    sys.stdout.flush()
+
     omega = coord.angular_frequency(vacuum_wavelength)
     k = omega * layer_system.refractive_indices[layer_number]
     z = layer_system.reference_z(layer_number)
@@ -366,7 +369,9 @@ def scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, layer_nu
     pwe_down = fldex.PlaneWaveExpansion(k=k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, kind='downgoing',
                                         reference_point=[0, 0, z], lower_z=vb[0], upper_z=vb[1])
 
-    for iS, particle in enumerate(particle_list):
+    for iS, particle in enumerate(tqdm(particle_list, desc='Scatt. field pwe          ', file=sys.stdout,
+                                        bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}')):
+
         i_iS = layer_system.layer_number(particle.position[2])
 
         # direct contribution
