@@ -98,7 +98,7 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
 def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, save_animations=False, save_data=False,
                     outputdir='.', xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution_step=25, 
                     interpolate_step=None, interpolation_order = 1, k_parallel='default', azimuthal_angles='default', 
-                    simulation=None, max_field=None, max_particle_distance=float('inf')):
+                    simulation=None, max_field=None, min_norm_field=None, max_particle_distance=float('inf')):
     """Plot the electric near field along a plane. To plot along the xy-plane, specify zmin=zmax and so on.
 
     Args:
@@ -142,6 +142,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
                                                    if 'default', use smuthi.coordinates.default_azimuthal_angles
         simulation (smuthi.simulation.Simulation):  Simulation object
         max_field (float):              If specified, truncate the color scale of the field plots at that value.
+        min_norm_field (float):         If specified, truncate the color scale of the norm field plots below that value.
         max_particle_distance (float):  Show particles that are closer than that distance to the image plane (length
                                         unit, default = inf).
     """
@@ -268,10 +269,24 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
             field_type_string = 'total electric field'
 
         if 'norm' in quantity:
+            if min_norm_field is None:
+                vmin_norm = 0
+            else:
+                vmin_norm = min_norm_field
             e = np.sqrt(abs(e_x)**2 + abs(e_y)**2 + abs(e_z)**2)
             filename = 'norm_' + filename
-            plt.pcolormesh(dim1vecfine, dim2vecfine, np.sqrt(abs(e_x)**2 + abs(e_y)**2 + abs(e_z)**2), vmin=0,
-                           vmax=vmax, cmap='inferno')
+            # plt.pcolormesh(dim1vecfine, dim2vecfine, np.sqrt(abs(e_x)**2 + abs(e_y)**2 + abs(e_z)**2), vmin=0,
+            #                vmax=vmax, cmap='inferno')
+            step2 = interpolate_step/2
+            plt.imshow(e, vmin=vmin_norm, vmax=vmax,
+                       cmap='inferno',
+                       #cmap='jet',
+                       extent=[dim1vecfine.min()-step2, dim1vecfine.max()+step2,
+                               dim2vecfine.min()-step2, dim2vecfine.max()+step2],
+                               interpolation="quadric",
+                               #interpolation="none",
+                       origin='lower')
+
             plt_title = 'norm of ' + field_type_string
             plt.title(plt_title)
         else:
@@ -311,6 +326,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         export_filename = outputdir + '/' + filename
         if save_plots:
             plt.savefig(export_filename + '.png')
+            #plt.savefig(export_filename + '.pdf')
         if save_animations:
             if not 'norm' in quantity:
                 tempdir = tempfile.mkdtemp()
