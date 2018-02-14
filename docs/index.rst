@@ -14,6 +14,7 @@ Contents
    :maxdepth: 1
 
    about_smuthi
+   gallery
    installation
    run_smuthi
    input_files
