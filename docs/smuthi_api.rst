@@ -17,7 +17,7 @@ smuthi.cuda_sources module
     :undoc-members:
 
 smuthi.field_expansion module
------------------------
+-----------------------------
 
 .. automodule:: smuthi.field_expansion
     :members:
@@ -87,7 +87,7 @@ smuthi.read_input module
     :undoc-members:
 
 smuthi.scattered_field module
-------------------------
+-----------------------------
 
 .. automodule:: smuthi.scattered_field
     :members:
