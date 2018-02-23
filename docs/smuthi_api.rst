@@ -58,6 +58,13 @@ smuthi.memoizing module
     :members:
     :undoc-members:
 
+smuthi.optical_constants module
+---------------------------
+
+.. automodule:: smuthi.optical_constants
+    :members:
+    :undoc-members:
+    
 smuthi.particle_coupling module
 -------------------------------
 

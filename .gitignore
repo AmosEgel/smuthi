@@ -21,3 +21,4 @@ scripts/
 *.prof
 *.lprof
 *_nfmds_installation_path.txt
+*~
