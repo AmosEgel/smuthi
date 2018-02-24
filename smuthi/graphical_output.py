@@ -448,7 +448,7 @@ def show_far_field(far_field, save_plots, show_plots, save_data=False, tag='far_
         far_field.export(output_directory=outputdir, tag=tag)
     
     alpha_grid = far_field.alpha_grid()
-    beta_grid = far_field.beta_grid()
+    beta_grid = far_field.beta_grid()*180/np.pi
 
     fig = plt.figure()
     ax = fig.add_subplot(111, polar=True)

@@ -703,7 +703,7 @@ class FarField:
         Returns:
             Meshgrid with :math:`\alpha` values.
         """
-        agrid, _ = np.meshgrid(self.azimuthal_angles, self.polar_angles.real * 180 / np.pi)
+        agrid, _ = np.meshgrid(self.azimuthal_angles, self.polar_angles.real)
         return agrid
 
     def beta_grid(self):
@@ -711,7 +711,7 @@ class FarField:
         Returns:
             Meshgrid with :math:`\beta` values.
         """
-        _, bgrid = np.meshgrid(self.azimuthal_angles, self.polar_angles.real * 180 / np.pi)
+        _, bgrid = np.meshgrid(self.azimuthal_angles, self.polar_angles.real)
         return bgrid
 
     def append(self, other):

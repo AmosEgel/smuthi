@@ -124,12 +124,13 @@ def spherical_vector_wave_function(x, y, z, k, nu, tau, l, m):
     if nu == 1:
         bes = sf.spherical_bessel(l, kr)
         dxxz = sf.dx_xj(l, kr)
-        if r == 0:
-            bes_kr = (l == 1) / 3
-            dxxz_kr =  (l == 1) * 2 / 3
-        else:
-            bes_kr = bes / kr
-            dxxz_kr = dxxz / kr
+        bes_kr = dxxz_kr = np.zeros(kr.shape)
+        zero = (r==0)
+        nonzero = np.logical_not(zero)
+        bes_kr[zero] = (l == 1) / 3
+        dxxz_kr[zero] =  (l == 1) * 2 / 3
+        bes_kr[nonzero] = (bes / kr)[nonzero]
+        dxxz_kr[nonzero] = (dxxz / kr)[nonzero]
     elif nu == 3:
         bes = sf.spherical_hankel(l, kr)
         dxxz = sf.dx_xh(l, kr)
@@ -314,7 +315,7 @@ def translation_coefficients_svwf_out_to_out(tau1, l1, m1, tau2, l2, m2, k, d, s
         sinthetd = np.sqrt(d[0] ** 2 + d[1] ** 2) / dd
         legendre, _, _ = sf.legendre_normalized(costthetd, sinthetd, l1 + l2)
 
-    A = complex(0), complex(0)
+    A = complex(0)
     for ld in range(abs(l1 - l2), l1 + l2 + 1):
         a5, b5 = ab5_coefficients(l1, m1, l2, m2, ld)
         if tau1==tau2:
