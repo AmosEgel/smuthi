@@ -40,7 +40,8 @@ class Simulation:
     def __init__(self, layer_system=None, particle_list=None, initial_field=None, post_processing=None,
                  k_parallel='default', solver_type='LU', solver_tolerance=1e-4, store_coupling_matrix=True,
                  coupling_matrix_lookup_resolution=None, coupling_matrix_interpolator_kind='linear',
-                 length_unit='length unit', input_file=None, output_dir='smuthi_output', save_after_run=False):
+                 length_unit='length unit', input_file=None, output_dir='smuthi_output', save_after_run=False,
+                 log_to_file=True):
 
         # initialize attributes
         self.layer_system = layer_system
@@ -59,9 +60,9 @@ class Simulation:
         # output
         timestamp = '{:%Y%m%d%H%M%S}'.format(datetime.datetime.now())
         self.output_dir = output_dir + '/' + timestamp
-        if not os.path.exists(self.output_dir):
+        if not os.path.exists(self.output_dir) and log_to_file:
             os.makedirs(self.output_dir)
-        sys.stdout = Logger(self.output_dir + '/smuthi.log')
+        sys.stdout = Logger(self.output_dir + '/smuthi.log', log_to_file=log_to_file)
         if input_file is not None:
             shutil.copyfile(input_file, self.output_dir + '/input.dat')
         else:
@@ -136,14 +137,17 @@ class Simulation:
 
 class Logger(object):
     """Allows to prompt messages both to terminal and to log file simultaneously."""
-    def __init__(self, log_filename):
-        self.terminal = sys.stdout
-        self.log = open(log_filename, "a")
+    def __init__(self, log_filename,log_to_file):
+        self.terminal = sys.__stdout__
+        self.log_to_file = log_to_file
+        if log_to_file:
+            self.log = open(log_filename, "a")
 
     def write(self, message):
         self.terminal.write(message)
         self.terminal.flush()
-        self.log.write(message)
+        if self.log_to_file:
+            self.log.write(message)
 
     def flush(self):
         self.terminal.flush()
