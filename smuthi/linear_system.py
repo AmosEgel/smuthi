@@ -203,7 +203,7 @@ class LinearSystem:
                     global iter_num
                     iter_msg = ('Solve (GMRES)             : Iter ' + str(iter_num) 
                                 + ' | Rel. residual: '
-                                + "{:.2e}".format(np.linalg.norm(rk) / np.linalg.norm(rhs)) 
+                                + "{:.2e}".format(np.linalg.norm(rk)) 
                                 + ' | elapsed: ' + str(int(time.time() - start_time)) + 's')
                     sys.stdout.write('\r' + iter_msg)
                     iter_num += 1
