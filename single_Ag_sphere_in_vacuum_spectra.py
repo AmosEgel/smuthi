@@ -13,11 +13,12 @@ import smuthi.coordinates
 import smuthi.cuda_sources
 import smuthi.scattered_field
 import smuthi.graphical_output
+import sys
 
 
 smuthi.cuda_sources.enable_gpu()  # Enable GPU acceleration (if available)
 
-
+total_runs = 0
 def GetTSCS(WL, core_r, index_NP, samples):
     # Initialize a plane wave object the initial field
     plane_wave = smuthi.initial_field.PlaneWave(vacuum_wavelength=WL,
@@ -45,7 +46,13 @@ def GetTSCS(WL, core_r, index_NP, samples):
                                               neff_resolution=5e-3,       # smaller value means more accurate but slower
                                               neff_max=2)                 # should be larger than the highest refractive
                                                                           # index of the layer system
-
+    global total_runs
+    if total_runs == 0:
+        log_to_terminal = True
+        print("\n\n\t\tExample of solver output for the first run:\n\n")
+        total_runs +=1
+    else:
+        log_to_terminal = False
     # Initialize and run simulation
     simulation = smuthi.simulation.Simulation(layer_system=two_layers,
                                               particle_list=particle_grid,
@@ -57,7 +64,9 @@ def GetTSCS(WL, core_r, index_NP, samples):
                                               coupling_matrix_lookup_resolution=None,
                                               # store_coupling_matrix=False,
                                               # coupling_matrix_lookup_resolution=5,
-                                                  coupling_matrix_interpolator_kind='cubic')
+                                              coupling_matrix_interpolator_kind='cubic',
+                                              log_to_file=False,
+                                              log_to_terminal = log_to_terminal)
     simulation.run()
 
 
@@ -95,7 +104,8 @@ WLs = np.linspace(from_WL, to_WL, 101)
 Q_sca = []
 for WL in WLs:
     Q_sca.append(GetTSCS(WL,core_r,index_NP,integral_samples))
-    print("\nWL =", WL,"(from", WLs[0],"to",WLs[-1],")  Q_sca = ", Q_sca[-1],"\n")
+    sys.stdout = sys.__stdout__ # Restore output after muting it in simulation
+    print("WL =", WL,"(from", WLs[0],"to",WLs[-1],")  Q_sca = ", Q_sca[-1])
 output_directory = 'smuthi_output/smuthi_as_script'
 print(Q_sca)
 plt.plot( WLs, Q_sca)
