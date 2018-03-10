@@ -35,13 +35,15 @@ class Simulation:
         input_file (str):       path and filename of input file (for logging purposes)
         output_dir (str):       path to folder where to export data
         save_after_run(bool):   if true, the simulation object is exported to disc when over
+        log_to_file(bool):      if true, the simulation log will be written to a log file
+        log_to_terminal(bool):  if true, the simulation progress will be displayed in the terminal
     """
 
     def __init__(self, layer_system=None, particle_list=None, initial_field=None, post_processing=None,
                  k_parallel='default', solver_type='LU', solver_tolerance=1e-4, store_coupling_matrix=True,
                  coupling_matrix_lookup_resolution=None, coupling_matrix_interpolator_kind='linear',
                  length_unit='length unit', input_file=None, output_dir='smuthi_output', save_after_run=False,
-                 log_to_file=True):
+                 log_to_file=True, log_to_terminal=True):
 
         # initialize attributes
         self.layer_system = layer_system
@@ -62,7 +64,8 @@ class Simulation:
         self.output_dir = output_dir + '/' + timestamp
         if not os.path.exists(self.output_dir) and log_to_file:
             os.makedirs(self.output_dir)
-        sys.stdout = Logger(self.output_dir + '/smuthi.log', log_to_file=log_to_file)
+        sys.stdout = Logger(self.output_dir + '/smuthi.log', log_to_file=log_to_file,
+                            log_to_terminal=log_to_terminal)
         if input_file is not None:
             shutil.copyfile(input_file, self.output_dir + '/input.dat')
         else:
@@ -137,8 +140,12 @@ class Simulation:
 
 class Logger(object):
     """Allows to prompt messages both to terminal and to log file simultaneously."""
-    def __init__(self, log_filename,log_to_file):
-        self.terminal = sys.__stdout__
+    def __init__(self, log_filename, log_to_file=True, log_to_terminal=True):
+        if not log_to_terminal:
+            f = open(os.devnull, 'w')
+            self.terminal = f
+        else:
+            self.terminal = sys.__stdout__
         self.log_to_file = log_to_file
         if log_to_file:
             self.log = open(log_filename, "a")
