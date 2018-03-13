@@ -9,8 +9,10 @@ default_polar_angles = np.arange(0, 181, 1, dtype=float) * np.pi / 180
 def complex_contour(vacuum_wavelength, neff_waypoints, neff_resolution):
     neff_segments = []
     for i in range(len(neff_waypoints)-1):
-        neff_segments.append(neff_waypoints[i] + np.arange(0, 1 + neff_resolution / 2, neff_resolution, dtype=complex) * 
-                             (neff_waypoints[i + 1] - neff_waypoints[i]))
+        abs_dneff = abs(neff_waypoints[i + 1] - neff_waypoints[i])
+        neff_segments.append(neff_waypoints[i] + np.arange(0, 1 + neff_resolution/abs_dneff/2, neff_resolution/abs_dneff, 
+                                                           dtype=complex) 
+                             * (neff_waypoints[i + 1] - neff_waypoints[i]))
     return np.concatenate(neff_segments) * angular_frequency(vacuum_wavelength)
 
 

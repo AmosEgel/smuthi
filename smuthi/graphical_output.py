@@ -26,7 +26,8 @@ def plot_layer_interfaces(dim1min, dim1max, layer_system):
         plt.plot([dim1min, dim1max], [layer_system.reference_z(il), layer_system.reference_z(il)], 'g')
 
 
-def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_particle_distance):
+def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_particle_distance, 
+                   draw_circumscribing_sphere):
     """Add circles, ellipses and rectangles to plot to display spheres, spheroids and cylinders.
 
     Args:
@@ -38,6 +39,8 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
         zmax (float):   Maximal z-value of plot
         particle_list (list): List of smuthi.particles.Particle objects
         max_particle_distance (float):  Plot only particles that ar not further away from image plane
+        draw_circumscribing_sphere (bool): If true (default), draw a circle indicating the circumscribing sphere of 
+                                           particles.        
     """
     
     ax = plt.gca()
@@ -72,8 +75,10 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
                 ax.text(pos[draw_coord[0]], pos[draw_coord[1]], 'rotated ' + type(particle).__name__,
                         verticalalignment='center', horizontalalignment='center', color='blue', fontsize=5)
             else:
-                ax.add_patch(Circle((pos[draw_coord[0]], pos[draw_coord[1]]), particle.circumscribing_sphere_radius(), 
-                                    linestyle='dashed', facecolor='none', edgecolor='k'))
+                if draw_circumscribing_sphere:
+                    ax.add_patch(Circle((pos[draw_coord[0]], pos[draw_coord[1]]), 
+                                        particle.circumscribing_sphere_radius(), 
+                                        linestyle='dashed', facecolor='none', edgecolor='k'))
 
                 if type(particle).__name__ == 'Spheroid':
                     width = 2 * particle.semi_axis_a
@@ -97,8 +102,9 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
 
 def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, save_animations=False, save_data=False,
                     outputdir='.', xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution_step=25, 
-                    interpolate_step=None, interpolation_order = 1, k_parallel='default', azimuthal_angles='default', 
-                    simulation=None, max_field=None, min_norm_field=None, max_particle_distance=float('inf')):
+                    interpolate_step=None, interpolation_order = 1, dpi=None, k_parallel='default', 
+                    azimuthal_angles='default', simulation=None, max_field=None, min_norm_field=None, 
+                    max_particle_distance=float('inf'), draw_circumscribing_sphere=True):
     """Plot the electric near field along a plane. To plot along the xy-plane, specify zmin=zmax and so on.
 
     Args:
@@ -135,7 +141,8 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         interpolate_step (float):    Use spline interpolation with that resolution to plot a smooth
                                      field (length unit, distance between computed points)
         interpolation_order (int):   Splines of that order are used to interpolate. Choose e.g. 1 for linear and 3 for
-                                     cubic spline interpolation.                                     
+                                     cubic spline interpolation.
+        dpi (scalar):           Resolution of saved images in dots per inch   
         k_parallel (numpy.ndarray or str):         in-plane wavenumbers for the plane wave expansion
                                                    if 'default', use smuthi.coordinates.default_k_parallel
         azimuthal_angles (numpy.ndarray or str):   azimuthal angles for the plane wave expansion
@@ -145,6 +152,8 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         min_norm_field (float):         If specified, truncate the color scale of the norm field plots below that value.
         max_particle_distance (float):  Show particles that are closer than that distance to the image plane (length
                                         unit, default = inf).
+        draw_circumscribing_sphere (bool): If true (default), draw a circle indicating the circumscribing sphere of 
+                                           particles.                    
     """
     sys.stdout.write("Compute near field ...\n")
     sys.stdout.flush()
@@ -319,13 +328,14 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         if not zmin == zmax:
             plot_layer_interfaces(dim1vec[0], dim1vec[-1], simulation.layer_system)
 
-        plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, simulation.particle_list, max_particle_distance)
+        plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, simulation.particle_list, max_particle_distance, 
+                       draw_circumscribing_sphere)
 
         plt.gca().set_aspect("equal")
 
         export_filename = outputdir + '/' + filename
         if save_plots:
-            plt.savefig(export_filename + '.png')
+            plt.savefig(export_filename + '.png', dpi=dpi)
             #plt.savefig(export_filename + '.pdf')
         if save_animations:
             if not 'norm' in quantity:
@@ -348,10 +358,11 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
                     plt.ylabel(dim2name)
                     if not zmin == zmax:
                         plot_layer_interfaces(dim1vec[0], dim1vec[-1], simulation.layer_system)
-                    plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, simulation.particle_list, max_particle_distance)
+                    plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, simulation.particle_list, max_particle_distance,
+                                   draw_circumscribing_sphere)
                     plt.gca().set_aspect("equal")
                     tempfig_filename = tempdir + '/temp_' + str(i_t) + '.png'
-                    plt.savefig(tempfig_filename)
+                    plt.savefig(tempfig_filename, dpi=dpi)
                     plt.close(tempfig)
                     images.append(imageio.imread(tempfig_filename))
                 imageio.mimsave(export_filename + '.gif', images, duration=0.1)
