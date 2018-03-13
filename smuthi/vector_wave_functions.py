@@ -124,12 +124,14 @@ def spherical_vector_wave_function(x, y, z, k, nu, tau, l, m):
     if nu == 1:
         bes = sf.spherical_bessel(l, kr)
         dxxz = sf.dx_xj(l, kr)
-        if r == 0:
-            bes_kr = (l == 1) / 3
-            dxxz_kr =  (l == 1) * 2 / 3
-        else:
-            bes_kr = bes / kr
-            dxxz_kr = dxxz / kr
+        bes_kr = np.zeros(kr.shape)
+        dxxz_kr = np.zeros(kr.shape)
+        zero = (r==0)
+        nonzero = np.logical_not(zero)
+        bes_kr[zero] = (l == 1) / 3
+        dxxz_kr[zero] =  (l == 1) * 2 / 3
+        bes_kr[nonzero] = (bes[nonzero] / kr[nonzero])
+        dxxz_kr[nonzero] = (dxxz[nonzero] / kr[nonzero])
     elif nu == 3:
         bes = sf.spherical_hankel(l, kr)
         dxxz = sf.dx_xh(l, kr)
