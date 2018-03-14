@@ -113,149 +113,149 @@ def taxsym_write_input_spheroid(vacuum_wavelength=None, layer_refractive_index=N
     if layer_refractive_index.imag:
         raise ValueError('Refractive index of surrounding medium  must be real(?)')
 
-    f = open(smuthi.nfmds.nfmds_folder + '/INPUTFILES/InputAXSYM.dat', 'w')
+    buffer = ('OptProp\n'
+    + str(float(vacuum_wavelength)) + '\n'
+    + str(float(layer_refractive_index.real)) + '\n'
+    '(' + str((particle_refractive_index / layer_refractive_index).real) + ','
+            + str((particle_refractive_index / layer_refractive_index).imag) + ')\n'
 
-    f.write('OptProp\n')
-    f.write(str(float(vacuum_wavelength)) + '\n')
-    f.write(str(float(layer_refractive_index.real)) + '\n')
-    f.write('(' + str((particle_refractive_index / layer_refractive_index).real) + ','
-            + str((particle_refractive_index / layer_refractive_index).imag) + ')\n')
+    'Variables:\n'
+    ' - wavelength - wavelength of the incident light in vacuo.\n'
+    ' - ind_refMed - refractive index of the ambient medium.\n'
+    ' - ind_refRel - relative refractive index of the particle.  \n'
 
-    f.write('Variables:\n')
-    f.write(' - wavelength - wavelength of the incident light in vacuo.\n')
-    f.write(' - ind_refMed - refractive index of the ambient medium.\n')
-    f.write(' - ind_refRel - relative refractive index of the particle.  \n')
+    '\n'
+    'MatProp\n'
+    '.false.\n'
+    '.false.\n'
+    '0.1\n'
 
-    f.write('\n')
-    f.write('MatProp\n')
-    f.write('.false.\n')
-    f.write('.false.\n')
-    f.write('0.1\n')
+    ' Variables:\n'
+    ' - perfectcond - if perfectcond = t, the particle is perfectly conducting.\n'
+    ' - chiral      - if chiral = t, the particle is optical active (chiral).\n'
+    ' - kb          - parameter of chirality.\n'
 
-    f.write(' Variables:\n')
-    f.write(' - perfectcond - if perfectcond = t, the particle is perfectly conducting.\n')
-    f.write(' - chiral      - if chiral = t, the particle is optical active (chiral).\n')
-    f.write(' - kb          - parameter of chirality.\n')
+    '\n'
+    'GeomProp\n'
+    '.false.\n'
+    "'../GEOMFILES/prolate.fem'\n"
+    '1\n'                          # TypeGeom = 1 for spheroid
+    '2\n'                          # Nsurf = 2 for spheroid
+    + str(float(semi_axis_c)) + '\n'        # half-height of spheroid
+    + str(float(semi_axis_a)) + '\n'       # half-width of spheroid
+    '1\n'                          # Nparam=1 for spheroid
+    '1.0\n'
+    '1.0\n'
+    '.false.\n'
 
-    f.write('\n')
-    f.write('GeomProp\n')
-    f.write('.false.\n')
-    f.write("'../GEOMFILES/prolate.fem'\n")
-    f.write('1\n')                          # TypeGeom = 1 for spheroid
-    f.write('2\n')                          # Nsurf = 2 for spheroid
-    f.write(str(float(semi_axis_c)) + '\n')        # half-height of spheroid
-    f.write(str(float(semi_axis_a)) + '\n')       # half-width of spheroid
-    f.write('1\n')                          # Nparam=1 for spheroid
-    f.write('1.0\n')
-    f.write('1.0\n')
-    f.write('.false.\n')
+    ' Variables:\n'
+    ' - FileGeom - if FileGeom = t, the particle geometry is supplied by the \n'
+    '              input file FileFEM. \n'
+    ' - FileFEM  - name of the file containing the particle geometry. \n'
+    ' - TypeGeom - parameter specifying the type of the particle geometry.\n'
+    ' - Nsurf	   - number of surface parameters. \n'
+    ' - surf(1)  - surface parameter.\n'
+    ' - ...  \n'
+    ' - surf(Nsurf  \n'
+    ' - Nparam   - number of smooth curves forming the generatrix curve.    \n'
+    ' - anorm    - characteristic length of the particle which is used to \n'
+    '              normalize the differential scattering cross sections.	 \n'
+    ' - Rcirc    - characteristic length of the particle for computing Nrank. \n'
+    ' - miror    - if miror = t, the particle is mirror symmetric.	            \n'
+    ' NOTE: FOR CHIRAL PARTICLES AND DISTRIBUTED SOURCES SET miror = f.\n'
 
-    f.write(' Variables:\n')
-    f.write(' - FileGeom - if FileGeom = t, the particle geometry is supplied by the \n')
-    f.write('              input file FileFEM. \n')
-    f.write(' - FileFEM  - name of the file containing the particle geometry. \n')
-    f.write(' - TypeGeom - parameter specifying the type of the particle geometry.\n')
-    f.write(' - Nsurf	   - number of surface parameters. \n')
-    f.write(' - surf(1)  - surface parameter.\n')
-    f.write(' - ...  \n')
-    f.write(' - surf(Nsurf)  \n')
-    f.write(' - Nparam   - number of smooth curves forming the generatrix curve.    \n')
-    f.write(' - anorm    - characteristic length of the particle which is used to \n')
-    f.write('              normalize the differential scattering cross sections.	 \n')
-    f.write(' - Rcirc    - characteristic length of the particle for computing Nrank. \n')
-    f.write(' - miror    - if miror = t, the particle is mirror symmetric.	            \n')
-    f.write(' NOTE: FOR CHIRAL PARTICLES AND DISTRIBUTED SOURCES SET miror = f.\n')
+    '\n'
+    'ConvTest\n'
+    '.false.\n'
+    '.false.\n'
 
-    f.write('\n')
-    f.write('ConvTest\n')
-    f.write('.false.\n')
-    f.write('.false.\n')
+    ' Variables:\n'
+    ' - DoConvTest   - if DoConvTest = t, the interactive convergence tests \n'
+    '                  over Nint and Nrank are performed.   \n'
+    ' - MishConvTest - if MishConvTest = t, estimates of Nint and Nrank are  \n'
+    '                  computed with the convergence criterion proposed by \n'
+    '                  Mishchenko.        \n'
+    ' NOTE: IF THE PARTICLE IS OPTICAL ACTIVE (chiral = t) OR THE PARTICLE\n'
+    ' GEOMETRY IS SUPPLIED BY THE FILE FileFEM (FileGeom = t), THE CODE SETS\n'
+    ' MishConvTest = f. IN FACT, MISHCHENKO''S CONVERGENCE TEST WILL BE \n'
+    ' PERFORMED IF (DS = f AND DoConvTest = t AND chiral = f AND FileGeom = f), \n'
+    ' OR (DS = t AND autGenDS = t AND DoConvTest = t AND chiral = f AND \n'
+    ' FileGeom = f).   \n'
 
-    f.write(' Variables:\n')
-    f.write(' - DoConvTest   - if DoConvTest = t, the interactive convergence tests \n')
-    f.write('                  over Nint and Nrank are performed.   \n')
-    f.write(' - MishConvTest - if MishConvTest = t, estimates of Nint and Nrank are  \n')
-    f.write('                  computed with the convergence criterion proposed by \n')
-    f.write('                  Mishchenko.        \n')
-    f.write(' NOTE: IF THE PARTICLE IS OPTICAL ACTIVE (chiral = t) OR THE PARTICLE\n')
-    f.write(' GEOMETRY IS SUPPLIED BY THE FILE FileFEM (FileGeom = t), THE CODE SETS\n')
-    f.write(' MishConvTest = f. IN FACT, MISHCHENKO''S CONVERGENCE TEST WILL BE \n')
-    f.write(' PERFORMED IF (DS = f AND DoConvTest = t AND chiral = f AND FileGeom = f), \n')
-    f.write(' OR (DS = t AND autGenDS = t AND DoConvTest = t AND chiral = f AND \n')
-    f.write(' FileGeom = f).   \n')
-
-    f.write('\n')
-    f.write('Sources\n')
+    '\n'
+    'Sources\n')
     if use_ds:
-        f.write('.true.\n')
+        buffer += '.true.\n'
     else:
-        f.write('.false.\n')
-    f.write('.true.\n')
+        buffer += '.false.\n'
+    buffer += ('.true.\n'
 
-    f.write(' Variables:\n')
-    f.write(' - DS       - if DS = t, distributed sources are used for T-matrix \n')
-    f.write('              calculation. 	\n')
-    f.write(' - autGenDS - if autGenDS = t, the coordinates of the distributed sources\n')
-    f.write('              are generated by the code.\n')
-    f.write(' NOTE: IF THE PARTICLE GEOMETRY IS READ FROM FILE (FileGeom = t),\n')
-    f.write(' THE CODE SETS autgenDS = f.                                 \n')
+    ' Variables:\n'
+    ' - DS       - if DS = t, distributed sources are used for T-matrix \n'
+    '              calculation. 	\n'
+    ' - autGenDS - if autGenDS = t, the coordinates of the distributed sources\n'
+    '              are generated by the code.\n'
+    ' NOTE: IF THE PARTICLE GEOMETRY IS READ FROM FILE (FileGeom = t),\n'
+    ' THE CODE SETS autgenDS = f.                                 \n'
 
-    f.write('\n')
-    f.write('SourcePosAut\n')
-    f.write('.true.\n')
-    f.write('0.95\n')
+    '\n'
+    'SourcePosAut\n'
+    '.true.\n'
+    '0.95\n'
 
-    f.write(' Variables: \n')
-    f.write(' - ComplexPlane - if ComplexPlane = t, the distributed sources are placed\n')
-    f.write('                  in the complex plane.\n')
-    f.write(' - EpsZReIm     - parameter controlling the distribution of the discrete \n')
-    f.write('                  sources.\n')
-    f.write(' NOTE: THESE VARIABLES MUST BE PROVIDED IF (DS = t AND autgenDS = t).\n')
+    ' Variables: \n'
+    ' - ComplexPlane - if ComplexPlane = t, the distributed sources are placed\n'
+    '                  in the complex plane.\n'
+    ' - EpsZReIm     - parameter controlling the distribution of the discrete \n'
+    '                  sources.\n'
+    ' NOTE: THESE VARIABLES MUST BE PROVIDED IF (DS = t AND autgenDS = t).\n'
 
-    f.write('\n')
-    f.write('NintNrank\n')
-    f.write(str(nint) + '\n')
-    f.write(str(nrank) + '\n')
+    '\n'
+    'NintNrank\n'
+    + str(nint) + '\n'
+    + str(nrank) + '\n'
 
-    f.write(' Variables: \n')
-    f.write(' - Nint  - number of integration points in computing integrals over the \n')
-    f.write('           generatrix curve.\n')
-    f.write(' - Nrank - maximum expansion order.  \n')
-    f.write(' NOTE: THESE VARIABLES MUST BE PROVIDED IF ((DoConvTest = f) OR \n')
-    f.write(' (DS = t AND autgenDS = f)).                  \n')
+    ' Variables: \n'
+    ' - Nint  - number of integration points in computing integrals over the \n'
+    '           generatrix curve.\n'
+    ' - Nrank - maximum expansion order.  \n'
+    ' NOTE: THESE VARIABLES MUST BE PROVIDED IF ((DoConvTest = f) OR \n'
+    ' (DS = t AND autgenDS = f)).                  \n'
 
-    f.write('\n')
-    f.write('Errors\n')
-    f.write('5.e-2\n')
-    f.write('5.e-2\n')
-    f.write('1.e-2\n')
-    f.write('4\n')
-    f.write('50\n')
-    f.write(' Variables:\n')
-    f.write(' - epsNint    - error tolerance for the integration test.    \n')
-    f.write(' - epsNrank   - error tolerance for the expansion order test.  \n')
-    f.write(' - epsMrank   - error tolerance for the azimuthal order test.  \n')
-    f.write(' - dNint	     - number of division points for the integration test \n')
-    f.write('                and Mishchenko''s convergence test.   \n')
-    f.write(' - dNintMrank - number of division points for azimuthal mode \n')
-    f.write('                calculation.\n')
+    '\n'
+    'Errors\n'
+    '5.e-2\n'
+    '5.e-2\n'
+    '1.e-2\n'
+    '4\n'
+    '50\n'
+    ' Variables:\n'
+    ' - epsNint    - error tolerance for the integration test.    \n'
+    ' - epsNrank   - error tolerance for the expansion order test.  \n'
+    ' - epsMrank   - error tolerance for the azimuthal order test.  \n'
+    ' - dNint	     - number of division points for the integration test \n'
+    '                and Mishchenko''s convergence test.   \n'
+    ' - dNintMrank - number of division points for azimuthal mode \n'
+    '                calculation.\n'
 
-    f.write('\n')
-    f.write('Tmat\n')
-    f.write("'../TMATFILES/" + filename + "'\n")
-    f.write(' Variable:\n')
-    f.write(' - FileTmat - name of the file to which the T matrix is written.  \n')
+    '\n'
+    'Tmat\n'
+    "'../TMATFILES/" + filename + "'\n"
+    ' Variable:\n'
+    ' - FileTmat - name of the file to which the T matrix is written.  \n'
 
-    f.write('\n')
-    f.write('PrintProgress\n')
-    f.write('.false.\n')
-    f.write(' Variable:\n')
-    f.write(' - PrnProgress - if PrnProgress = t, the progress of calculation \n')
-    f.write('                 is printed. \n')
+    '\n'
+    'PrintProgress\n'
+    '.false.\n'
+    ' Variable:\n'
+    ' - PrnProgress - if PrnProgress = t, the progress of calculation \n'
+    '                 is printed. \n'
 
-    f.write(' Comment\n')
-    f.write(' This file was generated by the routine smuthi.nfmds_wrappers.taxsym_write_input_spheroid \n')
+    ' Comment\n'
+    ' This file was generated by the routine smuthi.nfmds_wrappers.taxsym_write_input_spheroid \n')
 
+    f = open(smuthi.nfmds.nfmds_folder + '/INPUTFILES/InputAXSYM.dat', 'w')
+    f.write(buffer)
     f.close()
 
 
@@ -280,149 +280,149 @@ def taxsym_write_input_cylinder(vacuum_wavelength=None, layer_refractive_index=N
     if layer_refractive_index.imag:
         raise ValueError('Refractive index of surrounding medium  must be real(?)')
 
-    f = open(smuthi.nfmds.nfmds_folder + '/INPUTFILES/InputAXSYM.dat', 'w')
+    buffer = ('OptProp\n'
+    + str(float(vacuum_wavelength)) + '\n'
+    + str(float(layer_refractive_index.real)) + '\n'
+    '(' + str((particle_refractive_index / layer_refractive_index).real) + ','
+            + str((particle_refractive_index / layer_refractive_index).imag) + ')\n'
 
-    f.write('OptProp\n')
-    f.write(str(float(vacuum_wavelength)) + '\n')
-    f.write(str(float(layer_refractive_index.real)) + '\n')
-    f.write('(' + str((particle_refractive_index / layer_refractive_index).real) + ','
-            + str((particle_refractive_index / layer_refractive_index).imag) + ')\n')
+    'Variables:\n'
+    ' - wavelength - wavelength of the incident light in vacuo.\n'
+    ' - ind_refMed - refractive index of the ambient medium.\n'
+    ' - ind_refRel - relative refractive index of the particle.  \n'
 
-    f.write('Variables:\n')
-    f.write(' - wavelength - wavelength of the incident light in vacuo.\n')
-    f.write(' - ind_refMed - refractive index of the ambient medium.\n')
-    f.write(' - ind_refRel - relative refractive index of the particle.  \n')
+    '\n'
+    'MatProp\n'
+    '.false.\n'
+    '.false.\n'
+    '0.1\n'
 
-    f.write('\n')
-    f.write('MatProp\n')
-    f.write('.false.\n')
-    f.write('.false.\n')
-    f.write('0.1\n')
+    ' Variables:\n'
+    ' - perfectcond - if perfectcond = t, the particle is perfectly conducting.\n'
+    ' - chiral      - if chiral = t, the particle is optical active chiral.\n'
+    ' - kb          - parameter of chirality.\n'
 
-    f.write(' Variables:\n')
-    f.write(' - perfectcond - if perfectcond = t, the particle is perfectly conducting.\n')
-    f.write(' - chiral      - if chiral = t, the particle is optical active (chiral).\n')
-    f.write(' - kb          - parameter of chirality.\n')
+    '\n'
+    'GeomProp\n'
+    '.false.\n'
+    "'../GEOMFILES/prolate.fem'\n"
+    '2\n'                          # TypeGeom=2 for cylinder
+    '2\n'                          # Nsurf=2 for cylinder
+    + str(float(cylinder_height / 2)) + '\n'        # half-height of cylinder
+    + str(float(cylinder_radius)) + '\n'       # radius of cylinder
+    '3\n'                          # Nparam=3 for cylinder
+    '1.0\n'
+    '1.0\n'
+    '.false.\n'
 
-    f.write('\n')
-    f.write('GeomProp\n')
-    f.write('.false.\n')
-    f.write("'../GEOMFILES/prolate.fem'\n")
-    f.write('2\n')                          # TypeGeom=2 for cylinder
-    f.write('2\n')                          # Nsurf=2 for cylinder
-    f.write(str(float(cylinder_height / 2)) + '\n')        # half-height of cylinder
-    f.write(str(float(cylinder_radius)) + '\n')       # radius of cylinder
-    f.write('3\n')                          # Nparam=3 for cylinder
-    f.write('1.0\n')
-    f.write('1.0\n')
-    f.write('.false.\n')
+    ' Variables:\n'
+    ' - FileGeom - if FileGeom = t, the particle geometry is supplied by the \n'
+    '              input file FileFEM. \n'
+    ' - FileFEM  - name of the file containing the particle geometry. \n'
+    ' - TypeGeom - parameter specifying the type of the particle geometry.\n'
+    ' - Nsurf	   - number of surface parameters. \n'
+    ' - surf1  - surface parameter.\n'
+    ' - ...  \n'
+    ' - surfNsurf  \n'
+    ' - Nparam   - number of smooth curves forming the generatrix curve.    \n'
+    ' - anorm    - characteristic length of the particle which is used to \n'
+    '              normalize the differential scattering cross sections.	 \n'
+    ' - Rcirc    - characteristic length of the particle for computing Nrank. \n'
+    ' - miror    - if miror = t, the particle is mirror symmetric.	            \n'
+    ' NOTE: FOR CHIRAL PARTICLES AND DISTRIBUTED SOURCES SET miror = f.\n'
 
-    f.write(' Variables:\n')
-    f.write(' - FileGeom - if FileGeom = t, the particle geometry is supplied by the \n')
-    f.write('              input file FileFEM. \n')
-    f.write(' - FileFEM  - name of the file containing the particle geometry. \n')
-    f.write(' - TypeGeom - parameter specifying the type of the particle geometry.\n')
-    f.write(' - Nsurf	   - number of surface parameters. \n')
-    f.write(' - surf(1)  - surface parameter.\n')
-    f.write(' - ...  \n')
-    f.write(' - surf(Nsurf)  \n')
-    f.write(' - Nparam   - number of smooth curves forming the generatrix curve.    \n')
-    f.write(' - anorm    - characteristic length of the particle which is used to \n')
-    f.write('              normalize the differential scattering cross sections.	 \n')
-    f.write(' - Rcirc    - characteristic length of the particle for computing Nrank. \n')
-    f.write(' - miror    - if miror = t, the particle is mirror symmetric.	            \n')
-    f.write(' NOTE: FOR CHIRAL PARTICLES AND DISTRIBUTED SOURCES SET miror = f.\n')
+    '\n'
+    'ConvTest\n'
+    '.false.\n'
+    '.false.\n'
 
-    f.write('\n')
-    f.write('ConvTest\n')
-    f.write('.false.\n')
-    f.write('.false.\n')
+    ' Variables:\n'
+    ' - DoConvTest   - if DoConvTest = t, the interactive convergence tests \n'
+    '                  over Nint and Nrank are performed.   \n'
+    ' - MishConvTest - if MishConvTest = t, estimates of Nint and Nrank are  \n'
+    '                  computed with the convergence criterion proposed by \n'
+    '                  Mishchenko.        \n'
+    ' NOTE: IF THE PARTICLE IS OPTICAL ACTIVE (chiral = t) OR THE PARTICLE\n'
+    ' GEOMETRY IS SUPPLIED BY THE FILE FileFEM (FileGeom = t), THE CODE SETS\n'
+    ' MishConvTest = f. IN FACT, MISHCHENKO''S CONVERGENCE TEST WILL BE \n'
+    ' PERFORMED IF (DS = f AND DoConvTest = t AND chiral = f AND FileGeom = f), \n'
+    ' OR (DS = t AND autGenDS = t AND DoConvTest = t AND chiral = f AND \n'
+    ' FileGeom = f).   \n'
 
-    f.write(' Variables:\n')
-    f.write(' - DoConvTest   - if DoConvTest = t, the interactive convergence tests \n')
-    f.write('                  over Nint and Nrank are performed.   \n')
-    f.write(' - MishConvTest - if MishConvTest = t, estimates of Nint and Nrank are  \n')
-    f.write('                  computed with the convergence criterion proposed by \n')
-    f.write('                  Mishchenko.        \n')
-    f.write(' NOTE: IF THE PARTICLE IS OPTICAL ACTIVE (chiral = t) OR THE PARTICLE\n')
-    f.write(' GEOMETRY IS SUPPLIED BY THE FILE FileFEM (FileGeom = t), THE CODE SETS\n')
-    f.write(' MishConvTest = f. IN FACT, MISHCHENKO''S CONVERGENCE TEST WILL BE \n')
-    f.write(' PERFORMED IF (DS = f AND DoConvTest = t AND chiral = f AND FileGeom = f), \n')
-    f.write(' OR (DS = t AND autGenDS = t AND DoConvTest = t AND chiral = f AND \n')
-    f.write(' FileGeom = f).   \n')
-
-    f.write('\n')
-    f.write('Sources\n')
+    '\n'
+    'Sources\n')
     if use_ds:
-        f.write('.true.\n')
+        buffer += '.true.\n'
     else:
-        f.write('.false.\n')
-    f.write('.true.\n')
+        buffer += '.false.\n'
+    buffer += ('.true.\n'
 
-    f.write(' Variables:\n')
-    f.write(' - DS       - if DS = t, distributed sources are used for T-matrix \n')
-    f.write('              calculation. 	\n')
-    f.write(' - autGenDS - if autGenDS = t, the coordinates of the distributed sources\n')
-    f.write('              are generated by the code.\n')
-    f.write(' NOTE: IF THE PARTICLE GEOMETRY IS READ FROM FILE (FileGeom = t),\n')
-    f.write(' THE CODE SETS autgenDS = f.                                 \n')
+    ' Variables:\n'
+    ' - DS       - if DS = t, distributed sources are used for T-matrix \n'
+    '              calculation. 	\n'
+    ' - autGenDS - if autGenDS = t, the coordinates of the distributed sources\n'
+    '              are generated by the code.\n'
+    ' NOTE: IF THE PARTICLE GEOMETRY IS READ FROM FILE (FileGeom = t),\n'
+    ' THE CODE SETS autgenDS = f.                                 \n'
 
-    f.write('\n')
-    f.write('SourcePosAut\n')
-    f.write('.true.\n')
-    f.write('0.95\n')
+    '\n'
+    'SourcePosAut\n'
+    '.true.\n'
+    '0.95\n'
 
-    f.write(' Variables: \n')
-    f.write(' - ComplexPlane - if ComplexPlane = t, the distributed sources are placed\n')
-    f.write('                  in the complex plane.\n')
-    f.write(' - EpsZReIm     - parameter controlling the distribution of the discrete \n')
-    f.write('                  sources.\n')
-    f.write(' NOTE: THESE VARIABLES MUST BE PROVIDED IF (DS = t AND autgenDS = t).\n')
+    ' Variables: \n'
+    ' - ComplexPlane - if ComplexPlane = t, the distributed sources are placed\n'
+    '                  in the complex plane.\n'
+    ' - EpsZReIm     - parameter controlling the distribution of the discrete \n'
+    '                  sources.\n'
+    ' NOTE: THESE VARIABLES MUST BE PROVIDED IF (DS = t AND autgenDS = t).\n'
 
-    f.write('\n')
-    f.write('NintNrank\n')
-    f.write(str(nint) + '\n')
-    f.write(str(nrank) + '\n')
+    '\n'
+    'NintNrank\n'
+    + str(nint) + '\n'
+    + str(nrank) + '\n'
 
-    f.write(' Variables: \n')
-    f.write(' - Nint  - number of integration points in computing integrals over the \n')
-    f.write('           generatrix curve.\n')
-    f.write(' - Nrank - maximum expansion order.  \n')
-    f.write(' NOTE: THESE VARIABLES MUST BE PROVIDED IF ((DoConvTest = f) OR \n')
-    f.write(' (DS = t AND autgenDS = f)).                  \n')
+    ' Variables: \n'
+    ' - Nint  - number of integration points in computing integrals over the \n'
+    '           generatrix curve.\n'
+    ' - Nrank - maximum expansion order.  \n'
+    ' NOTE: THESE VARIABLES MUST BE PROVIDED IF ((DoConvTest = f) OR \n'
+    ' (DS = t AND autgenDS = f)).                  \n'
 
-    f.write('\n')
-    f.write('Errors\n')
-    f.write('5.e-2\n')
-    f.write('5.e-2\n')
-    f.write('1.e-2\n')
-    f.write('4\n')
-    f.write('50\n')
-    f.write(' Variables:\n')
-    f.write(' - epsNint    - error tolerance for the integration test.    \n')
-    f.write(' - epsNrank   - error tolerance for the expansion order test.  \n')
-    f.write(' - epsMrank   - error tolerance for the azimuthal order test.  \n')
-    f.write(' - dNint	     - number of division points for the integration test \n')
-    f.write('                and Mishchenko''s convergence test.   \n')
-    f.write(' - dNintMrank - number of division points for azimuthal mode \n')
-    f.write('                calculation.\n')
+    '\n'
+    'Errors\n'
+    '5.e-2\n'
+    '5.e-2\n'
+    '1.e-2\n'
+    '4\n'
+    '50\n'
+    ' Variables:\n'
+    ' - epsNint    - error tolerance for the integration test.    \n'
+    ' - epsNrank   - error tolerance for the expansion order test.  \n'
+    ' - epsMrank   - error tolerance for the azimuthal order test.  \n'
+    ' - dNint	     - number of division points for the integration test \n'
+    '                and Mishchenko''s convergence test.   \n'
+    ' - dNintMrank - number of division points for azimuthal mode \n'
+    '                calculation.\n'
 
-    f.write('\n')
-    f.write('Tmat\n')
-    f.write("'../TMATFILES/" + filename + "'\n")
-    f.write(' Variable:\n')
-    f.write(' - FileTmat - name of the file to which the T matrix is written.  \n')
+    '\n'
+    'Tmat\n'
+    "'../TMATFILES/" + filename + "'\n"
+    ' Variable:\n'
+    ' - FileTmat - name of the file to which the T matrix is written.  \n'
 
-    f.write('\n')
-    f.write('PrintProgress\n')
-    f.write('.false.\n')
-    f.write(' Variable:\n')
-    f.write(' - PrnProgress - if PrnProgress = t, the progress of calculation \n')
-    f.write('                 is printed. \n')
+    '\n'
+    'PrintProgress\n'
+    '.false.\n'
+    ' Variable:\n'
+    ' - PrnProgress - if PrnProgress = t, the progress of calculation \n'
+    '                 is printed. \n'
 
-    f.write(' Comment\n')
-    f.write(' This file was generated by the routine smuthi.nfmds_wrappers.taxsym_write_input_spheroid \n')
+    ' Comment\n'
+    ' This file was generated by the routine smuthi.nfmds_wrappers.taxsym_write_input_spheroid \n')
 
+    f = open(smuthi.nfmds.nfmds_folder + '/INPUTFILES/InputAXSYM.dat', 'w')
+    f.write(buffer)
     f.close()
 
 
