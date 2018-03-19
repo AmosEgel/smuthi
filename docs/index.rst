@@ -14,8 +14,24 @@ Contents
    :maxdepth: 1
 
    about_smuthi
-   gallery
+
+.. toctree::
+   :maxdepth: 1
+
    installation
+
+.. toctree::
+   :maxdepth: 1
+
    run_smuthi
-   input_files
+
+.. toctree::
+   :maxdepth: 1
+
    smuthi_api
+
+.. toctree::
+   :maxdepth: 1
+
+   gallery
+

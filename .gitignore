@@ -12,7 +12,6 @@ build/
 NFM*.exe
 data/
 nfmds_*
-scripts/
 *smuthi_output*
 .project
 .pydevproject
@@ -22,3 +21,5 @@ scripts/
 *.lprof
 *_nfmds_installation_path.txt
 *~
+scripts/*
+!scripts/tutorials

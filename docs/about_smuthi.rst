@@ -2,117 +2,136 @@ About Smuthi
 ===============
 
 Smuthi stands for 'scattering by multiple particles in thin-film systems'.
-The software allows you to solve light scattering problems involving
+It is a Python software that allows to solve light scattering problems involving
 one ore multiple particles near or inside a system of planar layer interfaces.
-It is based on the T-matrix method for the single particle scattering,
-and on the scattering-matrix method for the propagation through the layered medium.
 
 .. image:: images/drawing.png
    :scale: 40%
    :align: center
 
-The software solves Maxwell's equations (3D wave optics) in frequency domain (one wavelength per simulation).
-An arbitrary number of spheres, spheroids and finite cylinders inside an arbitrary system of plane parallel layers can
-be modelled. For spheres, the T-matrix is given by the Mie-coefficients. For spheroids and finite cylinders, Smuthi
-calls the
-`NFM-DS <https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds>`_,
-to compute the single particle T-matrix. This is a Fortran software package written by A. Doicu, T. Wriedt and Y. Eremin, based on the "Null-field method with
-discrete sources".
-
-As the initial excitation, Smuthi supports plane waves, Gaussian beams and single or multiple point dipole sources.
-
-You can compute the 3D electric near field along a cut plane and save it in the form of ascii data files,
-png images or animations. The dashed circles around the particles are a reminder that inside the circumscribing sphere
-of the particles, the computed near fields cannot be trusted.
-
-.. image:: images/norm_E.png
-   :scale: 52 %
-
-.. image:: images/E_y.gif
-   :scale: 52 %
-
-In the above example, the initial field is given by a
-plane wave incident from below.
-
-.. image:: images/norm_E_scat_gauss.png
-   :scale: 52 %
-
-.. image:: images/E_y_gauss.gif
-   :scale: 52 %
-
-The above images show an oblique Gaussian beam hitting a layer with particles under a reflective metal layer. The left
-image shows the norm of the scattered field, whereas the right image shows an animation of the y-component of the total
-field. One can see how the scattering couples some of the light into waveguide modes.
-
-.. image:: images/norm_E_scat_dipole.png
-   :scale: 52 %
-
-.. image:: images/E_y_dipole.gif
-   :scale: 52 %
-
-These images show the field from a dipole source between a collection of scattering particles. Again, the left shows the
-norm of the scattered field, whereas the right shows an animation of the y-component of the total field.
+It solves the Maxwell equations (3D wave optics) in frequency domain (one wavelength per simulation).
 
 
-Far fields
------------
+Simulation method
+------------------
 
-In addition, the far field power flux can be evaluated.
+Smuthi is based on the T-matrix method for the single particle scattering and on the scattering-matrix method for the propagation through the layered medium. This combination of methods is described in the following papers:
 
-- For Gaussian beams, the far field power can be related to the initial field power to evaluate reflection or
-  transmission figures versus absorption and incoupling into waveguide modes.
-- For dipole sources,  the outcoupling efficiency can be
-  studied.
-- For plane wave incidence, the far field is normalized by the incoming wave's intensity to yield the
-  `differential cross section <https://en.wikipedia.org/wiki/Cross_section_(physics)#Differential_cross_section>`_.
+  - `Egel, Amos, and Uli Lemmer. JQSRT 148 (2014): 165-176. <https://www.sciencedirect.com/science/article/pii/S0022407314002829?via%3Dihub>`_
+  - `Egel, Amos, Siegfried W. Kettlitz, and Uli Lemmer. JOSA A 33.4 (2016): 698-706. <https://www.osapublishing.org/josaa/abstract.cfm?uri=josaa-33-4-698>`_
+  - Egel, Amos: PhD thesis (in preparation)
 
-.. image:: images/bottom_dcs.png
-   :scale: 52 %
+For spheres, the T-matrix of the individual particles is given by the Mie-coefficients. 
+For spheroids and finite cylinders, Smuthi calls the 
+`NFM-DS <https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds>`_
+to compute the single particle T-matrix. This is a Fortran software package written by 
+A. Doicu, T. Wriedt and Y. Eremin, based on the "Null-field method with discrete sources", see
 
-.. image:: images/bottom_polar_dcs.png
-   :scale: 52 %
+  - `Doicu, Adrian, Thomas Wriedt, and Yuri A. Eremin. Light scattering by systems of particles: null-field method with discrete sources: theory and programs. Vol. 124. Springer, 2006. <http://www.springer.com/us/book/9783540336969>`_
 
-The above images show the 2D differential cross section in the bottom layer of the same simulation to which also the
-first near field images above belong. The cross section is displayed as a polar plot (left) and its azimuthal integral
-as a function of the polar angle only (right),
 
-.. math:: \mathrm{DCS}_\mathrm{polar}(\beta) = \int \mathrm{d} \alpha \, \sin\beta \, \mathrm{DCS}(\beta, \alpha)
+Performance critical parts of the software are implemented in CUDA. When dealing with a large number of particles, Smuthi can benefit from a substantial acceleration if a suitable (NVIDIA) GPU is available.
 
-where :math:`(\alpha,\beta)` are the azimuthal and polar angle, respectively.
+For CPU-only execution, other acceleration concepts (including MPI parallelization, Numba JIT compilation) are currently tested. 
 
-The sharp feature around 40° in the example relates to total internal reflection at the interface between media 2 and 3.
 
-Further, Smuthi also returns the extinction cross sections for the reflected and the transmitted wave. For the
-scattering of a plane wave by particles in a homogeneous medium, the extinction cross section is usually defined as the
-sum of total scattering and absorption cross section.
+Range of applications
+----------------------
 
-In Smuthi, we instead use what is usually referred to as the
-`optical theorem <https://en.wikipedia.org/wiki/Optical_theorem>`_ to define extinction. That means, the extinction
-cross section for reflection (transmission) refers to the destructive interference of the scattered signal with the
-specular reflection (transmission) of the initial wave. It thereby includes absorption in the particles, scattering,
-and a modified absorption by the layer system, e.g. through incoupling into waveguide modes. If the particles lead to,
-say, a higher reflection than the bare layer system without particles, the extinction can also be negative.
+Smuthi can be applied to any scattering problem in frequency domain involving
 
-**Acknowledgments and contact information**
+  - a system of plane parallel layer interfaces separating an arbitrary number of metallic or dielectric layers.
 
-Smuthi is maintained by `Amos Egel <https://www.lti.kit.edu/mitarbeiter_5812.php>`_. Please contact me for questions,
-feature requests or if you would like to contribute.
+  - an arbitrary number of wavelength-scale scattering particles (currently available: spheres, spheroids, finite cylinders). The particles can be metallic or dielectric and rotated to an arbitrary orientation.
 
-The software is licensed under the `MIT license <https://en.wikipedia.org/wiki/MIT_License>`_ and includes contributions
-from the following persons:
+  - an initial field in form of a plane wave, a beam (currently available: beam with Gaussian xy-profile) or a collection of dipole sources
 
-   - Dominik Theobald implemented functions for the simulation of particles with arbitrary orientation and for plane 
-     wave based particle coupling for non-spherical particles with overlapping circumscribing spheres.
+Thus, the range of applications spans from scattering by a single particle on a substrate to scattering by several thousand particles inside a planarly layered medium. For a number of examplary simulations, see the :doc:`examples<gallery>` section.
+
+
+Simulation output
+------------------
+
+Smuthi can compute
+
+  - the 3D electric field, for example along a cut plane and save it in the form of 
+
+       - ascii data files
+       - png images or
+       - gif animations. 
+
+  - the far field power flux of the total field, the initial field or the scattered field. 
+    For plane wave excitation, it can be processed to the form of 
+    :doc:`differential scattering and extinction cross sections<cross_sections>`.
+
+  - For dipole sources, the dissipated power can be computed (Purcell effect).
+
+
+Current limitations
+---------------------
+
+The following issues need to be considered when applying Smuthi:
+
+  - Particles must not intersect with each other or with layer interfaces.
+  - Magnetic or anisotropic materials are currently not supported.
+  - The method is in principle valid for a wide range of particle sizes -  
+    however, the numerical validity has only been tested for particle diameters up to around one wavelength.
+    For larger particles, note that the number of multipole terms in the spherical wave expansion 
+    grows with the particle size. For further details, see the 
+    :doc:`hints for the selection of the multipole truncation order <simulation_guidelines>`.
+  - Smuthi does not provide error checking of user input, nor does it check if 
+    numerical parameters specified by the user are sufficient for accurate 
+    simulation results. It is thus required that the user develops some 
+    understanding of the influence of various numerical parameters on the 
+    validity of the results. 
+    See the :doc:`simulation guidelines <simulation_guidelines>`.
+  - A consequence of using the T-matrix method is that the electric field inside the circumscribing
+    sphere of a particle cannot be correctly computed, see for example `Auguié et al. (2016) <https://doi.org/10.1088/2040-8978/18/7/075007>`_. 
+    In the electric field plots, the circumscribing sphere is displayed as a dashed circle around the particle
+    as a reminder that there, the computed near fields cannot be trusted.
+  - Particles with initersecting circumscribing spheres can lead to incorrect results. 
+    The use of Smuthi is therefore limited to geometries with particles that have disjoint circumscribing spheres.
+  - If particles are located near interfaces, such that the circumscribing shere of the particle intersects the 
+    interface, a correct simulation result can in principle be achieved. However, special care has to be taken
+    regarding the selection of the truncation of the spherical and plane wave expansion, see
+    the :doc:`hints for the selection of the wavenumber truncation<simulation_guidelines>`. 
+
+
+License
+-------
+
+The software is licensed under the `MIT license <https://en.wikipedia.org/wiki/MIT_License>`_.
+
+
+Contact
+---------
+
+Smuthi was written and is maintained by Amos Egel. Email to |emailpic| for questions, feature requests or if you would like to contribute.
+
+.. |emailpic| image:: images/email.png
+
+
+Acknowledgments
+---------------
+
+Smuthi includes contributions from the following persons:
+
    - Adrian Doicu, Thomas Wriedt and Yuri Eremin through the
      `NFM-DS <https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds>`_ package, a copy of which
      is distributed with Smuthi.
+   - Dominik Theobald implemented functions for the simulation of particles with arbitrary orientation. 
+     He currently works on the implementation of a plane wave based particle coupling for non-spherical particles 
+     with overlapping circumscribing spheres.
+   - Konstantin Ladutenko with many useful additions, including example simulations, smoother input/output, 
+     support of MPI parallel computing (currently in construction) and the option of permanent NFM-DS installation folder.
 
 Big thanks go to Lorenzo Pattelli for designing the Smuthi logo.
 
-Ilia Rasskazov and Konstantin Ladutenko have helped with useful comments and bug reports.
+Ilia Rasskazov has helped with useful comments and bug reports.
 
-The creation of Smuthi was funded by the `DFG <http://www.dfg.de/>`_ through the research project
-`LAMBDA <http://gepris.dfg.de/gepris/projekt/278746617>`_ within the priority programme
-`tailored disorder <http://gepris.dfg.de/gepris/projekt/255652081>`_.
+The creation of Smuthi was supervised by Uli Lemmer and Guillaume Gomard during the research project
+`LAMBDA <http://gepris.dfg.de/gepris/projekt/278746617>`_, funded by the `DFG <http://www.dfg.de/>`_ 
+in the priority programme `tailored disorder <http://gepris.dfg.de/gepris/projekt/255652081>`_.
+
 
 
