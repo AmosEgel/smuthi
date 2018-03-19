@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import smuthi.optical_constants as smoc
+import os
 
-from_WL = 500 # nm
-to_WL = 800 # nm
+from_wl = 500 # nm
+to_wl = 800 # nm
 total_points = 11;
-WLs = np.linspace(from_WL, to_WL, total_points)
+WLs = np.linspace(from_wl, to_wl, total_points)
 single_WL = 600 # nm
-test_data_path = "../data/"
+test_data_path = os.path.dirname(__file__) + "/../data/"
 test_data_files = ["Si-Green-1995-test.yml",  # Should rise an error, data
-                                         # type "tabulated n" is not
-                                         # implemented
+                                              # type "tabulated n" is not
+                                              # implemented
                    "Au-Johnson-test.yml"]
 
 def test_yaml_read():

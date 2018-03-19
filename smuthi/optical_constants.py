@@ -6,14 +6,14 @@ import numpy as np
 import yaml
 
 
-def read_refractive_index_from_yaml(filename, WLs, units="mkm", kind=1):
+def read_refractive_index_from_yaml(filename, vacuum_wavelength, units="mkm", kind=1):
     """Read optical constants in format provided by refractiveindex.info website.
 
     Args:
             filename (str): path and file name for yaml data
                             downloaded from refractiveindex.info
-            WLs (float or np.array): wavelengths where refractive
-                                     index data is needed
+            vacuum_wavelength (float or np.array): wavelengths where refractive
+                                                   index data is needed
             units (str): units for wavelength. currently, microns ('mkm' or 'um')
                          and nanometers ('nm') can be selected
             kind (int): order of interpolation
@@ -48,12 +48,12 @@ def read_refractive_index_from_yaml(filename, WLs, units="mkm", kind=1):
             record.append(float(val))
         data_num.append(record)
     data_np = np.array(data_num)
-    data_WL = data_np[:,0]*factor
-    epsRe = data_np[:,1]
-    epsIm = data_np[:,2]
-    fRe = interp1d(data_WL, epsRe, kind=kind)
-    fIm = interp1d(data_WL, epsIm, kind=kind)
-    data_out = np.transpose(np.vstack((WLs, fRe(WLs)+fIm(WLs)*1j)))
+    data_wl = data_np[:,0]*factor
+    eps_re = data_np[:,1]
+    eps_im = data_np[:,2]
+    f_re = interp1d(data_wl, eps_re, kind=kind)
+    f_im = interp1d(data_wl, eps_im, kind=kind)
+    data_out = np.transpose(np.vstack((vacuum_wavelength, f_re(vacuum_wavelength)+f_im(vacuum_wavelength)*1j)))
     if len(data_out) == 1:
         return data_out[0]
     return data_out
