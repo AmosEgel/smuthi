@@ -10,6 +10,7 @@ import pkg_resources
 import datetime
 import shutil
 import pickle
+import numpy as np
 
 
 class Simulation:
@@ -43,7 +44,7 @@ class Simulation:
                  k_parallel='default', solver_type='LU', solver_tolerance=1e-4, store_coupling_matrix=True,
                  coupling_matrix_lookup_resolution=None, coupling_matrix_interpolator_kind='linear',
                  length_unit='length unit', input_file=None, output_dir='smuthi_output', save_after_run=False,
-                 log_to_file=True, log_to_terminal=True):
+                 log_to_file=False, log_to_terminal=True):
 
         # initialize attributes
         self.layer_system = layer_system
@@ -120,6 +121,16 @@ class Simulation:
     def run(self):
         """Start the simulation."""
         self.print_simulation_header()
+        
+        # check if default contour exists, otherwise set a contour
+        if coord.default_k_parallel is None:
+            neff_resolution = 5e-3
+            neff_max = max(np.array(self.layer_system.refractive_indices).real) + 1
+            neff_imag = 5e-2
+            coord.set_default_k_parallel(vacuum_wavelength=self.initial_field.vacuum_wavelength, 
+                                         neff_resolution=neff_resolution, 
+                                         neff_max=neff_max, 
+                                         neff_imag=neff_imag)
         
         self.initialize_linear_system()
         self.linear_system.prepare()

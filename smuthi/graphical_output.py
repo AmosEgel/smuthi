@@ -484,7 +484,7 @@ def show_far_field(far_field, save_plots, show_plots, save_data=False, tag='far_
         plt.plot(far_field.polar_angles * 180 / np.pi, np.sum(far_field.azimuthal_integral(), axis=0) * np.pi / 180)
 
     plt.xlabel('polar angle (degree)')
-    if far_field.signal_type == 'differential cross section':
+    if far_field.signal_type == 'differential scattering cross section':
         plt.ylabel('d_CS/d_beta')
     elif far_field.signal_type == 'intensity':
         plt.ylabel('d_P/d_beta')
