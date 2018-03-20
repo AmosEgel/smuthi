@@ -13,7 +13,7 @@ computational effort, please consider the
 
 Python scripting
 -----------------
-In the :doc:`examples <gallery>` section you can find a number of example 
+In the :doc:`examples <examples>` section you can find a number of example 
 scripts that illustrate the use of Smuthi. Edit and run these scripts to get a 
 quick start.
 

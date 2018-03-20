@@ -1,7 +1,13 @@
 #*****************************************************************************#
-# This is a simple example script how to run Smuthi.                          #
-# It evaluates the differential scattering cross section of a glass sphere on #
-# a glass substrate, excited by a plane wave under normal incidence.          #
+# This example script is an advanced version of the "dielectric sphere on a   #
+# substrate" script. It demonstrates how Smuthi can be used to moldel TIR     #
+# scattering microscopy (TIRSM).                                              #
+#                                                                             #
+# The purpose of this example is to study how the scattering signal from a    #
+# plasmonic sphere on a glass substrate, excited by a totally reflected wave  #
+# incident from the substrate side and collected by an objective with a given #
+# numerical aperture depends on the wavelength of the incident wave and on    #
+# the distance of the sphere to the substate surface.                         #
 #*****************************************************************************#
 
 import numpy as np

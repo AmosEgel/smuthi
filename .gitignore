@@ -22,4 +22,4 @@ nfmds_*
 *_nfmds_installation_path.txt
 *~
 scripts/*
-!scripts/tutorials
+examples/*/output

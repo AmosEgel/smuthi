@@ -50,7 +50,7 @@ def read_input_yaml(filename):
     
     # initialize simulation
     lookup_resolution = input_data.get('coupling matrix lookup resolution', None)
-    if lookup_resolution <= 0:
+    if lookup_resolution is not None and lookup_resolution <= 0:
         lookup_resolution = None
 
     simulation = smuthi.simulation.Simulation(solver_type=input_data.get('solver type', 'LU'),
@@ -116,7 +116,7 @@ def read_input_yaml(filename):
             n = (float(prtcl['refractive index']) + 1j * float(prtcl['extinction coefficient']))
             pos = [float(prtcl['position'][0]), float(prtcl['position'][1]), float(prtcl['position'][2])]
             l_max = int(prtcl['l_max'])
-            m_max = int(prtcl['m_max'])
+            m_max = int(prtcl.get('m_max', l_max))
             if prtcl['shape'] == 'sphere':
                 r = float(prtcl['radius'])
                 particle_list.append(part.Sphere(position=pos, refractive_index=n, radius=r, l_max=l_max, m_max=m_max))
@@ -159,7 +159,7 @@ def read_input_yaml(filename):
     # initial field
     infld = input_data['initial field']
     if infld['type'] == 'plane wave':
-        a = float(infld['amplitude'])
+        a = float(infld.get('amplitude', 1))
         pol_ang = angle_factor * float(infld['polar angle'])
         az_ang = angle_factor * float(infld['azimuthal angle'])
         if infld['polarization'] == 'TE':
@@ -168,8 +168,8 @@ def read_input_yaml(filename):
             pol = 1
         else:
             raise ValueError('polarization must be "TE" or "TM"')
-        ref = [float(infld['reference point'][0]), float(infld['reference point'][1]),
-               float(infld['reference point'][2])]
+        ref = [float(infld.get('reference point', [0,0,0])[0]), float(infld.get('reference point', [0,0,0])[1]),
+               float(infld.get('reference point', [0,0,0])[2])]
         initial_field = init.PlaneWave(vacuum_wavelength=wl, polar_angle=pol_ang, azimuthal_angle=az_ang,
                                        polarization=pol, amplitude=a, reference_point=ref)
     elif infld['type'] == 'Gaussian beam':

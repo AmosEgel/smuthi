@@ -19,7 +19,7 @@ Under Ubuntu, type::
 Installing manually
 --------------------
 Alternatively, you can download the Smuthi project folder manually from `here <https://gitlab.com/AmosEgel/smuthi/tags>`_
-or git fork `<https://gitlab.com/AmosEgel/smuthi.git>`_. Open a command prompt and change directory to the Smuthi
+or git fork the `gitlab repository <https://gitlab.com/AmosEgel/smuthi.git>`_. Open a command prompt and change directory to the Smuthi
 project folder. Then, enter (Windows)::
 
    python setup.py install

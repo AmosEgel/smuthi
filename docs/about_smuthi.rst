@@ -1,5 +1,5 @@
 About Smuthi
-===============
+========================
 
 Smuthi stands for 'scattering by multiple particles in thin-film systems'.
 It is a Python software that allows to solve light scattering problems involving
@@ -46,7 +46,7 @@ Smuthi can be applied to any scattering problem in frequency domain involving
 
   - an initial field in form of a plane wave, a beam (currently available: beam with Gaussian xy-profile) or a collection of dipole sources
 
-Thus, the range of applications spans from scattering by a single particle on a substrate to scattering by several thousand particles inside a planarly layered medium. For a number of examplary simulations, see the :doc:`examples<gallery>` section.
+Thus, the range of applications spans from scattering by a single particle on a substrate to scattering by several thousand particles inside a planarly layered medium. For a number of examplary simulations, see the :doc:`examples<examples>` section.
 
 
 Simulation output
@@ -54,11 +54,8 @@ Simulation output
 
 Smuthi can compute
 
-  - the 3D electric field, for example along a cut plane and save it in the form of 
-
-       - ascii data files
-       - png images or
-       - gif animations. 
+  - the 3D electric field, for example along a cut plane and save it in the form of ascii data files,
+    png images or gif animations. 
 
   - the far field power flux of the total field, the initial field or the scattered field. 
     For plane wave excitation, it can be processed to the form of 
