@@ -67,10 +67,8 @@ class Simulation:
             os.makedirs(self.output_dir)
         sys.stdout = Logger(self.output_dir + '/smuthi.log', log_to_file=log_to_file,
                             log_to_terminal=log_to_terminal)
-        if input_file is not None:
+        if input_file is not None and log_to_file:
             shutil.copyfile(input_file, self.output_dir + '/input.dat')
-        else:
-            self.output_dir = False
     
     def __getstate__(self):
         """Return state values to be pickled."""
@@ -100,10 +98,7 @@ class Simulation:
             filename (str): path and file name where to store data
         """
         if filename is None:
-            if self.output_dir:
-                filename = self.output_dir + '/simulation.p'
-            else:
-                filename = 'simulation.p'
+            filename = self.output_dir + '/simulation.p'
         with open(filename, 'wb') as fn:
             pickle.dump(self, fn, -1)
 
