@@ -16,7 +16,7 @@ The following persons have contributed to the project:
  - Dominik Theobald (functions for the simulation of rotated particles, plane wave based particle coupling for 
    non-spherical particles with overlapping circumscribing spheres) 
  - Lorenzo Pattelli (logo)
- - Konstantin Ladutenko (refactoring of code, handling of persistent NFMDS install)
+ - Konstantin Ladutenko (numerous additions and improvements for a smooth user experience, correction of bugs)
 
 We thank Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use their NFM-DS Fortran code, 
 and Ilia Rasskazov for bug reports and useful comments.
@@ -66,7 +66,7 @@ Planned updates for future versions
 ------------------------------------
 Things to be implemented next:
 
- - plane wave based coupling for close non-spherical particles
- - packages for the evaluation of bidirectional scattering distrubtion function and emission efficiency
+ - plane wave based coupling for close non-spherical particles (by Dominik Theobald, in progress)
+ - faster runtime when running on CPU only (by Konstantin Ladutenko)
 
 
