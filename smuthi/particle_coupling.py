@@ -132,29 +132,33 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
         for pol in range(2):
             BeL[pol, :, :, :] += (L[pol, iplmn1, :, np.newaxis, :] * B[0][pol, iplmn1, np.newaxis, :, :]
                                   * ejkz[0, iplmn1, :])
-    BeLBe = np.zeros((blocksize1, blocksize2, len(k_parallel)), dtype=complex)  # indices are: n1, n2, kpar_idx
-    for iplmn2 in range(2):
-        for pol in range(2):
-            BeLBe += BeL[pol, iplmn2, :, np.newaxis, :] * B[1][pol, iplmn2, :, :] * ejkz[1, 1 - iplmn2, :]
-
     # bessel function and jacobi factor
     bessel_list = []
     for dm in range(lmax1 + lmax2 + 1):
         bessel_list.append(scipy.special.jv(dm, k_parallel * rhos2s1))
-    bessel_full = np.array([[bessel_list[abs(m_vec[0][n1] - m_vec[1][n2])]
-                             for n2 in range(blocksize2)] for n1 in range(blocksize1)])
     jacobi_vector = k_parallel / (kzis2 * kis2)
-    integrand = bessel_full * jacobi_vector * BeLBe
-    integral = np.trapz(integrand, x=k_parallel, axis=-1)
     m2_minus_m1 = m_vec[1] - m_vec[0][np.newaxis].T
-    wr = 4 * (1j) ** abs(m2_minus_m1) * np.exp(1j * m2_minus_m1 * phis2s1) * integral
+    wr_const = 4 * (1j) ** abs(m2_minus_m1) * np.exp(1j * m2_minus_m1 * phis2s1) 
 
-    if show_integrand:
-        norm_integrand = np.zeros(len(k_parallel))
-        for i in range(len(k_parallel)):
-            norm_integrand[i] = 4 * np.linalg.norm(integrand[:, :, i])
-        plt.plot(k_parallel.real / omega, norm_integrand)
-        plt.show()
+    integral = np.zeros((blocksize1, blocksize2), dtype=complex) 
+    for n1 in range(blocksize1):
+        for n2 in range(blocksize2):
+            bessel_full = bessel_list[abs(m_vec[0][n1] - m_vec[1][n2])]
+            BeLBe = 0
+            for iplmn2 in range(2):
+                for pol in range(2):
+                    BeLBe += (BeL[pol, iplmn2, n1, :] * B[1][pol, iplmn2, n2, :]
+                                     * ejkz[1, 1 - iplmn2, :])
+            integrand = bessel_full * jacobi_vector * BeLBe
+            integral[n1,n2] = np.trapz(integrand, x=k_parallel, axis=-1)
+    wr = wr_const * integral
+
+    # if show_integrand:
+    #     norm_integrand = np.zeros(len(k_parallel))
+    #     for i in range(len(k_parallel)):
+    #         norm_integrand[i] = 4 * np.linalg.norm(integrand[:, :, i])
+    #     plt.plot(k_parallel.real / omega, norm_integrand)
+    #     plt.show()
 
     return wr
 
