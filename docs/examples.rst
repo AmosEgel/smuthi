@@ -44,13 +44,15 @@ Benchmarks
 This section contains a number of benchmarks between Smuthi and other codes with regard to accuracy and runtime.
 Click on the respective benchmark names to view a brief discussion.
 
-=== ================================ ============
-No. Benchmark                          script    
-=== ================================ ============
+=== ================================ ===================
+No. Benchmark                          script and data    
+=== ================================ ===================
 1   |bench1link|                      TBD         
-2   |bench2link|                      TBD                
-=== ================================ ============ 
+2   |bench2link|                      |bench2data|                
+=== ================================ =================== 
 
 .. |bench1link| replace:: :doc:`Sphere in vacuum <examples/sphere_in_vacuum/discussion>`
 
 .. |bench2link| replace:: :doc:`Four particles in slab waveguide <examples/four_particles_in_slab/discussion>`
+
+.. |bench2data| replace:: :download:`download <../examples/benchmarks/four_particles_in_slab/four_particles_in_slab.zip>`

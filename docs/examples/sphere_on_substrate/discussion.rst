@@ -5,8 +5,13 @@ Sphere on a substrate
    :width: 25%
    :align: right
 
-The "sphere on a substrate" example is a minimal example of how Smuthi can be
-used. It simulates a single glass sphere on a glass substrate.
+The "sphere on a substrate" is a minimal Smuthi simulation. 
+It investigates scattering by a single glass sphere on a glass substrate.
+
+Click :download:`here <../../../examples/tutorials/sphere_on_substrate/dielectric_sphere_on_substrate.py>` 
+to download the Python script or 
+:download:`here <../../../examples/tutorials/sphere_on_substrate/dielectric_sphere_on_substrate.dat>`
+to download the input file.
 
 The simulation output is given by the top (i.e., air) and bottom (i.e., substrate)
 scattered far field in the form of a differential scattering cross section.
