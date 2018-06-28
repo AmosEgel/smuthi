@@ -1,5 +1,12 @@
 import pkg_resources
 import sys
+try:
+    from mpi4py import MPI
+    mpi_comm = MPI.COMM_WORLD
+    mpi_rank = mpi_comm.Get_rank()
+except:
+    mpi_rank = 0
+
 
 
 def print_smuthi_header():
@@ -8,4 +15,5 @@ def print_smuthi_header():
     sys.stdout.write(welcome_msg)
     sys.stdout.flush()
 
-print_smuthi_header()
+if mpi_rank == 0:
+    print_smuthi_header()
