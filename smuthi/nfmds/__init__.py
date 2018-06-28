@@ -5,6 +5,12 @@ import subprocess
 import sys
 from distutils.dir_util import copy_tree
 import tempfile
+try:
+    from mpi4py import MPI
+    mpi_comm = MPI.COMM_WORLD
+    mpi_rank = mpi_comm.Get_rank()
+except:
+    mpi_rank = 0
 
 
 cwd = os.getcwd()
@@ -16,6 +22,12 @@ if os.path.exists(cwd_bindir):
 else:
     temp_fold = tempfile.TemporaryDirectory(prefix='smuthi_nfmds_')
     nfmds_folder = temp_fold.name
+
+if mpi_rank != 0:
+    mpi_bindir = os.path.join(nfmds_folder, str(mpi_rank))
+    if not os.path.exists(mpi_bindir):
+        os.mkdir(mpi_bindir)
+    nfmds_folder = mpi_bindir
 
 nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.nfmds', 'NFM-DS')
 
