@@ -255,7 +255,9 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
         # spherical functions
         bessel_h = [sf.spherical_hankel(n, k * d) for n in range(lmax1 + lmax2 + 1)]
         legendre, _, _ = sf.legendre_normalized(cos_theta, sin_theta, lmax1 + lmax2)
-
+        
+        # the particle coupling operator is the transpose of the SVWF translation operator
+        # therefore, (l1,m1) and (l2,m2) are interchanged:
         for m1 in range(-mmax1, mmax1 + 1):
             for m2 in range(-mmax2, mmax2 + 1):
                 eimph = np.exp(1j * (m2 - m1) * phi)
@@ -272,7 +274,7 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
                             for tau2 in range(2):
                                 n2 = fldex.multi_to_single_index(tau2, l2, m2, lmax2, mmax2)
                                 if tau1 == tau2:
-                                    w[n1, n2] = A  # remember that w = A.T
+                                    w[n1, n2] = A
                                 else:
                                     w[n1, n2] = B
 
