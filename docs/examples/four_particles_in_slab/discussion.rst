@@ -26,11 +26,12 @@ probing line through the core layer.
    :scale: 60%
    :align: center
    
-The agreement between Smuthi and Comsol is good. We have reason to 
+The agreement between Smuthi (lines) and Comsol (symbols) is good, both for the
+real part(blue) and the imaginary part (red) of the field. We have reason to 
 believe that it is not constrained by Smuthi's accuracy, but rather by the 
 accuracy of the FEM results which show fluctuations in a similar order of 
 magnitude as the deviations between the results when varying the simulation 
-size - possibly due to residual reflections from the "perfectly matched 
+volume size - possibly due to residual reflections from the "perfectly matched 
 layers".   
 
 In the following, the field along a probing plane through the top layer is 

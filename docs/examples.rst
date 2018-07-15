@@ -41,15 +41,16 @@ No. Tutorial                             level           script       input file
 Benchmarks
 -----------
 
-This section contains a number of benchmarks between Smuthi and other codes with regard to accuracy and runtime.
+This section contains a number of benchmarks between Smuthi and other codes 
+with regard to accuracy and/or runtime.
 Click on the respective benchmark names to view a brief discussion.
 
-=== ================================ ===================
-No. Benchmark                          script and data    
-=== ================================ ===================
-1   |bench1link|                      TBD         
-2   |bench2link|                      |bench2data|                
-=== ================================ =================== 
+=== ================================ ============== ===================
+No. Benchmark                         other method   script and data    
+=== ================================ ============== ===================
+1   |bench1link|                      Mie theory     TBD         
+2   |bench2link|                      FEM            |bench2data|                
+=== ================================ ============== =================== 
 
 .. |bench1link| replace:: :doc:`Sphere in vacuum <examples/sphere_in_vacuum/discussion>`
 
