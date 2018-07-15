@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Provide functionality to read optical constants in format provided by refractiveindex.info website"""
+"""Provide functionality to read optical constants in format provided by `refractiveindex.info <https://refractiveindex.info/>`_ website"""
 from scipy.interpolate import interp1d
 import io
 import numpy as np

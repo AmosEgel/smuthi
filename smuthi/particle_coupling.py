@@ -3,19 +3,20 @@
 coupling matrix entries. The second half of the module contains functions for the preparation of lookup tables that 
 are used to approximate the coupling matrices by interoplation."""
 
+from numba import complex128,int64,jit
+from scipy.signal.filter_design import bessel
+from tqdm import tqdm
+import matplotlib.pyplot as plt
 import numpy as np
-import scipy.special
 import scipy.interpolate
+import scipy.special
 import smuthi.coordinates as coord
+import smuthi.cuda_sources as cu
+import smuthi.field_expansion as fldex
 import smuthi.layers as lay
 import smuthi.spherical_functions as sf
-import smuthi.field_expansion as fldex
 import smuthi.vector_wave_functions as vwf
-import smuthi.cuda_sources as cu
-import matplotlib.pyplot as plt
 import sys
-from tqdm import tqdm
-from scipy.signal.filter_design import bessel
 try:
     import pycuda.autoinit
     import pycuda.driver as drv
@@ -25,6 +26,33 @@ try:
 except:
     pass
 
+
+@jit(complex128(complex128[:], complex128[:]),
+     nopython=True, cache=True, nogil=True)
+def numba_trapz(y, x):
+    out = 0.0 + 0.0j
+    #TODO implement some (optional) advanced summation?
+    #e.g. https://github.com/nschloe/accupy/blob/master/accupy/sums.py
+    #or better Sum2  from https://doi.org/10.1137/030601818 (Algorithm 4.4)
+    #Note, that this may need to have exact summation for x and y, and exact product.
+    for i in range( len(y) - 2 ):
+        out += (x[i+1]-x[i]) * (y[i+1] + y[i])/2.0
+    return out
+
+
+@jit((complex128[:], complex128[:,:,:],
+      complex128[:,:,:,:],complex128[:,:,:], int64),
+     nopython=True,cache=True
+     ,nogil=True
+     # , parallel=True
+)
+def eval_BeLBe(BeLBe, BeL, B1, ejkz, n2):
+    for k in range(len(BeLBe)):
+        for iplmn2 in range(2):
+            for pol in range(2):
+                BeLBe[k] += BeL[pol, iplmn2, k] * B1[pol, iplmn2, n2, k
+                                     ] * ejkz[1, 1 - iplmn2, k]
+        
 
 def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emitting_particle, layer_system,
                                   k_parallel='default', show_integrand=False):
@@ -127,11 +155,6 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
                         B[1][pol, iplmn, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm[iplmn],
                                                                                      taulm_list=taulm[iplmn], dagger=False)
 
-    BeL = np.zeros((2, 2, blocksize1, len(k_parallel)), dtype=complex)  # indices are: pol, plmn2, n1, kpar_idx
-    for iplmn1 in range(2):
-        for pol in range(2):
-            BeL[pol, :, :, :] += (L[pol, iplmn1, :, np.newaxis, :] * B[0][pol, iplmn1, np.newaxis, :, :]
-                                  * ejkz[0, iplmn1, :])
     # bessel function and jacobi factor
     bessel_list = []
     for dm in range(lmax1 + lmax2 + 1):
@@ -142,23 +165,19 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
 
     integral = np.zeros((blocksize1, blocksize2), dtype=complex) 
     for n1 in range(blocksize1):
+        BeL = np.zeros((2, 2, len(k_parallel)), dtype=complex)  # indices are: pol, plmn2, n1, kpar_idx
+        for iplmn1 in range(2):
+            for pol in range(2):
+                BeL[pol, :, :] += (L[pol, iplmn1, :, :]
+                                        * B[0][pol, iplmn1, n1, :]
+                                        * ejkz[0, iplmn1, :])
         for n2 in range(blocksize2):
             bessel_full = bessel_list[abs(m_vec[0][n1] - m_vec[1][n2])]
-            BeLBe = 0
-            for iplmn2 in range(2):
-                for pol in range(2):
-                    BeLBe += (BeL[pol, iplmn2, n1, :] * B[1][pol, iplmn2, n2, :]
-                                     * ejkz[1, 1 - iplmn2, :])
+            BeLBe = np.zeros((len(k_parallel)), dtype=complex)
+            eval_BeLBe(BeLBe, BeL, B[1], ejkz, n2)
             integrand = bessel_full * jacobi_vector * BeLBe
-            integral[n1,n2] = np.trapz(integrand, x=k_parallel, axis=-1)
+            integral[n1,n2] = numba_trapz(integrand, k_parallel)
     wr = wr_const * integral
-
-    # if show_integrand:
-    #     norm_integrand = np.zeros(len(k_parallel))
-    #     for i in range(len(k_parallel)):
-    #         norm_integrand[i] = 4 * np.linalg.norm(integrand[:, :, i])
-    #     plt.plot(k_parallel.real / omega, norm_integrand)
-    #     plt.show()
 
     return wr
 
@@ -236,7 +255,9 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
         # spherical functions
         bessel_h = [sf.spherical_hankel(n, k * d) for n in range(lmax1 + lmax2 + 1)]
         legendre, _, _ = sf.legendre_normalized(cos_theta, sin_theta, lmax1 + lmax2)
-
+        
+        # the particle coupling operator is the transpose of the SVWF translation operator
+        # therefore, (l1,m1) and (l2,m2) are interchanged:
         for m1 in range(-mmax1, mmax1 + 1):
             for m2 in range(-mmax2, mmax2 + 1):
                 eimph = np.exp(1j * (m2 - m1) * phi)
@@ -253,7 +274,7 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
                             for tau2 in range(2):
                                 n2 = fldex.multi_to_single_index(tau2, l2, m2, lmax2, mmax2)
                                 if tau1 == tau2:
-                                    w[n1, n2] = A  # remember that w = A.T
+                                    w[n1, n2] = A
                                 else:
                                     w[n1, n2] = B
 

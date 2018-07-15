@@ -8,11 +8,12 @@ docs/_build/
 docs/_static/
 docs/_templates/
 NFM*.mod
-build/
+build*
 NFM*.exe
 data/
 nfmds_*
 *smuthi_output*
+smuthi_nfmds_bin*
 .project
 .pydevproject
 .settings
@@ -23,3 +24,5 @@ nfmds_*
 *~
 scripts/*
 examples/*/output
+*.sh
+*.bat
