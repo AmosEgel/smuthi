@@ -437,10 +437,6 @@ class DipoleSource(InitialField):
         .. math::
             P_0 = \frac{|\mathbf{\mu}| k \omega^3}{12 \pi}
 
-        where :math:
-            P = P_0 + \frac{\omega}{2} \mathrm{Im} (\mathbf{\mu}^* \cdot \mathbf{E}(\mathbf{r}_D))
-
-
         Args:
             layer_system (smuthi.layers.LayerSystem): stratified medium
 
