@@ -9,14 +9,16 @@ class Memoize:
         self.fn = fn
         self.memo = {}
     def __call__(self, *args, **kwds):
-        str = pickle.dumps(args, 1)+pickle.dumps(kwds, 1)
-        if not str in self.memo:
+        if len(self.memo) > 100000:
+            self.memo.clear()
+        argstr = pickle.dumps(args, 1)+pickle.dumps(kwds, 1)
+        if not argstr in self.memo:
             #print("miss") # DEBUG INFO
-            self.memo[str] = self.fn(*args, **kwds)
+            self.memo[argstr] = self.fn(*args, **kwds)
         #else:
             #print("hit") # DEBUG INFO
         #print(len(self.memo))
-        return self.memo[str]
+        return self.memo[argstr]
     
     def __get__(self, obj, objtype):
         '''Support instance methods.'''
