@@ -9,7 +9,7 @@ Target group: Scientists and engineers in the field of optics and optoelectronic
 
 License: SMUTHI is provided under the MIT license.
 
-Author: Amos Egel. Mail to amos.egel@kit.edu for support or to report a problem.
+Author: Amos Egel. Mail to amos.egel@gmail.com for support or to report a problem.
 
 The following persons have contributed to the project:
 
