@@ -168,7 +168,7 @@ class PiecewiseFieldExpansion(FieldExpansion):
                 else:
                     pfe_sum.expansion_list.append(fex)
             if not added:
-                pfe_sum.expansion_list.append(fex)
+                pfe_sum.expansion_list.append(other)
 
         return pfe_sum
 
