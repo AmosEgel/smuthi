@@ -567,7 +567,7 @@ class DipoleSource(InitialField):
             component
         """
         if k_parallel_array is None:
-            k_parallel_array = self.k_parallel * self.angular_frequency()
+            k_parallel_array = self.k_parallel
         if azimuthal_angles_array is None:
             azimuthal_angles_array = self.azimuthal_angles
 
