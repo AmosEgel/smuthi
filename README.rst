@@ -9,7 +9,7 @@ Target group: Scientists and engineers in the field of optics and optoelectronic
 
 License: SMUTHI is provided under the MIT license.
 
-Author: Amos Egel. Mail to amos.egel@gmail.com for support or to report a problem.
+Author: Amos Egel (amos.egel@gmail.com).
 
 The following persons have contributed to the project:
 
@@ -22,6 +22,10 @@ We thank Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use thei
 and Ilia Rasskazov for bug reports and useful comments.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
+
+If you are using Smuthi, please subscribe to the `Smuthi mailing list <https://groups.google.com/forum/#!forum/smuthi>`_.
+The list is also a good place to ask for support from the developers or from experienced users.
+To report a bug, you can also open an issue in Gitlab.
 
 What's new in version 0.8
 -------------------------
