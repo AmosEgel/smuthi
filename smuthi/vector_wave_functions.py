@@ -1,9 +1,21 @@
 # -*- coding: utf-8 -*-
-import smuthi.spherical_functions as sf
+from numba import int32,complex128,int64,jit
+import numba as nb
 import numpy as np
-import sympy.physics.wigner
-import sympy
+from pywigxjpf_ffi import ffi, lib
+import pywigxjpf_ffi
+
 import smuthi.memoizing as memo
+import smuthi.spherical_functions as sf
+# import sympy
+# import sympy.physics.wigner
+
+from numba import cffi_support
+cffi_support.register_module(pywigxjpf_ffi)
+nb_wig3jj = pywigxjpf_ffi.lib.wig3jj
+
+lib.wig_table_init(100,9);
+lib.wig_temp_init(100);
 
 
 
@@ -328,7 +340,9 @@ def translation_coefficients_svwf_out_to_out(tau1, l1, m1, tau2, l2, m2, k, d, s
 
 
 @memo.Memoize
-def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
+@jit(complex128[:](int32, int32, int32, int32, int32),
+     nopython=True, cache=True)
+def ab5_coefficients(l1, m1, l2, m2, p):
     """a5 and b5 are the coefficients used in the evaluation of the SVWF translation
     operator. Their computation is based on the sympy.physics.wigner package and is performed with symbolic numbers.
 
@@ -343,20 +357,18 @@ def ab5_coefficients(l1, m1, l2, m2, p, symbolic=False):
     Returns:
         A tuple (a5, b5) where a5 and b5 are symbolic or complex.
     """
-    jfac = sympy.I ** (abs(m1 - m2) - abs(m1) - abs(m2) + l2 - l1 + p) * (-1) ** (m1 - m2)
-    fac1 = sympy.sqrt((2 * l1 + 1) * (2 * l2 + 1) / sympy.S(2 * l1 * (l1 + 1) * l2 * (l2 + 1)))
-    fac2a = (l1 * (l1 + 1) + l2 * (l2 + 1) - p * (p + 1)) * sympy.sqrt(2 * p + 1)
-    fac2b = sympy.sqrt((l1 + l2 + 1 + p) * (l1 + l2 + 1 - p) * (p + l1 - l2) * (p - l1 + l2) * (2 * p + 1))
-    wig1 = sympy.physics.wigner.wigner_3j(l1, l2, p, m1, -m2, -(m1 - m2))
-    wig2a = sympy.physics.wigner.wigner_3j(l1, l2, p, 0, 0, 0)
-    wig2b = sympy.physics.wigner.wigner_3j(l1, l2, p - 1, 0, 0, 0)
+    jfac = 1.0j ** (abs(m1 - m2) - abs(m1) - abs(m2) + l2 - l1 + p) * (-1) ** (m1 - m2)
+    fac1 = np.sqrt((2 * l1 + 1) * (2 * l2 + 1) / (2 * l1 * (l1 + 1) * l2 * (l2 + 1)))
+    fac2a = (l1 * (l1 + 1) + l2 * (l2 + 1) - p * (p + 1)) * np.sqrt(2 * p + 1)
+    fac2b = np.sqrt((l1 + l2 + 1 + p) * (l1 + l2 + 1 - p) * (p + l1 - l2) * (p - l1 + l2) * (2 * p + 1))
+    # Note that arguments are in two_j = 2*j.
+    wig1 = nb_wig3jj (2*l1, 2*l2, 2*p, 2*m1, -m2*2, -(m1 - m2)*2)
+    wig2a = nb_wig3jj(2*l1, 2*l2, 2*p, 0, 0, 0)
+    wig2b = nb_wig3jj(2*l1, 2*l2, 2*(p - 1), 0, 0, 0)
 
-    if symbolic:
-        a = jfac * fac1 * fac2a * wig1 * wig2a
-        b = jfac * fac1 * fac2b * wig1 * wig2b
-    else:
-        a = complex(jfac * fac1 * fac2a * wig1 * wig2a)
-        b = complex(jfac * fac1 * fac2b * wig1 * wig2b)
-    return a, b
+    a = jfac * fac1 * fac2a * wig1 * wig2a
+    b = jfac * fac1 * fac2b * wig1 * wig2b
+    return np.array([a, b])
+
 
 
