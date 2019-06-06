@@ -33,7 +33,7 @@ one_sphere = [sphere]
 
 # Initial field
 plane_wave = smuthi.initial_field.PlaneWave(vacuum_wavelength=550,
-                                            polar_angle=-np.pi,  # from top
+                                            polar_angle=np.pi,  # from top
                                             azimuthal_angle=0,
                                             polarization=0)  # 0=TE 1=TM
 
