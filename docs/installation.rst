@@ -4,6 +4,18 @@ First make sure that Python 3 is installed on your computer. With Linux, this is
 install for example `Anaconda <https://www.continuum.io/downloads>`_ or `WinPython <https://winpython.github.io/>`_ to
 get a full Python environment.
 
+Prerequisites
+----------
+Smuthi uses WIGXJPF to evaluate Wigner symbols, however, it can be a bit tricky to install. Under Linux you need to install CFFI and pycparser::
+
+    sudo apt-get install libffi6 libffi-dev
+    sudo pip3 install pycparser
+    sudo pip3 install pywigxjpf
+
+Under Windows you will also need some C++ compiler.
+
+.. todo:: check windows integration
+
 Using pip
 ----------
 Under Windows, open a command window and type::
