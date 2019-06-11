@@ -14,6 +14,8 @@ Smuthi uses WIGXJPF to evaluate Wigner symbols, however, it can be a bit tricky 
 
 Under Windows you will also need some C++ compiler.
 
+.. todo:: check windows integration
+
 Using pip
 ----------
 Under Windows, open a command window and type::
