@@ -186,7 +186,7 @@ def scattering_cross_section(initial_field, particle_list, layer_system, polar_a
     # read plane wave parameters
     A_P = initial_field.amplitude
     beta_P = initial_field.polar_angle
-    if beta_P < np.pi / 2:
+    if np.cos(beta_P) > 0:
         i_P = 0
         n_P = layer_system.refractive_indices[i_P]
     else:
@@ -233,7 +233,7 @@ def extinction_cross_section(initial_field, particle_list, layer_system):
     beta_P = initial_field.polar_angle
     alpha_P = initial_field.azimuthal_angle
 
-    if beta_P < np.pi / 2:
+    if np.cos(beta_P) > 0:
         i_P = 0
         n_P = layer_system.refractive_indices[i_P]
         k_P = k_bot
