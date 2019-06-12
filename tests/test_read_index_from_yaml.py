@@ -8,7 +8,7 @@ to_wl = 800 # nm
 total_points = 11;
 wavelengths = np.linspace(from_wl, to_wl, total_points)
 single_wl = 600 # nm
-test_data_path = os.path.dirname(__file__) + "/../data/"
+test_data_path = os.path.dirname(__file__) + "/"
 test_data_files = ["Si-Green-1995-test.yml",  # Should rise an error, data
                                               # type "tabulated n" is not
                                               # implemented
