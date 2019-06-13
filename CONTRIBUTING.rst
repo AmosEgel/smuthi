@@ -1,0 +1,101 @@
+Contributing to Smuthi
+=======================
+Thanks a lot for your interest to take part in the Smuthi project. Contributions are highly welcome. In order to get in contact with Smuthi's developer community, please consider to `register to the Smuthi mailing list <https://groups.google.com/forum/#!forum/smuthi>`_.
+
+*************************
+1 Giving general feedback
+*************************
+We are grateful to learn about what works well and what doesn't. If you have some user experience to share, please `write to the Smuthi mailing list <mailto:smuthi@googlegroups.com>`_ (preferred) or to the `project owner <mailto:amos.egel@gmail.com>`_.
+
+********************************************
+2 Reporting a bug or proposing a new feature
+********************************************
+Please open a new issue in the Smuthi repository's `issue tracker <https://gitlab.com/AmosEgel/smuthi/issues>`_ to report a bug or to request a new feature.
+
+**Good bug reports** tend to have:
+
+- A quick summary and/or background
+- Steps to reproduce (give sample code if you can).
+- What you expected would happen
+- What actually happens
+- Notes (possibly including why you think this might be happening, or stuff you tried that didn't work)
+
+*************************************
+3 Submitting to the Smuthi repository
+*************************************
+In general, the workflow for contributing to the Smuthi source code or documentation or to add an example script is like this:
+
+1. Start from an issue. If the addition that you have in mind is not yet represented by an issue in the `issue tracker`_, create one. This gives the other developers the chance to comment on your idea beforehand.
+2. When you commit yourself to address some issue, you can assign it to you.
+3. Fork the repository and create a branch from master (please use a meaningful name for the branch that refers to the addition that you plan, like for example `application-example-metasurface` or `cubic-particles` or `speedup-t-matrix-readout`).
+4. Add your code and commit.
+5. If you have added code that should be tested, add tests.
+6. If you have modified some source code, ensure the test suite passes.
+7. Create a `merge request <https://gitlab.com/AmosEgel/smuthi/merge_requests>`_.
+
+3.1 Submitting an example script
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Smuthi is a complex scientific simulation software, and it is not straightforward to generate meaningful results with it. Examples are a great way to teach using this software properly, as well as to demonstrate the range of possible applications. We also seek to validate our results by comparison to other established software.
+
+In either case, a tutorial, application example or accuracy/performance benchmark consists of
+
+- A Python script that runs some kind of simulation. The script should be as short as possible. Use comments to explain every bit of it to unexperienced users. Your can use the `script of the "sphere on a substrate" tutorial <https://smuthi.readthedocs.io/en/latest/_downloads/dielectric_sphere_on_substrate.py>`_ as a template. Please refer to the section about code style (see below).
+
+- Other data that is needed to reproduce the results, for example 
+
+  - results from other software for comparison
+  - refractive index data
+
+- A short paragraph discusses the simulation results, see for example the `discussion of the "sphere on a substrate" tutorial <https://smuthi.readthedocs.io/en/latest/examples/sphere_on_substrate/discussion.html>`_.
+
+3.1.1 Tutorials
+"""""""""""""""
+
+A tutorial is a short script that explains some aspect of Smuthi to new users. See the `current list of tutorials <https://smuthi.readthedocs.io/en/latest/examples.html>`_ for a current list of tutorials. If you consider to contribute a tutorial, first reflect about **what is the aspect that you want to teach the user?** Then build your tutorial around that aspect.
+
+Store your tutorial script in a folder under the path `examples/tutorials/your_tutorial_name`. If other data is needed to run the script (for example, if the script calls some refractive index data file), please also provide that data and additionally put a zip folder containing both the script and the data files into the same directory.
+
+Put a short article discussing the output of the tutorial script into the documentation folder, `docs/examples/your_tutorial_name`. The article should be written in `RST format <https://de.wikipedia.org/wiki/ReStructuredText>`_.
+
+Update the list of tutorials in the file `docs/examples.rst`.
+
+
+3.1.2 Application examples
+""""""""""""""""""""""""""
+to be done
+
+3.1.3 Accuracy benchmarks
+"""""""""""""""""""""""""
+To be done
+
+3.1.4 Performance benchmarks
+""""""""""""""""""""""""""""
+To be done
+
+3.2 Submitting source code
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To be done
+
+3.2.1 Submitting a bug fix or other code improvements
+"""""""""""""""""""""""""""""""""""""""""""""""""""""
+To be done
+
+3.2.2 Submitting a new feature
+""""""""""""""""""""""""""""""
+To be done
+
+************
+4 Code style
+************
+Please refer to the `PEP 8 Python code style guide <https://www.python.org/dev/peps/pep-0008/>`_. In Smuthi, we use `snake_case` for variable names, function names and module names, and `CamelCase` for class names.
+
+*********
+5 License
+*********
+By contributing, you agree that your contributions will be licensed under the MIT License.
+
+************
+6 References
+************
+This document was created by adapting `this template <https://gist.github.com/briandk/3d2e8b3ec8daf5a27a62>`_.
