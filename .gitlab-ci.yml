@@ -7,8 +7,9 @@ stages:
 test:
   stage: test
   script:
+    - echo "Testing"
     - apt-get update
-    - apt-get install -y gfortan
+    - apt-get install -y gfortran
     - pip3 install .
 
 staging:
