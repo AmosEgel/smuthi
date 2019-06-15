@@ -11,13 +11,8 @@ test:
     - apt-get update
     - apt-get install -y gfortran
     - pip3 install .
-
-staging:
-  stage: deploy
-  script:
-    - echo "Staging"
-  only:
-    - master
+    - pip3 install nose2
+    - nose2
 
 production:
   stage: deploy
