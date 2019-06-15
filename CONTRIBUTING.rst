@@ -51,7 +51,7 @@ In either case, a tutorial, application example or accuracy/performance benchmar
 
 3.1.1 Tutorials
 """""""""""""""
-A tutorial is a short script that explains some aspect of Smuthi to new users. See the `current list of tutorials <https://smuthi.readthedocs.io/en/latest/examples.html>`_ for a current list of tutorials. If you consider to contribute a tutorial, first reflect about **what is the aspect that you want to teach the user?** Then build your tutorial around that aspect. If not existing yet, open an issue describing what you plan to do. Assign the issue to you.
+A tutorial is a short script that explains some aspect of Smuthi to new users. See the `current list of tutorials <https://smuthi.readthedocs.io/en/latest/examples.html>`_. If you consider to contribute a tutorial, first reflect about **what is the aspect that you want to teach the user?** Then build your tutorial around that aspect. If not existing yet, open an issue describing what you plan to do. Assign the issue to you.
 
 Store your tutorial script under the path `examples/tutorials/your_tutorial_name`. If other data is needed to run the script (for example, if the script calls some refractive index data file), please also provide that data and additionally put a zip folder containing both the script and the data files into the same directory.
 
