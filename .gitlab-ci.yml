@@ -7,6 +7,7 @@ stages:
 test:
   stage: test
   script:
+    - apt-get install gfortan
     - pip3 install pycparser
     - pip3 install pywigxjpf
     - pip3 install .
