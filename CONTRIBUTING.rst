@@ -78,23 +78,48 @@ Update the list of benchmarks in the file `docs/examples.rst` and create a link 
 
 3.2 Submitting source code
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-To be done
+You are invited to modify or add to the source code of Smuthi. Although it is a rather complex scientific software, in many cases you can contribute by improving some unit without the need to fully understand what the whole software does in every detail. So, if you feel motivated to address some issue in the `issue tracker`_, go for it! The more experienced members of the Smuthi develpers community will be glad to assist you when you encounter some difficulty. Just `write to the Smuthi mailing list`_.
+
+When you add or modify source code to Smuthi, make sure to
+
+- adhere to our code style (see below)
+- check if any functionality was broken by running the test suite (see below)
+- if you add functionality, write a test for it, too
 
 3.2.1 Submitting a bug fix or other code improvements
 """""""""""""""""""""""""""""""""""""""""""""""""""""
-To be done
+If you found a bug in the source code, we would be glad if you submit a pull request fixing it. 
+
+Other code improvements could for example lead to a speedup of some unit or make the code more readable. In that case, please add a small test demonstratig that the improved code section behaves the same as before your modification (if not obvious). 
 
 3.2.2 Submitting a new feature
 """"""""""""""""""""""""""""""
-To be done
+The Smuthi project is work in progress, and the range of functionality has not even come close to its potential amplitude. Pull requests offering a new feature are always highly welcome.
+Please always start from an issue in the `issue tracker`_ in order to give other developers the chance to comment on your addition beforehand. If your addition is a major and entirely new feature, consider to implement it as a subpackage (i.e., store your code into a subdirectory of the smuthi directory).
+
+Typical new features could be ...
+
+- new post processing routines (to process simulation results into some quantity or image)
+- new initial fields (e.g. new beam shapes)
+- new functions to compute the single particle T-matrices
+- (connected with the last:) new particle classes
+- any other new feature
+
+To do: Explain how to implement a new T-matrix interface
 
 ************
 4 Code style
 ************
 Please refer to the `PEP 8 Python code style guide <https://www.python.org/dev/peps/pep-0008/>`_. In Smuthi, we use `snake_case` for variable names, function names and module names, and `CamelCase` for class names.
 
+***************
+5 Running tests
+***************
+You can use `nosetests <https://nose.readthedocs.io>`_ to run our test suite.
+Under Ubuntu, install it via :code:`pip3 install nose` and run all tests by :code:`nosetests3`.
+
 *********
-5 License
+6 License
 *********
 By contributing, you agree that your contributions will be licensed under the MIT License.
 
