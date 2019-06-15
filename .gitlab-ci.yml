@@ -8,9 +8,7 @@ test:
   stage: test
   script:
     - apt-get update
-    - apt-get install gfortan
-    - pip3 install pycparser
-    - pip3 install pywigxjpf
+    - apt-get install -y gfortan
     - pip3 install .
 
 staging:
