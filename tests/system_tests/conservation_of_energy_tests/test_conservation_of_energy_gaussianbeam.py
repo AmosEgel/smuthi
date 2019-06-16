@@ -40,7 +40,7 @@ init_fld = init.GaussianBeam(vacuum_wavelength=vacuum_wavelength, polar_angle=be
                              k_parallel_array=beam_neff_array*coord.angular_frequency(vacuum_wavelength))
 
 # initialize simulation object
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld)
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld, log_to_terminal=False)
 simulation.run()
 
 ttff, inff, scff = sf.total_far_field(initial_field=simulation.initial_field, particle_list=simulation.particle_list,

@@ -22,7 +22,7 @@ coord.set_default_k_parallel(vacuum_wavelength=ld, neff_waypoints=waypoints, nef
 dipole = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D, position=rD)
 laysys = lay.LayerSystem(thicknesses=thick, refractive_indices=n)
 particle = smuthi.particles.Sphere(position=rS, l_max=3, m_max=3, refractive_index=nS, radius=RS)
-simulation = simul.Simulation(layer_system=laysys, particle_list=[particle], initial_field=dipole)
+simulation = simul.Simulation(layer_system=laysys, particle_list=[particle], initial_field=dipole, log_to_terminal=False)
 
 aI = dipole.spherical_wave_expansion(particle, laysys)
 

@@ -45,7 +45,7 @@ dipole_collection.append(dipole2)
 dipole_collection.append(dipole3)
 
 # run simulation
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole_collection)
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole_collection, log_to_terminal=False)
 
 simulation.run()
 
@@ -64,7 +64,8 @@ def test_energy_conservation():
     print('diss power list', power_list)
     print('diss power', power)
     print('error', err)
-    assert err < 1e-4
+    assert err < 5e-4
+    print("Test passed.")
 
 dipole_collection2 = init.DipoleCollection(vacuum_wavelength=ld, 
                                           compute_swe_by_pwe=True, 
@@ -81,6 +82,7 @@ def test_alternative_power():
     err = abs((sum(power_list) - sum(power_list_alt)) / sum(power_list))
     print('alt power error', err)
     assert err < 1e-4
+    print("Test passed.")
         
 
 if __name__ == '__main__':

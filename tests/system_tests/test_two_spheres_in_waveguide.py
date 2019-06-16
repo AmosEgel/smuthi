@@ -38,10 +38,10 @@ plane_wave = init.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=pla
                             amplitude=plane_wave_amplitude, reference_point=[0, 0, 400])
 
 # initialize simulation object
-simulation1 = simul.Simulation(layer_system=lay_sys1, particle_list=[part1,part2], initial_field=plane_wave)
+simulation1 = simul.Simulation(layer_system=lay_sys1, particle_list=[part1,part2], initial_field=plane_wave, log_to_terminal=False)
 simulation1.run()
 
-simulation2 = simul.Simulation(layer_system=lay_sys2, particle_list=[part1,part2], initial_field=plane_wave)
+simulation2 = simul.Simulation(layer_system=lay_sys2, particle_list=[part1,part2], initial_field=plane_wave, log_to_terminal=False)
 simulation2.run()
 
 ff = sf.scattered_far_field(vacuum_wavelength=vacuum_wavelength, particle_list=simulation1.particle_list,

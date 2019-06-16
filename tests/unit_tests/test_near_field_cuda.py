@@ -28,7 +28,7 @@ lay_sys = lay.LayerSystem([0, 400, 0], [1+6j, 2.3, 1.5])
 dipole = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D, position=rD)
 
 # run simulation
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole)
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole, log_to_terminal=False)
 simulation.run()
 
 xarr = np.array([-300, 400, -100, 200])

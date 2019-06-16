@@ -44,7 +44,7 @@ init_fld = init.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=plane
                           amplitude=plane_wave_amplitude, reference_point=[0, 0, 0])
 
 # simulation
-simulation = sim.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld)
+simulation = sim.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld, log_to_terminal=False)
 
 simulation.run()
 

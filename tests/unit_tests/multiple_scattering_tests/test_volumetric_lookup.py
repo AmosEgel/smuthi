@@ -51,7 +51,7 @@ init_fld = init.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=polar
 
 # initialize simulation object
 simulation_direct = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                                    solver_type='LU', store_coupling_matrix=True)
+                                    solver_type='LU', store_coupling_matrix=True, log_to_terminal=False)
 
 simulation_direct.run()
 coefficients_direct = particle_list[0].scattered_field.coefficients
@@ -60,14 +60,16 @@ cu.enable_gpu()
 simulation_lookup_linear_gpu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, 
                                                 initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
                                                 coupling_matrix_lookup_resolution=lookup_resol, 
-                                                coupling_matrix_interpolator_kind='linear')
+                                                coupling_matrix_interpolator_kind='linear',
+                                                log_to_terminal=False)
 simulation_lookup_linear_gpu.run()
 coefficients_lookup_linear_gpu = particle_list[0].scattered_field.coefficients
 
 simulation_lookup_cubic_gpu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, 
                                                initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
                                                coupling_matrix_lookup_resolution=lookup_resol, 
-                                               coupling_matrix_interpolator_kind='cubic')
+                                               coupling_matrix_interpolator_kind='cubic',
+                                                log_to_terminal=False)
 simulation_lookup_cubic_gpu.run()
 coefficients_lookup_cubic_gpu = particle_list[0].scattered_field.coefficients
 
@@ -75,14 +77,16 @@ cu.enable_gpu(False)
 simulation_lookup_linear_cpu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, 
                                                 initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
                                                 coupling_matrix_lookup_resolution=lookup_resol, 
-                                                coupling_matrix_interpolator_kind='linear')
+                                                coupling_matrix_interpolator_kind='linear',
+                                                log_to_terminal=False)
 simulation_lookup_linear_cpu.run()
 coefficients_lookup_linear_cpu = particle_list[0].scattered_field.coefficients
 
 simulation_lookup_cubic_cpu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, 
                                                 initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
                                                 coupling_matrix_lookup_resolution=lookup_resol, 
-                                                coupling_matrix_interpolator_kind='cubic')
+                                                coupling_matrix_interpolator_kind='cubic',
+                                                log_to_terminal=False)
 simulation_lookup_cubic_cpu.run()
 coefficients_lookup_cubic_cpu = particle_list[0].scattered_field.coefficients
 

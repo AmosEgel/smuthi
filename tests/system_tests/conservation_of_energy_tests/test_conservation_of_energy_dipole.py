@@ -27,7 +27,7 @@ lay_sys = lay.LayerSystem([0, 400, 0], [2, 1.3, 2])
 dipole = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D, position=rD)
 
 # run simulation
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole)
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole, log_to_terminal=False)
 simulation.run()
 
 power_hom = dipole.dissipated_power_homogeneous_background(layer_system=simulation.layer_system)
@@ -45,6 +45,7 @@ def test_energy_conservation():
     print('hom power', power_hom)
     print('error', err)
     assert err < 1e-4
+    print("Test passed.")
 
 
 def test_power_prototype():
@@ -53,6 +54,7 @@ def test_power_prototype():
     err = abs((power - diss_pow_tspl) / diss_pow_tspl)
     print('error', err)
     assert err < 1e-4
+    print("Test passed.")
 
 if __name__ == '__main__':
     test_energy_conservation()

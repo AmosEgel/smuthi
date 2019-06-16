@@ -39,12 +39,12 @@ init_fld = init.GaussianBeam(vacuum_wavelength=vacuum_wavelength, polar_angle=be
 
 # initialize simulation object
 simulation_lu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                                 solver_type='LU')
+                                 solver_type='LU', log_to_terminal=False)
 simulation_lu.run()
 coefficients_lu = particle_list[0].scattered_field.coefficients
 
 simulation_gmres = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                                    solver_type='gmres', solver_tolerance=1e-5)
+                                    solver_type='gmres', solver_tolerance=1e-5, log_to_terminal=False)
 simulation_gmres.run()
 coefficients_gmres = particle_list[0].scattered_field.coefficients
 

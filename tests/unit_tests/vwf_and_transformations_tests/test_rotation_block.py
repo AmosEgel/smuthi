@@ -87,8 +87,8 @@ planewave2 = init.PlaneWave(vacuum_wavelength=ld, polar_angle=polar_angle, azimu
                             polarization=0, amplitude=1, reference_point=rD2)
 
 # run simulation
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=planewave)
-simulation2 = simul.Simulation(layer_system=lay_sys, particle_list=part_list2, initial_field=planewave2)
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=planewave, log_to_terminal=False)
+simulation2 = simul.Simulation(layer_system=lay_sys, particle_list=part_list2, initial_field=planewave2, log_to_terminal=False)
 simulation.run()
 simulation2.run()
 scattered_ff = scf.scattered_far_field(ld, simulation.particle_list, simulation.layer_system)
