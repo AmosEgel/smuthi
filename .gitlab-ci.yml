@@ -12,7 +12,7 @@ test:
     - apt-get install -y gfortran
     - pip3 install .
     - pip3 install nose2
-    - nose2
+    - nose2 -v
 
 production:
   stage: deploy

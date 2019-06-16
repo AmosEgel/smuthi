@@ -5,7 +5,6 @@ import smuthi.simulation as simul
 import smuthi.layers as lay
 import smuthi.scattered_field as sf
 import numpy as np
-from smuthi.coordinates import default_azimuthal_angles
 
 
 ld = 550
@@ -18,10 +17,13 @@ waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 3]
 neff_max = 3
 neff_discr = 5e-3
 
-#coord.set_default_k_parallel(vacuum_wavelength = ld, neff_resolution=neff_discr, neff_max=neff_max)
-coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr, neff_max=neff_max)
 
+#coord.set_default_k_parallel(vacuum_wavelength = ld, neff_resolution=neff_discr, neff_max=neff_max)
+#coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr, neff_max=neff_max)
 #coord.default_k_parallel = np.array([0, 0.5*2*np.pi/ld])
+
+# we avoid to use default_k_parallel, because there is some issue when running this test with nose2 ...
+kpar = coord.complex_contour(ld, waypoints, neff_discr)
 
 # initialize particle object
 # first two spheres in top layer
@@ -36,17 +38,16 @@ part_list = [sphere1, sphere2, sphere3]
 lay_sys = lay.LayerSystem([0, 400, 0], [1, 2, 1.5])
 
 # initialize dipole object
-dipole1 = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D1, position=rD1)
-dipole2 = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D2, position=rD2)
+dipole1 = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D1, position=rD1, k_parallel=kpar)
+dipole2 = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D2, position=rD2, k_parallel=kpar)
 
-dipole_collection = init.DipoleCollection(vacuum_wavelength=ld)
+dipole_collection = init.DipoleCollection(vacuum_wavelength=ld, k_parallel_array=kpar)
 dipole_collection.append(dipole1)
 dipole_collection.append(dipole2)
 
-dipole_collection_pwe = init.DipoleCollection(vacuum_wavelength=ld, compute_swe_by_pwe=True)
+dipole_collection_pwe = init.DipoleCollection(vacuum_wavelength=ld, k_parallel_array=kpar, compute_swe_by_pwe=True)
 dipole_collection_pwe.append(dipole1)
 dipole_collection_pwe.append(dipole2)
-
 
 def test_swe_methods_agree():
     swe1 = dipole_collection.spherical_wave_expansion(sphere1, lay_sys)
