@@ -14,11 +14,13 @@ D1 = [1e7, 2e7, 3e7]
 rD2 = [-100, 100, -100]
 D2 = [-2e7, 3e7, 1e7]
 
-# waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 3]
+waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 3]
 neff_max = 3
 neff_discr = 5e-3
 
-coord.set_default_k_parallel(vacuum_wavelength = ld, neff_resolution=neff_discr, neff_max=neff_max)
+#coord.set_default_k_parallel(vacuum_wavelength = ld, neff_resolution=neff_discr, neff_max=neff_max)
+coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr, neff_max=neff_max)
+
 #coord.default_k_parallel = np.array([0, 0.5*2*np.pi/ld])
 
 # initialize particle object
