@@ -110,7 +110,7 @@ To do: Explain how to implement a new T-matrix interface
 ************
 4 Code style
 ************
-Please refer to the `PEP 8 Python code style guide <https://www.python.org/dev/peps/pep-0008/>`_. In Smuthi, we use `snake_case` for variable names, function names and module names, and `CamelCase` for class names.
+Please refer to the `PEP 8 Python code style guide <https://www.python.org/dev/peps/pep-0008/>`_. In Smuthi, we use `snake_case` for variable names, function names and module names, and `CamelCase` for class names. We accept long lines usage (up to 120 symbols).
 
 ***************
 5 Running tests
