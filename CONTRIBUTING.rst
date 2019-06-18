@@ -1,6 +1,6 @@
 Contributing to Smuthi
 =======================
-Thanks a lot for your interest to take part in the Smuthi project. Contributions are highly welcome. In order to get in contact with Smuthi's developer community, please consider to `register to the Smuthi mailing list <https://groups.google.com/forum/#!forum/smuthi>`_.
+Thanks a lot for your interest to take part in the Smuthi project. Contributions are highly welcome. In order to get in contact with Smuthi's developer community, please consider to `register to the Smuthi mailing list <https://groups.google.com/forum/#!forum/smuthi/join>`_.
 
 *************************
 1 Giving general feedback

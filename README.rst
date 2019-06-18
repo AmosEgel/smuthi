@@ -23,7 +23,7 @@ and Ilia Rasskazov for bug reports and useful comments.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
 
-If you are using Smuthi, please subscribe to the `Smuthi mailing list <https://groups.google.com/forum/#!forum/smuthi>`_.
+If you are using Smuthi, please `subscribe to the Smuthi mailing list <https://groups.google.com/forum/#!forum/smuthi/join>`_.
 The list is also a good place to ask for support from the developers or from experienced users.
 
 To report a bug, you can also open an issue in Gitlab.
