@@ -16,8 +16,8 @@ Under Windows you will also need some C++ compiler.
 
 .. todo:: check windows integration
 
-Using pip
-----------
+Installing from the Python Package Index
+----------------------------------------
 Under Windows, open a command window and type::
 
     pip install smuthi
@@ -28,26 +28,35 @@ Under Ubuntu, type::
 
    sudo pip3 install smuthi
 
+If you plan to run simulations on the GPU, install it with the [cuda] option::
+
+   sudo pip3 install smuthi[cuda]
+
+Note that you need an NVIDIA GPU and an installation of the NVIDIA CUDA toolkit for that.
+
 Installing manually
 --------------------
 Alternatively, you can download the Smuthi project folder manually from `here <https://gitlab.com/AmosEgel/smuthi/tags>`_
 or git fork the `gitlab repository <https://gitlab.com/AmosEgel/smuthi.git>`_. Open a command prompt and change directory to the Smuthi
 project folder. Then, enter (Windows)::
 
-   python setup.py install
+   pip install .
 
 or (Ubuntu)::
 
-   sudo python3 setup.py install
+   sudo pip3 install .
 
 If you plan to edit the Smuthi code, install in develop mode by (Windows)::
 
-   python setup.py develop
+   pip install -e .
 
 or (Ubuntu)::
 
-   python3 setup.py develop
+   pip3 install -e .
 
+To install also the CUDA extra, do for example::
+   
+   pip3 install -e .[cuda]
 
 NFM-DS
 -------

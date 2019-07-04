@@ -207,7 +207,7 @@ def scattering_cross_section(initial_field, particle_list, layer_system, polar_a
 
 
 def extinction_cross_section(initial_field, particle_list, layer_system):
-    """Evaluate and display the differential scattering cross section as a function of solid angle.
+    """Evaluate the extinction cross section.
 
     Args:
         initial_field (smuthi.initial_field.PlaneWave): Plane wave object
@@ -216,8 +216,8 @@ def extinction_cross_section(initial_field, particle_list, layer_system):
 
     Returns:
         Dictionary with following entries
-            - 'forward':      Extinction in the positinve z-direction (top layer)
-            - 'backward':     Extinction in the negative z-direction (bottom layer)
+            - 'top':      Extinction in the positinve z-direction (top layer)
+            - 'bottom':     Extinction in the negative z-direction (bottom layer)
     """
     if not type(initial_field).__name__ == 'PlaneWave':
         raise ValueError('Cross section only defined for plane wave excitation.')
