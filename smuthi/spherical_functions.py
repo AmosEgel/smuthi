@@ -64,7 +64,7 @@ def legendre_normalized(ct, st, lmax):
     return plm, pilm, taulm
 
 
-if 'conda' in sys.version or 'continuum' in sys.version:
+if ('conda' in sys.version or 'continuum' in sys.version) and sys.platform.startswith('win32'):
     # Due to a bug in Anaconda build of scipy (see https://github.com/ContinuumIO/anaconda-issues/issues/1415 ),
     # the spherical Bessel and Hankel functions for complex arguments need to be defined using the following workaround:
     def spherical_bessel(n, x):
