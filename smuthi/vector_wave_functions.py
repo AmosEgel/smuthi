@@ -2,6 +2,7 @@
 from numba import int32,complex128,int64,jit
 import numba as nb
 import numpy as np
+import sys
 
 import smuthi.memoizing as memo
 import smuthi.spherical_functions as sf
