@@ -2,22 +2,30 @@
 from numba import int32,complex128,int64,jit
 import numba as nb
 import numpy as np
-from pywigxjpf_ffi import ffi, lib
-import pywigxjpf_ffi
+import sys
 
 import smuthi.memoizing as memo
 import smuthi.spherical_functions as sf
 # import sympy
 # import sympy.physics.wigner
 
-from numba import cffi_support
-cffi_support.register_module(pywigxjpf_ffi)
-nb_wig3jj = pywigxjpf_ffi.lib.wig3jj
+try:
+    from numba import cffi_support
+    from pywigxjpf_ffi import ffi, lib
+    import pywigxjpf_ffi
+    cffi_support.register_module(pywigxjpf_ffi)
+    nb_wig3jj = pywigxjpf_ffi.lib.wig3jj
 
-lib.wig_table_init(100,9);
-lib.wig_temp_init(100);
-
-
+    lib.wig_table_init(100,9)
+    lib.wig_temp_init(100)
+except:
+    sys.stdout.write('No pywigxjpf installation found,'
+    'using a much slower sympy implementaion.\n')
+    sys.stdout.flush()
+    from sympy.physics.wigner import wigner_3j
+    def nb_wig3jj(jj_1, jj_2, jj_3, mm_1, mm_2, mm_3):
+        return wigner_3j(jj_1/2, jj_2/2, jj_3/2,
+                         mm_1/2, mm_2/2, mm_3/2)
 
 def plane_vector_wave_function(x, y, z, kp, alpha, kz, pol):
     r"""Electric field components of plane wave (PVWF).
@@ -340,8 +348,8 @@ def translation_coefficients_svwf_out_to_out(tau1, l1, m1, tau2, l2, m2, k, d, s
 
 
 @memo.Memoize
-@jit(complex128[:](int32, int32, int32, int32, int32),
-     nopython=True, cache=True)
+# @jit(complex128[:](int32, int32, int32, int32, int32),
+#      nopython=True, cache=True)
 def ab5_coefficients(l1, m1, l2, m2, p):
     """a5 and b5 are the coefficients used in the evaluation of the SVWF translation
     operator. Their computation is based on the sympy.physics.wigner package and is performed with symbolic numbers.
