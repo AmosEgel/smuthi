@@ -900,8 +900,10 @@ def direct_coupling_block_pvwf_mediated(vacuum_wavelength, receiving_particle, e
     
     lmax1 = receiving_particle.l_max
     mmax1 = receiving_particle.m_max
+    assert lmax1 == mmax1, 'PVWF coupling requires lmax == mmax for each particle.'
     lmax2 = emitting_particle.l_max
     mmax2 = emitting_particle.m_max
+    assert lmax2 == mmax2, 'PVWF coupling requires lmax == mmax for each particle.'
     lmax = max([lmax1, lmax2])
     m_max = max([mmax1, mmax2]) 
     blocksize1 = fldex.blocksize(lmax1, mmax1)
@@ -964,9 +966,9 @@ def direct_coupling_block_pvwf_mediated(vacuum_wavelength, receiving_particle, e
                         for tau2 in range(2):
                             n2 = fldex.multi_to_single_index(tau2, l2, m2, lmax2, mmax2)
                             for pol in range(2):
-                                B = vwf.transformation_coefficients_vwf(tau1, l1, m1, pol, pilm_list=pilm_list, 
+                                B_dag = vwf.transformation_coefficients_vwf(tau1, l1, m1, pol, pilm_list=pilm_list, 
                                                                         taulm_list=taulm_list, dagger=True)
-                                B_dag = vwf.transformation_coefficients_vwf(tau2, l2, m2, pol, pilm_list=pilm_list,
+                                B = vwf.transformation_coefficients_vwf(tau2, l2, m2, pol, pilm_list=pilm_list,
                                                                             taulm_list=taulm_list, dagger=False)
                                 integrand = prefactor * B * B_dag
                                 w[n1, n2] += np.trapz(integrand, k_parallel) 
