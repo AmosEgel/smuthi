@@ -900,8 +900,10 @@ def direct_coupling_block_pvwf_mediated(vacuum_wavelength, receiving_particle, e
     
     lmax1 = receiving_particle.l_max
     mmax1 = receiving_particle.m_max
+    assert lmax1 == mmax1, 'PVWF coupling requires lmax == mmax for each particle.'
     lmax2 = emitting_particle.l_max
     mmax2 = emitting_particle.m_max
+    assert lmax2 == mmax2, 'PVWF coupling requires lmax == mmax for each particle.'
     lmax = max([lmax1, lmax2])
     m_max = max([mmax1, mmax2]) 
     blocksize1 = fldex.blocksize(lmax1, mmax1)
