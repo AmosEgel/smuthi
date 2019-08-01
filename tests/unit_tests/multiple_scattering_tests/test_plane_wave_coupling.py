@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 wl = 550
 lay_sys = lay.LayerSystem([0, 800, 0], [1, 1, 1])
 
-# ToDo: test fails for mmax != lmax
 spheroid1 = part.Spheroid(position=[0, 0, 400], euler_angles=[0.324, 0.567, 1.234],
                           refractive_index=2.4 + 0.0j, semi_axis_c=50, semi_axis_a=100, l_max=2, m_max=2)
   
@@ -35,10 +34,6 @@ W = pacou.direct_coupling_block(vacuum_wavelength=wl, receiving_particle=spheroi
 # plane wave coupling
 k_parallel = coord.complex_contour(vacuum_wavelength=wl, neff_waypoints=[0, 0.9, 0.9-0.1j, 1.1-0.1j, 1.1, 7], 
                                    neff_resolution=1e-3)
-
-# W_pvwf = pacou.direct_coupling_block_pvwf(vacuum_wavelength=wl, receiving_particle=spheroid2, 
-#                                           emitting_particle=spheroid1, layer_system=lay_sys, k_parallel=k_parallel)
-
 W_pvwf = pacou.direct_coupling_block_pvwf_mediated(vacuum_wavelength=wl, receiving_particle=spheroid2,
                                                    emitting_particle=spheroid1, layer_system=lay_sys, 
                                                    k_parallel=k_parallel)
