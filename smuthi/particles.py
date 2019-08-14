@@ -42,9 +42,17 @@ class Particle:
         """Virtual method to be overwritten"""
         pass
     
-    def automated_lmax_mmax_selection(self, vacuum_wavelength=None, ambient_medium=None,
-                                      lmax_stop='default', max_rel_diff='default'):
+    def automated_lmax_mmax_selection(self, vacuum_wavelength, ambient_medium,
+                                      lmax_stop=20, max_rel_diff=1e-3):
+        """ Automated selection of a particle's maximal multipole degree lmax and maximal multipole order mmax. 
         
+        Args:
+            vacuum_wavelength (float):          Vacuum wavelength :math:`\lambda` (length unit)
+            ambient_medium (complex):           Complex refractive index of the particle's ambient medium.
+            lmax_stop (int):                    Maximal multipole degree to be considered.
+            max_rel_diff (flaot):               Maximal relative difference between T-matrices of successive lmax and mmax
+                                                that is tolerated (decission criterion).
+        """
         def relative_difference_Tmatrices(Tmat_s, lmax_s, mmax_s, Tmat_l, lmax_l, mmax_l):
             n_list_s = np.zeros(len(Tmat_s), dtype=int)
             n_list_l = np.zeros(len(Tmat_s), dtype=int)
@@ -59,18 +67,8 @@ class Particle:
             row2, column2 = np.meshgrid(n_list_l, n_list_l)
             TMat_temp = np.zeros([len(Tmat_l), len(Tmat_l)], dtype=complex)
             TMat_temp[row2, column2] = Tmat_s[row, column]
-            T1mnT2 = Tmat_l - TMat_temp
-            nom, denom = 0, 0
-            for idx in range(len(T1mnT2)):
-                denom += np.sqrt(np.dot(np.conjugate(T1mnT2[:, idx]), T1mnT2[:, idx]))
-                nom += np.sqrt(np.dot(np.conjugate(Tmat_l[:, idx]), Tmat_l[:, idx]))
-            L2_norm = denom / nom 
-            return L2_norm
-        
-        if lmax_stop == 'default':
-            lmax_stop = 20
-        if max_rel_diff == 'default':
-            max_rel_diff = 1e-3    
+            return np.linalg.norm(Tmat_l - TMat_temp) / np.linalg.norm(Tmat_l)
+           
         L2_norm = [[], []]
         TMatrix = [[], []]
         self.l_max = 0
