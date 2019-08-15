@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """Provide class for the representation of scattering particles."""
+import smuthi.field_expansion as fldex
+import smuthi.t_matrix as tmt
 import numpy as np
-
 
 class Particle:
     """Base class for scattering particles.
@@ -40,6 +41,67 @@ class Particle:
     def circumscribing_sphere_radius(self):
         """Virtual method to be overwritten"""
         pass
+    
+    def automated_lmax_mmax_selection(self, vacuum_wavelength, ambient_medium,
+                                      lmax_stop=20, max_rel_diff=1e-3):
+        """ Automated selection of a particle's maximal multipole degree lmax and maximal multipole order mmax. 
+        
+        Args:
+            vacuum_wavelength (float):          Vacuum wavelength :math:`\lambda` (length unit)
+            ambient_medium (complex):           Complex refractive index of the particle's ambient medium.
+            lmax_stop (int):                    Maximal multipole degree to be considered.
+            max_rel_diff (flaot):               Maximal relative difference between T-matrices of successive lmax and mmax
+                                                that is tolerated (decission criterion).
+        """
+        def relative_difference_Tmatrices(Tmat_s, lmax_s, mmax_s, Tmat_l, lmax_l, mmax_l):
+            n_list_s = np.zeros(len(Tmat_s), dtype=int)
+            n_list_l = np.zeros(len(Tmat_s), dtype=int)
+            idx = 0
+            for tau in range(2):
+                for l in range(1, lmax_s + 1):
+                    for m in range(np.max([-l, -mmax_s]), np.min([l, mmax_s]) + 1):        
+                        n_list_s[idx] = fldex.multi_to_single_index(tau, l, m, lmax_s, mmax_s) 
+                        n_list_l[idx] = fldex.multi_to_single_index(tau, l, m, lmax_l, mmax_l)                     
+                        idx += 1                                
+            row, column = np.meshgrid(n_list_s, n_list_s)
+            row2, column2 = np.meshgrid(n_list_l, n_list_l)
+            TMat_temp = np.zeros([len(Tmat_l), len(Tmat_l)], dtype=complex)
+            TMat_temp[row2, column2] = Tmat_s[row, column]
+            return np.linalg.norm(Tmat_l - TMat_temp) / np.linalg.norm(Tmat_l)
+           
+        L2_norm = [[], []]
+        TMatrix = [[], []]
+        self.l_max = 0
+        lmax_decision, mmax_decision = False, False
+        # increase lmax until either Csca or each element of the DSCS does not change significantly  
+        while lmax_decision == False:
+            self.l_max += 1
+            self.m_max = self.l_max # for finding the lmax keep lmax = mmax           
+            TMatrix[0].append(tmt.t_matrix(vacuum_wavelength, ambient_medium, self))     
+            if len(TMatrix[0]) > 1: # do we have at least two values to compare     
+                L2_norm[0].append(relative_difference_Tmatrices(TMatrix[0][-2], self.l_max - 1, self.m_max - 1,
+                                                                TMatrix[0][-1], self.l_max, self.m_max))
+                if L2_norm[0][-1] <= max_rel_diff: # condition satisfied?
+                    lmax_decision = True
+                    self.l_max -= 1
+            assert self.l_max <= lmax_stop, 'The set precision requires lmax > %d.' % lmax_stop
+        
+        self.m_max = 0    # now find the corresponding mmax
+        while mmax_decision == False:
+            self.m_max += 1
+            if self.m_max == self.l_max:   # mmax = lmax is valid in any case
+                mmax_decision = True
+                self.t_matrix = TMatrix[0][-2]
+            else:
+                TMatrix[1].append(tmt.t_matrix(vacuum_wavelength, ambient_medium, self))           
+                L2_norm[1].append(relative_difference_Tmatrices(TMatrix[1][-1], self.l_max, self.m_max,
+                                                                TMatrix[0][-2], self.l_max, self.l_max))
+                if L2_norm[1][-1] <= max_rel_diff:
+                    mmax_decision = True
+                    self.t_matrix = TMatrix[1][-1]
+        print(type(self), '\n',
+              'lmax has been set to %d ' % self.l_max, '\n',
+              'mmax has been set to %d ' % self.m_max)
 
 
 class Sphere(Particle):
