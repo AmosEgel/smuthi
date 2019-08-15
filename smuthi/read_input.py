@@ -84,8 +84,8 @@ def read_input_yaml(filename):
                         if particle_type == 'sphere':
                             r = numeric_line_data[3]
                             n = numeric_line_data[4] + 1j * numeric_line_data[5]
-                            l_max = numeric_line_data[6]
-                            m_max = numeric_line_data[7]
+                            l_max = int(numeric_line_data[6])
+                            m_max = int(numeric_line_data[7])
                             particle_list.append(part.Sphere(position=pos, refractive_index=n, radius=r, l_max=l_max,
                                                              m_max=m_max))
                         if particle_type == 'spheroid':
@@ -94,8 +94,8 @@ def read_input_yaml(filename):
                             beta = numeric_line_data[5]
                             alpha = numeric_line_data[6]
                             n = numeric_line_data[7] + 1j * numeric_line_data[8]
-                            l_max = numeric_line_data[9]
-                            m_max = numeric_line_data[10]
+                            l_max = int(numeric_line_data[9])
+                            m_max = int(numeric_line_data[10])
                             particle_list.append(part.Spheroid(position=pos, polar_angle=beta, azimuthal_angle=beta, 
                                                                refractive_index=n, semi_axis_c=c, semi_axis_a=a, 
                                                                l_max=l_max, m_max=m_max))
@@ -105,8 +105,8 @@ def read_input_yaml(filename):
                             beta = numeric_line_data[5]
                             alpha = numeric_line_data[6]
                             n = numeric_line_data[7] + 1j * numeric_line_data[8]
-                            l_max = numeric_line_data[9]
-                            m_max = numeric_line_data[10]
+                            l_max = int(numeric_line_data[9])
+                            m_max = int(numeric_line_data[10])
                             particle_list.append(part.FiniteCylinder(position=pos, polar_angle=beta, 
                                                                      azimuthal_angle=beta, refractive_index=n,
                                                                      cylinder_radius=r, cylinder_height=h, l_max=l_max,
