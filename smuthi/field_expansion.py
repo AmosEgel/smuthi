@@ -2,6 +2,7 @@
 """Classes and functions to manage the expansion of the electric field in plane wave and spherical wave basis sets."""
 
 import numpy as np
+import os
 import smuthi.coordinates as coord
 import smuthi.vector_wave_functions as vwf
 import smuthi.spherical_functions as sf
@@ -741,6 +742,8 @@ class FarField:
             output_directory (str): Path to folder where to store data.
             tag (str):              Keyword to use in the naming of data files, allowing to assign them to this object. 
         """
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
         np.savetxt(output_directory + '/' + tag + '_TE.dat', self.signal[0, :, :],
                    header='Each line corresponds to a polar angle, each column corresponds to an azimuthal angle.')
         np.savetxt(output_directory + '/' + tag + '_TM.dat', self.signal[1, :, :],
