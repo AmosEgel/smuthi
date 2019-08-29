@@ -257,7 +257,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         vmin = -max_field
         vmax = max_field
         
-    sys.stdout.write("Generate final plots ...\n")
+    sys.stdout.write("Generate plots ...\n")
     sys.stdout.flush()
     
     for jq, quantity in enumerate(quantities_to_plot):
