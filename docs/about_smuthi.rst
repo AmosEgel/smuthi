@@ -19,7 +19,7 @@ Smuthi is based on the T-matrix method for the single particle scattering and on
 
   - `Egel, Amos, and Uli Lemmer. JQSRT 148 (2014): 165-176. <https://www.sciencedirect.com/science/article/pii/S0022407314002829?via%3Dihub>`_
   - `Egel, Amos, Siegfried W. Kettlitz, and Uli Lemmer. JOSA A 33.4 (2016): 698-706. <https://www.osapublishing.org/josaa/abstract.cfm?uri=josaa-33-4-698>`_
-  - Egel, Amos: PhD thesis (in preparation)
+  - `Egel, Amos: PhD thesis <https://publikationen.bibliothek.kit.edu/1000093961/26467128>`_
 
 For spheres, the T-matrix of the individual particles is given by the Mie-coefficients. 
 For spheroids and finite cylinders, Smuthi calls the 
