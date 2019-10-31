@@ -1,4 +1,4 @@
-.. image:: docs/images/logo_cropped.png
+.. image:: https://gitlab.com/AmosEgel/smuthi/raw/master/docs/images/logo_cropped.png
    :align: center
 
 SMUTHI stands for 'scattering by multiple particles in thin-film systems'. The software allows to simulate light
@@ -30,6 +30,9 @@ To report a bug, you can also open an issue in Gitlab.
 
 Contributions are highly welcome! Please refer to the `contribution guidelines <https://gitlab.com/AmosEgel/smuthi/blob/master/CONTRIBUTING.rst>`_.
 
+What's new in version 0.9
+-------------------------
+MPI support for the parallel execution of many simulations, acceleration with Numba JIT, faster evaluation of Wigner3j symbols through pywigxjpf
 
 What's new in version 0.8
 -------------------------
@@ -60,7 +63,7 @@ animations. All generated output can be stored as figure files or as text files.
 as binary file.
 
 What's new in version 0.2.2
---------------------------
+---------------------------
 Finite cylinders were added.
 
 What's new in version 0.2
@@ -68,13 +71,3 @@ What's new in version 0.2
 In addition to spherical particles, spheroids can now be selected as scattering particles, too.
 Spheroids are ellipsoidal particles with one axis of rotational symmetry (which is currently fixed
 to be the direction perpendicular to the layer interfaces).
-
-
-Planned updates for future versions
-------------------------------------
-Things to be implemented next:
-
- - plane wave based coupling for close non-spherical particles (by Dominik Theobald, in progress)
- - faster runtime when running on CPU only (by Konstantin Ladutenko)
-
-

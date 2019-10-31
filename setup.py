@@ -30,9 +30,9 @@ def read(fname):
 
 setup(
     name="SMUTHI",
-    version="0.8.6",
+    version="0.9.1",
     author="Amos Egel",
-    author_email="amos.egel@kit.edu",
+    author_email="amos.egel@gmail.com",
     url='https://gitlab.com/AmosEgel/smuthi',
     description="Light scattering by multiple particles in thin-film systems",
     long_description=read('README.rst'),
