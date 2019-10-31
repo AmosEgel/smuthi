@@ -1,18 +1,10 @@
-argparse
-distutils
-imageio
-imp
-matplotlib
-mpmath
 numpy
-os
-pkg_resources
-pyyaml
 scipy>=0.18
-subprocess
+mpmath
+matplotlib
+pyyaml
+argparse
+imageio
 sympy
-sys
-tempfile
 tqdm
-yaml
 
