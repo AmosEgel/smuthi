@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 import smuthi.spherical_functions
 import smuthi.nfmds.t_matrix_axsym as nftaxs
