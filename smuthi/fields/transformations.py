@@ -1,9 +1,19 @@
 """Functions for the transformation of plane and spherical vector wave 
-functions as well as of plane and spherical wave expansions."""
+functions as well as of plane and spherical wave fex."""
+
+import numpy as np
+from smuthi.fields import nb_wig3jj
+import smuthi.fields.expansions as fex
+import smuthi.fields.vector_wave_functions as vwf
+import smuthi.fields.coordinates_and_contours as coord
+import smuthi.post_processing.far_field as farfield
+import smuthi.utility.math as mathfunc
+import smuthi.utility.memoizing as memo
 
 ###############################################################################
 #                          transformations                                    #
 ###############################################################################
+
 
 def transformation_coefficients_vwf(tau, l, m, pol, kp=None, kz=None, pilm_list=None, taulm_list=None, dagger=False):
     r"""Transformation coefficients B to expand SVWF in PVWF and vice versa:
@@ -38,7 +48,7 @@ def transformation_coefficients_vwf(tau, l, m, pol, kp=None, kz=None, pilm_list=
         k = np.sqrt(kp**2 + kz**2)
         ct = kz / k
         st = kp / k
-        plm_list, pilm_list, taulm_list = sf.legendre_normalized(ct, st, l)
+        plm_list, pilm_list, taulm_list = mathfunc.legendre_normalized(ct, st, l)
 
     if tau == pol:
         sphfun = taulm_list[l][abs(m)]
@@ -80,7 +90,7 @@ def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
     if reference_point[2] < pwe.lower_z or reference_point[2] > pwe.upper_z:
         raise ValueError('reference point not inside domain of pwe validity')
 
-    swe = SphericalWaveExpansion(k=pwe.k, l_max=l_max, m_max=m_max, kind='regular', 
+    swe = fex.SphericalWaveExpansion(k=pwe.k, l_max=l_max, m_max=m_max, kind='regular', 
                                  reference_point=reference_point, lower_z=pwe.lower_z, 
                                  upper_z=pwe.upper_z)
     kpgrid = pwe.k_parallel_grid()
@@ -101,9 +111,8 @@ def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
     
     ct = kzvec / pwe.k
     st = pwe.k_parallel / pwe.k
-    plm_list, pilm_list, taulm_list = sf.legendre_normalized(ct, st, l_max)
+    plm_list, pilm_list, taulm_list = mathfunc.legendre_normalized(ct, st, l_max)
 
-    
     for m in range(-m_max, m_max + 1):
         emjma_geijkriSS = np.exp(-1j * m * pwe.azimuthal_angles)[None, None, :] * gejkriSS
         for l in range(max(1, abs(m)), l_max + 1):
@@ -117,7 +126,7 @@ def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
                     an = np.trapz(np.trapz(ak_integrand, pwe.azimuthal_angles) * pwe.k_parallel, pwe.k_parallel) * 4
                 else:
                     an = ak_integrand * 4
-                swe.coefficients[multi_to_single_index(tau, l, m, swe.l_max, swe.m_max)] = np.squeeze(an)
+                swe.coefficients[fex.multi_to_single_index(tau, l, m, swe.l_max, swe.m_max)] = np.squeeze(an)
     return swe
 
 
@@ -141,7 +150,7 @@ def swe_to_pwe_conversion(swe, k_parallel='default', azimuthal_angles='default',
     """
     # todo: manage diverging swe
     if type(k_parallel) == str and k_parallel == 'default':
-            k_parallel = coord.default_k_parallel
+        k_parallel = coord.default_k_parallel
     if type(azimuthal_angles) == str and azimuthal_angles == 'default':
         azimuthal_angles = coord.default_azimuthal_angles
     
@@ -154,11 +163,11 @@ def swe_to_pwe_conversion(swe, k_parallel='default', azimuthal_angles='default',
     reference_point = [0, 0, layer_system.reference_z(i_swe)]
     lower_z_up = swe.reference_point[2]
     upper_z_up = layer_system.upper_zlimit(layer_number)
-    pwe_up = PlaneWaveExpansion(k=swe.k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, kind='upgoing',
+    pwe_up = fex.PlaneWaveExpansion(k=swe.k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, kind='upgoing',
                                 reference_point=reference_point, lower_z=lower_z_up, upper_z=upper_z_up)
     lower_z_down = layer_system.lower_zlimit(layer_number)
     upper_z_down = swe.reference_point[2]
-    pwe_down = PlaneWaveExpansion(k=swe.k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, kind='downgoing',
+    pwe_down = fex.PlaneWaveExpansion(k=swe.k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, kind='downgoing',
                                   reference_point=reference_point, lower_z=lower_z_down, upper_z=upper_z_down)
 
     agrid = pwe_up.azimuthal_angle_grid()
@@ -180,11 +189,11 @@ def swe_to_pwe_conversion(swe, k_parallel='default', azimuthal_angles='default',
     
     ct_up = pwe_up.k_z() / swe.k
     st_up = pwe_up.k_parallel / swe.k
-    plm_list_up, pilm_list_up, taulm_list_up = sf.legendre_normalized(ct_up, st_up, swe.l_max)
+    plm_list_up, pilm_list_up, taulm_list_up = mathfunc.legendre_normalized(ct_up, st_up, swe.l_max)
 
     ct_down = pwe_down.k_z() / swe.k
     st_down = pwe_down.k_parallel / swe.k
-    plm_list_down, pilm_list_down, taulm_list_down = sf.legendre_normalized(ct_down, st_down, swe.l_max)
+    plm_list_down, pilm_list_down, taulm_list_down = mathfunc.legendre_normalized(ct_down, st_down, swe.l_max)
     
     for m in range(-swe.m_max, swe.m_max + 1):
         eima = np.exp(1j * m * pwe_up.azimuthal_angles)  # indices: alpha_idx
@@ -193,9 +202,9 @@ def swe_to_pwe_conversion(swe, k_parallel='default', azimuthal_angles='default',
             dbB_down = np.zeros(len(k_parallel), dtype=complex)
             for l in range(max(1, abs(m)), swe.l_max + 1):
                 for tau in range(2):
-                    dbB_up += swe.coefficients_tlm(tau, l, m) * vwf.transformation_coefficients_vwf(
+                    dbB_up += swe.coefficients_tlm(tau, l, m) * transformation_coefficients_vwf(
                         tau, l, m, pol, pilm_list=pilm_list_up, taulm_list=taulm_list_up)
-                    dbB_down += swe.coefficients_tlm(tau, l, m) * vwf.transformation_coefficients_vwf(
+                    dbB_down += swe.coefficients_tlm(tau, l, m) * transformation_coefficients_vwf(
                         tau, l, m, pol, pilm_list=pilm_list_down, taulm_list=taulm_list_down)
             pwe_up.coefficients[pol, :, :] += dbB_up[:, None] * eima[None, :]
             pwe_down.coefficients[pol, :, :] += dbB_down[:, None] * eima[None, :]
@@ -215,7 +224,7 @@ def pwe_to_ff_conversion(vacuum_wavelength, plane_wave_expansion):
 
     Args:
         vacuum_wavelength (float):                 Vacuum wavelength in length units.
-        plane_wave_expansion (PlaneWaveExpansion): Plane wave expansion to convert into far field object.
+        plane_wave_expansion (fex.PlaneWaveExpansion): Plane wave expansion to convert into far field object.
 
     Returns:
         A FarField object containing the far field intensity.
@@ -236,7 +245,7 @@ def pwe_to_ff_conversion(vacuum_wavelength, plane_wave_expansion):
     intens = (2 * np.pi ** 2 / omega * kkz2[np.newaxis, :, np.newaxis] 
               * abs(plane_wave_expansion.coefficients) ** 2).real
     srt_idcs = np.argsort(polar_angles)  # reversing order in case of downgoing
-    ff = FarField(polar_angles=polar_angles[srt_idcs], azimuthal_angles=azimuthal_angles)
+    ff = farfield.FarField(polar_angles=polar_angles[srt_idcs], azimuthal_angles=azimuthal_angles)
     ff.signal = intens[:, srt_idcs, :]    
     return ff
 
@@ -286,12 +295,12 @@ def translation_coefficients_svwf(tau1, l1, m1, tau2, l2, m2, k, d, sph_hankel=N
         eimph = exp_immphi[m1][m2]
 
     if sph_hankel is None:
-        sph_hankel = [sf.spherical_hankel(n, k * dd) for n in range(l1 + l2 + 1)]
+        sph_hankel = [mathfunc.spherical_hankel(n, k * dd) for n in range(l1 + l2 + 1)]
 
     if legendre is None:
         costthetd = d[2] / dd
         sinthetd = np.sqrt(d[0] ** 2 + d[1] ** 2) / dd
-        legendre, _, _ = sf.legendre_normalized(costthetd, sinthetd, l1 + l2)
+        legendre, _, _ = mathfunc.legendre_normalized(costthetd, sinthetd, l1 + l2)
 
     A = complex(0)
     for ld in range(abs(l1 - l2), l1 + l2 + 1):
@@ -343,12 +352,12 @@ def translation_coefficients_svwf_out_to_out(tau1, l1, m1, tau2, l2, m2, k, d, s
         eimph = exp_immphi[m1][m2]
 
     if sph_bessel is None:
-        sph_bessel = [sf.spherical_bessel(n, k * dd) for n in range(l1 + l2 + 1)]
+        sph_bessel = [mathfunc.spherical_bessel(n, k * dd) for n in range(l1 + l2 + 1)]
 
     if legendre is None:
         costthetd = d[2] / dd
         sinthetd = np.sqrt(d[0] ** 2 + d[1] ** 2) / dd
-        legendre, _, _ = sf.legendre_normalized(costthetd, sinthetd, l1 + l2)
+        legendre, _, _ = mathfunc.legendre_normalized(costthetd, sinthetd, l1 + l2)
 
     A = complex(0), complex(0)
     for ld in range(abs(l1 - l2), l1 + l2 + 1):
@@ -376,10 +385,9 @@ def ab5_coefficients(l1, m1, l2, m2, p):
         l2 (int):           l=1,...: Partial wave's SVWF multipole degree
         m2 (int):           m=-l,...,l: Partial wave's SVWF multipole order
         p (int):            p parameter
-        symbolic (bool):    If True, symbolic numbers are returned. Otherwise, complex.
 
     Returns:
-        A tuple (a5, b5) where a5 and b5 are symbolic or complex.
+        A tuple (a5, b5) where a5 and b5 are complex.
     """
     jfac = 1.0j ** (abs(m1 - m2) - abs(m1) - abs(m2) + l2 - l1 + p) * (-1) ** (m1 - m2)
     fac1 = np.sqrt((2 * l1 + 1) * (2 * l2 + 1) / (2 * l1 * (l1 + 1) * l2 * (l2 + 1)))
@@ -415,17 +423,17 @@ def block_rotation_matrix_D_svwf(l_max, m_max, alpha, beta, gamma, wdsympy=False
         rotation matrix of dimension [blocksize, blocksize]
     """
     
-    b_size = blocksize(l_max, m_max)
+    b_size = fex.blocksize(l_max, m_max)
     rotation_matrix = np.zeros([b_size, b_size], dtype=complex)
     
     for l in range(l_max + 1):
         mstop = min(l, m_max)
         for m1 in range(-mstop, mstop + 1):
             for m2 in range(-mstop, mstop + 1):
-                rotation_matrix_coefficient = sf.wigner_D(l, m1, m2, alpha, beta, gamma, wdsympy)
+                rotation_matrix_coefficient = mathfunc.wigner_D(l, m1, m2, alpha, beta, gamma, wdsympy)
                 for tau in range(2):
-                    n1 = multi_to_single_index(tau, l, m1, l_max, m_max)
-                    n2 = multi_to_single_index(tau, l, m2, l_max, m_max)
+                    n1 = fex.multi_to_single_index(tau, l, m1, l_max, m_max)
+                    n2 = fex.multi_to_single_index(tau, l, m2, l_max, m_max)
                     rotation_matrix[n1, n2] = rotation_matrix_coefficient
 
     return rotation_matrix

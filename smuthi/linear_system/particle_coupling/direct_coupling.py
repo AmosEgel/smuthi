@@ -1,6 +1,15 @@
 """This module contains functions to compute the direct (i.e., not layer 
 mediated) particle coupling coefficients."""
 
+import numpy as np
+import smuthi.fields.coordinates_and_contours as coord
+import smuthi.fields.expansions as fldex
+import smuthi.fields.transformations as trf
+import smuthi.utility.math as sf
+import scipy.optimize
+import scipy.special
+
+
 def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_particle, layer_system):
     """Direct particle coupling matrix :math:`W` for two particles. This routine is explicit, but slow.
 
@@ -54,7 +63,7 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
                     for l2 in range(max(1, abs(m2)), lmax2 + 1):
                         A, B = complex(0), complex(0)
                         for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
-                            a5, b5 = vwf.ab5_coefficients(l2, m2, l1, m1, ld)
+                            a5, b5 = trf.ab5_coefficients(l2, m2, l1, m1, ld)
                             A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                             B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                         A, B = eimph * A, eimph * B
@@ -164,6 +173,7 @@ def spheroids_closest_points(ab_halfaxis1, c_halfaxis1, center1, orientation1, a
     def minimization_fun(y_vec):
         fun = 0.5 * np.dot(np.dot(np.transpose(y_vec), H), y_vec) + np.dot(f, y_vec)
         return fun
+
     def constraint_fun(x):
         eq_constraint = (x[0] ** 2 + x[1] ** 2 + x[2] ** 2) ** 0.5 - 1
         return eq_constraint
@@ -197,7 +207,7 @@ def spheroids_closest_points(ab_halfaxis1, c_halfaxis1, center1, orientation1, a
     f = np.dot(np.transpose(ctr1 - p), np.transpose(np.linalg.inv(E1_L)))
        
     flag = False
-    while flag == False:
+    while not flag == False:
         x0 = -1 + np.dot((1 + 1), np.random.rand(3))
         optimization_result2 = scipy.optimize.minimize(minimization_fun, x0, method='SLSQP', bounds=bnds,
                                                       constraints=length_constraints, tol=None, callback=None, options=None)
@@ -311,9 +321,9 @@ def direct_coupling_block_pvwf_mediated(vacuum_wavelength, receiving_particle, e
                         for tau2 in range(2):
                             n2 = fldex.multi_to_single_index(tau2, l2, m2, lmax2, mmax2)
                             for pol in range(2):
-                                B_dag = vwf.transformation_coefficients_vwf(tau1, l1, m1, pol, pilm_list=pilm_list, 
+                                B_dag = trf.transformation_coefficients_vwf(tau1, l1, m1, pol, pilm_list=pilm_list,
                                                                         taulm_list=taulm_list, dagger=True)
-                                B = vwf.transformation_coefficients_vwf(tau2, l2, m2, pol, pilm_list=pilm_list,
+                                B = trf.transformation_coefficients_vwf(tau2, l2, m2, pol, pilm_list=pilm_list,
                                                                             taulm_list=taulm_list, dagger=False)
                                 integrand = prefactor * B * B_dag
                                 w[n1, n2] += np.trapz(integrand, k_parallel) 

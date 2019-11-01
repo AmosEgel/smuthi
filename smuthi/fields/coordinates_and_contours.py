@@ -5,6 +5,9 @@ coordinates (k, alpha, beta) or cylindrical coordinates
 It also contains the definition of complex contours in k_parallel for 
 Sommerfeld integration."""
 
+import numpy as np
+from smuthi.fields import angular_frequency
+
 """The default arrays for k_parrallel, azimuthal_angles and polar_angles are 
 used in Sommerfeld integrals or in plane wave expansions whenever no other
 arrays for the specification of the wavevectors are explicitly stated."""

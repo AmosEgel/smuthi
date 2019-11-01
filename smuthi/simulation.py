@@ -2,7 +2,7 @@
 """Provide class to manage a simulation."""
 
 import smuthi.linear_system as lsys
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import sys
 import os
 import matplotlib.pyplot as plt
@@ -11,6 +11,7 @@ import datetime
 import shutil
 import pickle
 import numpy as np
+
 
 class Simulation:
     """Central class to manage a simulation.

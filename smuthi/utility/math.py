@@ -4,7 +4,7 @@
 import numpy as np
 import scipy.special
 import warnings
-import smuthi.memoizing as memo
+import smuthi.utility.memoizing as memo
 import sys
 import sympy
 import math

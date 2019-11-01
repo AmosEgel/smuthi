@@ -1,11 +1,20 @@
-class TMatrix(SystemMatrix):
+"""This module contains a class to represent the particle T-matrices for all particles, i.e., on system level."""
+
+import numpy as np
+import scipy.special
+import scipy.sparse.linalg
+import smuthi.linear_system as linsys
+
+
+class TMatrix(linsys.SystemMatrix):
     """Collect the particle T-matrices in a global lienear operator.
 
     Args:
         particle_list (list):   List of smuthi.particles.Particle objects containing a t_matrix attribute.
     """
     def __init__(self, particle_list):
-        SystemMatrix.__init__(self, particle_list)
+        linsys.SystemMatrix.__init__(self, particle_list)
+
         def apply_t_matrix(vector):
             tv = np.zeros(vector.shape, dtype=complex)
             for i_s, particle in enumerate(particle_list):

@@ -1,4 +1,28 @@
-class CouplingMatrixExplicit(SystemMatrix):
+"""This module contains classes to represent the particle coupling matrix for all particles, i.e., on system level."""
+
+import sys
+import tqdm
+import time
+import numpy as np
+import scipy.special
+import scipy.sparse.linalg
+import smuthi.fields.expansions as fldex
+import smuthi.utility.cuda as cu
+import smuthi.linear_system as linsys
+import smuthi.linear_system.particle_coupling.direct_coupling as dircoup
+import smuthi.linear_system.particle_coupling.layer_mediated_coupling as laycoup
+import smuthi.linear_system.particle_coupling.prepare_lookup as look
+try:
+    import pycuda.autoinit
+    import pycuda.driver as drv
+    from pycuda import gpuarray
+    from pycuda.compiler import SourceModule
+    import pycuda.cumath
+except:
+    pass
+
+
+class CouplingMatrixExplicit(linsys.SystemMatrix):
     """Class for an explicit representation of the coupling matrix. Recommended for small particle numbers.
 
     Args:
@@ -9,23 +33,23 @@ class CouplingMatrixExplicit(SystemMatrix):
     """
     def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default'):
       
-        SystemMatrix.__init__(self, particle_list)
+        linsys.SystemMatrix.__init__(self, particle_list)
         coup_mat = np.zeros(self.shape, dtype=complex)
-        sys.stdout.write('Coupling matrix memory footprint: ' + coup.size_format(coup_mat.nbytes) + '\n')
+        sys.stdout.write('Coupling matrix memory footprint: ' + look.size_format(coup_mat.nbytes) + '\n')
         sys.stdout.flush()
         for s1, particle1 in enumerate(tqdm(particle_list, desc='Particle coupling matrix  ', file=sys.stdout,
                                             bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}')):
             idx1 = np.array(self.index_block(s1))[:, None]
             for s2, particle2 in enumerate(particle_list):
                 idx2 = self.index_block(s2)
-                coup_mat[idx1, idx2] = (coup.layer_mediated_coupling_block(vacuum_wavelength, particle1, particle2,
-                                                                           layer_system, k_parallel)
-                                        + coup.direct_coupling_block(vacuum_wavelength, particle1, particle2,
-                                                                     layer_system))
+                coup_mat[idx1, idx2] = (laycoup.layer_mediated_coupling_block(vacuum_wavelength, particle1, particle2,
+                                                                              layer_system, k_parallel)
+                                        + dircoup.direct_coupling_block(vacuum_wavelength, particle1, particle2,
+                                                                        layer_system))
         self.linear_operator = scipy.sparse.linalg.aslinearoperator(coup_mat)
       
         
-class CouplingMatrixVolumeLookup(SystemMatrix):
+class CouplingMatrixVolumeLookup(linsys.SystemMatrix):
     """Base class for 3D lookup based coupling matrix either on CPU or on GPU (CUDA).
   
     Args:
@@ -41,13 +65,13 @@ class CouplingMatrixVolumeLookup(SystemMatrix):
         is_list = [layer_system.layer_number(z) for z in z_list]
         assert is_list.count(is_list[0]) == len(is_list)  # all particles in same layer?
       
-        SystemMatrix.__init__(self, particle_list)
+        linsys.SystemMatrix.__init__(self, particle_list)
       
         self.l_max = max([particle.l_max for particle in particle_list])
         self.m_max = max([particle.m_max for particle in particle_list])
         self.blocksize = fldex.blocksize(self.l_max, self.m_max)
         self.resolution = resolution
-        lkup = coup.volumetric_coupling_lookup_table(vacuum_wavelength=vacuum_wavelength, particle_list=particle_list,
+        lkup = look.volumetric_coupling_lookup_table(vacuum_wavelength=vacuum_wavelength, particle_list=particle_list,
                                                      layer_system=layer_system, k_parallel=k_parallel, 
                                                      resolution=resolution)
         self.lookup_table_plus, self.lookup_table_minus = lkup[0], lkup[1]
@@ -244,7 +268,7 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
         self.linear_operator = scipy.sparse.linalg.LinearOperator(shape=self.shape, matvec=matvec, dtype=complex)
 
 
-class CouplingMatrixRadialLookup(SystemMatrix):
+class CouplingMatrixRadialLookup(linsys.SystemMatrix):
     """Base class for radial lookup based coupling matrix either on CPU or on GPU (CUDA).
   
     Args:
@@ -259,13 +283,13 @@ class CouplingMatrixRadialLookup(SystemMatrix):
         z_list = [particle.position[2] for particle in particle_list]
         assert z_list.count(z_list[0]) == len(z_list)
       
-        SystemMatrix.__init__(self, particle_list)
+        linsys.SystemMatrix.__init__(self, particle_list)
        
         self.l_max = max([particle.l_max for particle in particle_list])
         self.m_max = max([particle.m_max for particle in particle_list])
         self.blocksize = fldex.blocksize(self.l_max, self.m_max)
         self.resolution = resolution
-        self.lookup_table, self.radial_distance_array = coup.radial_coupling_lookup_table(
+        self.lookup_table, self.radial_distance_array = look.radial_coupling_lookup_table(
             vacuum_wavelength=vacuum_wavelength, particle_list=particle_list, layer_system=layer_system,
             k_parallel=k_parallel, resolution=resolution)
 

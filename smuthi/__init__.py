@@ -14,5 +14,6 @@ def print_smuthi_header():
     sys.stdout.write(welcome_msg)
     sys.stdout.flush()
 
+
 if mpi_rank == 0:
     print_smuthi_header()

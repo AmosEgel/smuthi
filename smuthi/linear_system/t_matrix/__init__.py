@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import smuthi.spherical_functions
-import smuthi.nfmds.t_matrix_axsym as nftaxs
-import smuthi.field_expansion as fldex
+import smuthi.utility.math as sf
+import smuthi.linear_system.t_matrix.nfmds.t_matrix_axsym as nftaxs
+import smuthi.fields.expansions as fldex
+import smuthi.fields.transformations as trf
 
 
 def mie_coefficient(tau, l, k_medium, k_particle, radius):
@@ -18,13 +19,13 @@ def mie_coefficient(tau, l, k_medium, k_particle, radius):
     Returns:
         Mie coefficients as complex
     """
-    jlkr_medium = smuthi.spherical_functions.spherical_bessel(l, k_medium * radius)
-    jlkr_particle = smuthi.spherical_functions.spherical_bessel(l, k_particle * radius)
-    dxxj_medium = smuthi.spherical_functions.dx_xj(l, k_medium * radius)
-    dxxj_particle = smuthi.spherical_functions.dx_xj(l, k_particle * radius)
+    jlkr_medium = sf.spherical_bessel(l, k_medium * radius)
+    jlkr_particle = sf.spherical_bessel(l, k_particle * radius)
+    dxxj_medium = sf.dx_xj(l, k_medium * radius)
+    dxxj_particle = sf.dx_xj(l, k_particle * radius)
 
-    hlkr_medium = smuthi.spherical_functions.spherical_hankel(l, k_medium * radius)
-    dxxh_medium = smuthi.spherical_functions.dx_xh(l, k_medium * radius)
+    hlkr_medium = sf.spherical_hankel(l, k_medium * radius)
+    dxxh_medium = sf.dx_xh(l, k_medium * radius)
 
     if tau == 0:
         q = (jlkr_medium * dxxj_particle - jlkr_particle * dxxj_medium) / (jlkr_particle * dxxh_medium - hlkr_medium *
@@ -125,14 +126,14 @@ def rotate_t_matrix(T, l_max, m_max, euler_angles, wdsympy=False):
         T_mat_rot = np.zeros([blocksize, blocksize], dtype=complex)
     
         # Doicu, Light Scattering by Systems of Particles, p. 70 (1.115) 
-        rot_mat_1 = fldex.block_rotation_matrix_D_svwf(l_max, m_max, -euler_angles[2], -euler_angles[1], 
+        rot_mat_1 = trf.block_rotation_matrix_D_svwf(l_max, m_max, -euler_angles[2], -euler_angles[1],
                                                        -euler_angles[0], wdsympy)
-        rot_mat_2 = fldex.block_rotation_matrix_D_svwf(l_max, m_max, euler_angles[0], euler_angles[1], euler_angles[2], 
+        rot_mat_2 = trf.block_rotation_matrix_D_svwf(l_max, m_max, euler_angles[0], euler_angles[1], euler_angles[2],
                                                        wdsympy)     
         T_mat_rot = (np.dot(np.dot(np.transpose(rot_mat_1),T), np.transpose(rot_mat_2)))
 
         # Mishchenko, Scattering, Absorption and Emission of Light by small Particles, p.120 (5.29)
-#       T_rot_matrix = np.dot(np.dot(fldex.rotation_matrix_D(l_max, alpha, beta, gamma), T),
-#                             fldex.rotation_matrix_D(l_max, -gamma, -beta, -alpha))
+#       T_rot_matrix = np.dot(np.dot(trf.rotation_matrix_D(l_max, alpha, beta, gamma), T),
+#                             trf.rotation_matrix_D(l_max, -gamma, -beta, -alpha))
 
         return T_mat_rot

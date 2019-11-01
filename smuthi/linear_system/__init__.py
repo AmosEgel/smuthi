@@ -13,11 +13,12 @@ scattered field in terms of an outgoing spherical wave expansion and :math:`a`
 are the coefficients of the initial field in terms of a regular spherical wave 
 expansion."""
 
-import smuthi.t_matrix as tmt
-import smuthi.particle_coupling as coup
-import smuthi.field_expansion as fldex
-import smuthi.coordinates as coord
-import smuthi.cuda_sources as cu
+import smuthi.linear_system.t_matrix as tmt
+from smuthi.linear_system.t_matrix.system_t_matrix import TMatrix
+import smuthi.linear_system.particle_coupling.system_coupling_matrix as syscoup
+import smuthi.fields.expansions as fldex
+import smuthi.fields.coordinates_and_contours as coord
+import smuthi.utility.cuda as cu
 import numpy as np
 import sys
 import scipy.linalg
@@ -26,17 +27,8 @@ import scipy.sparse.linalg
 from tqdm import tqdm
 import time
 import warnings
-try:
-    import pycuda.autoinit
-    import pycuda.driver as drv
-    from pycuda import gpuarray
-    from pycuda.compiler import SourceModule
-    import pycuda.cumath
-except:
-    pass
+
 iter_num = 0
-
-
 
 
 class LinearSystem:
@@ -148,7 +140,7 @@ class LinearSystem:
                         sys.stdout.write('Coupling matrix computation by ' + self.interpolator_kind 
                                          + ' interpolation of radial lookup on GPU.\n')
                         sys.stdout.flush()
-                        self.coupling_matrix = CouplingMatrixRadialLookupCUDA(
+                        self.coupling_matrix = syscoup.CouplingMatrixRadialLookupCUDA(
                             vacuum_wavelength=self.initial_field.vacuum_wavelength, 
                             particle_list=self.particle_list,
                             layer_system=self.layer_system, 
@@ -160,19 +152,19 @@ class LinearSystem:
                         sys.stdout.write('Coupling matrix computation by ' + self.interpolator_kind 
                                          + ' interpolation of radial lookup on CPU.\n')
                         sys.stdout.flush()
-                        self.coupling_matrix = CouplingMatrixRadialLookupCPU(
+                        self.coupling_matrix = syscoup.CouplingMatrixRadialLookupCPU(
                             vacuum_wavelength=self.initial_field.vacuum_wavelength, 
                             particle_list=self.particle_list,
                             layer_system=self.layer_system, 
                             k_parallel=self.k_parallel,
                             resolution=self.coupling_matrix_lookup_resolution, 
                             interpolator_kind=self.interpolator_kind)
-                else:  #  not all particles at same height: use volume lookup
+                else:  # not all particles at same height: use volume lookup
                     if cu.use_gpu:
                         sys.stdout.write('Coupling matrix computation by ' + self.interpolator_kind 
                                          + ' interpolation of 3D lookup on GPU.\n')
                         sys.stdout.flush()
-                        self.coupling_matrix = CouplingMatrixVolumeLookupCUDA(
+                        self.coupling_matrix = syscoup.CouplingMatrixVolumeLookupCUDA(
                             vacuum_wavelength=self.initial_field.vacuum_wavelength, 
                             particle_list=self.particle_list,
                             layer_system=self.layer_system, 
@@ -184,7 +176,7 @@ class LinearSystem:
                                          + ' interpolation of 3D lookup on CPU.\n')
 
                         sys.stdout.flush()
-                        self.coupling_matrix = CouplingMatrixVolumeLookupCPU(
+                        self.coupling_matrix = syscoup.CouplingMatrixVolumeLookupCPU(
                             vacuum_wavelength=self.initial_field.vacuum_wavelength, 
                             particle_list=self.particle_list,
                             layer_system=self.layer_system, 
@@ -198,10 +190,10 @@ class LinearSystem:
                 self.store_coupling_matrix = True
             sys.stdout.write('Explicit coupling matrix computation on CPU.\n')
             sys.stdout.flush()
-            self.coupling_matrix = CouplingMatrixExplicit(vacuum_wavelength=self.initial_field.vacuum_wavelength,
-                                                          particle_list=self.particle_list, 
-                                                          layer_system=self.layer_system,
-                                                          k_parallel=self.k_parallel)
+            self.coupling_matrix = syscoup.CouplingMatrixExplicit(vacuum_wavelength=self.initial_field.vacuum_wavelength,
+                                                                  particle_list=self.particle_list,
+                                                                  layer_system=self.layer_system,
+                                                                  k_parallel=self.k_parallel)
       
     def solve(self):
         """Compute scattered field coefficients and store them 

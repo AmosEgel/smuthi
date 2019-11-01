@@ -3,11 +3,13 @@
 spherical wave basis sets."""
 
 import numpy as np
-import os
-import smuthi.coordinates as coord
-import smuthi.vector_wave_functions as vwf
-import smuthi.spherical_functions as sf
-import smuthi.cuda_sources as cu
+import smuthi.fields.coordinates_and_contours as coord
+import smuthi.fields.vector_wave_functions as vwf
+import smuthi.fields.expansions_cuda as cu_src
+import smuthi.utility.cuda as cu
+import copy
+import math
+
 try:
     import pycuda.autoinit
     import pycuda.driver as drv
@@ -16,8 +18,7 @@ try:
     import pycuda.cumath
 except:
     pass
-import copy
-import math
+
 
 class FieldExpansion:
     """Base class for field expansions."""
@@ -568,7 +569,7 @@ class PlaneWaveExpansion(FieldExpansion):
             re_e_z_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
             im_e_z_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
             
-            kernel_source = cu.pwe_electric_field_evaluation_code%(xr.size, len(self.k_parallel), 
+            kernel_source = cu_src.pwe_electric_field_evaluation_code%(xr.size, len(self.k_parallel), 
                                                                    len(self.azimuthal_angles), (1/self.k).real, 
                                                                    (1/self.k).imag)
             

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """Provide class for the representation of scattering particles."""
 
-import smuthi.field_expansion as fldex
-import smuthi.t_matrix as tmt
+import smuthi.fields.expansions as fldex
+import smuthi.linear_system.t_matrix as tmt
 import numpy as np
+
 
 class Particle:
     """Base class for scattering particles.
@@ -75,7 +76,7 @@ class Particle:
         self.l_max = 0
         lmax_decision, mmax_decision = False, False
         # increase lmax until either Csca or each element of the DSCS does not change significantly  
-        while lmax_decision == False:
+        while not lmax_decision:
             self.l_max += 1
             self.m_max = self.l_max # for finding the lmax keep lmax = mmax           
             TMatrix[0].append(tmt.t_matrix(vacuum_wavelength, ambient_medium, self))     
@@ -88,7 +89,7 @@ class Particle:
             assert self.l_max <= lmax_stop, 'The set precision requires lmax > %d.' % lmax_stop
         
         self.m_max = 0    # now find the corresponding mmax
-        while mmax_decision == False:
+        while not mmax_decision:
             self.m_max += 1
             if self.m_max == self.l_max:   # mmax = lmax is valid in any case
                 mmax_decision = True
@@ -205,4 +206,3 @@ class FiniteCylinder(Particle):
         
     def circumscribing_sphere_radius(self):
         return np.sqrt((self.cylinder_height / 2)**2 + self.cylinder_radius**2)
-

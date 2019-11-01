@@ -2,13 +2,15 @@
 """This module defines classes to represent the initial excitation."""
 
 import numpy as np
-import smuthi.coordinates as coord
-import smuthi.field_expansion as fldex
-import smuthi.vector_wave_functions as vwf
+import smuthi.fields.coordinates_and_contours as coord
+import smuthi.fields.expansions as fldex
+import smuthi.fields.transformations as trf
+import smuthi.fields.vector_wave_functions as vwf
 import smuthi.particles as part
-import smuthi.particle_coupling as pc
-import smuthi.scattered_field as sf
-import smuthi.memoizing as memo
+import smuthi.linear_system.particle_coupling.direct_coupling as dircoup
+import smuthi.linear_system.particle_coupling.layer_mediated_coupling as laycoup
+import smuthi.post_processing.scattered_field as sf
+import smuthi.utility.memoizing as memo
 import warnings
 import sys
 from tqdm import tqdm
@@ -30,7 +32,7 @@ class InitialField:
     def piecewise_field_expansion(self, layer_system):
         """Virtual method to be overwritten."""
         pass
-    
+
     def angular_frequency(self):
         """Angular frequency.
         
@@ -79,8 +81,8 @@ class InitialPropagatingWave(InitialField):
         """
         i = layer_system.layer_number(particle.position[2])
         pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
-        return (fldex.pwe_to_swe_conversion(pwe_up, particle.l_max, particle.m_max, particle.position)
-                + fldex.pwe_to_swe_conversion(pwe_down, particle.l_max, particle.m_max, particle.position))
+        return (trf.pwe_to_swe_conversion(pwe_up, particle.l_max, particle.m_max, particle.position)
+                + trf.pwe_to_swe_conversion(pwe_down, particle.l_max, particle.m_max, particle.position))
 
     def piecewise_field_expansion(self, layer_system):
         """Compute a piecewise field expansion of the initial field.
@@ -208,9 +210,9 @@ class GaussianBeam(InitialPropagatingWave):
             for backward propagation (bottom hemisphere).
         """
         i_top = layer_system.number_of_layers() - 1
-        top_ff = fldex.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
+        top_ff = trf.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
                                             plane_wave_expansion=self.plane_wave_expansion(layer_system, i_top)[0])
-        bottom_ff = fldex.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
+        bottom_ff = trf.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
                                                plane_wave_expansion=self.plane_wave_expansion(layer_system, 0)[1])
 
         return top_ff, bottom_ff
@@ -225,11 +227,11 @@ class GaussianBeam(InitialPropagatingWave):
             A smuthi.field_expansion.FarField object holding the initial intensity information.
         """
         if np.cos(self.polar_angle) > 0:  # bottom illumination
-            ff = fldex.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
+            ff = trf.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
                                             plane_wave_expansion=self.plane_wave_expansion(layer_system, 0)[0])
         else:  # top illumination
             i_top = layer_system.number_of_layers() - 1
-            ff = fldex.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
+            ff = trf.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
                                             plane_wave_expansion=self.plane_wave_expansion(layer_system, i_top)[1])
         return ff
 
@@ -363,9 +365,9 @@ class DipoleSource(InitialField):
             regular smuthi.field_expansion.SphericalWaveExpansion object
         """
         virtual_particle = part.Particle(position=self.position, l_max=1, m_max=1)
-        wd = pc.direct_coupling_block(vacuum_wavelength=self.vacuum_wavelength, receiving_particle=particle,
+        wd = dircoup.direct_coupling_block(vacuum_wavelength=self.vacuum_wavelength, receiving_particle=particle,
                                       emitting_particle=virtual_particle, layer_system=layer_system)
-        wr = pc.layer_mediated_coupling_block(vacuum_wavelength=self.vacuum_wavelength, receiving_particle=particle,
+        wr = laycoup.layer_mediated_coupling_block(vacuum_wavelength=self.vacuum_wavelength, receiving_particle=particle,
                                               emitting_particle=virtual_particle, layer_system=layer_system,
                                               k_parallel=self.k_parallel)
         k = self.angular_frequency() * layer_system.refractive_indices[layer_system.layer_number(particle.position[2])]
@@ -396,7 +398,7 @@ class DipoleSource(InitialField):
         if include_layer_response:
             for i in range(layer_system.number_of_layers()):
                 # layer response as plane wave expansions
-                pwe_up, pwe_down = fldex.swe_to_pwe_conversion(swe=self.outgoing_spherical_wave_expansion(layer_system),
+                pwe_up, pwe_down = trf.swe_to_pwe_conversion(swe=self.outgoing_spherical_wave_expansion(layer_system),
                                                             k_parallel=self.k_parallel,
                                                             azimuthal_angles=self.azimuthal_angles,
                                                             layer_system=layer_system, layer_number=i,
@@ -495,12 +497,12 @@ class DipoleSource(InitialField):
             iterator = particle_list
                     
         for particle in iterator:
-            wd = pc.direct_coupling_block(vacuum_wavelength=self.vacuum_wavelength,
+            wd = dircoup.direct_coupling_block(vacuum_wavelength=self.vacuum_wavelength,
                                         receiving_particle=virtual_particle,
                                         emitting_particle=particle,
                                         layer_system=layer_system)
 
-            wr = pc.layer_mediated_coupling_block(vacuum_wavelength=self.vacuum_wavelength,
+            wr = laycoup.layer_mediated_coupling_block(vacuum_wavelength=self.vacuum_wavelength,
                                                 receiving_particle=virtual_particle,
                                                 emitting_particle=particle,
                                                 layer_system=layer_system,
@@ -629,7 +631,7 @@ class DipoleCollection(InitialField):
         # compute by pwe?
         if self.compute_swe_by_pwe and not any(
             layer_system.layer_number(particle.position[2]) 
-            == np.array([layer_system.layer_number(dip.position[2]) for dip in self.dipole_list])):
+                == np.array([layer_system.layer_number(dip.position[2]) for dip in self.dipole_list])):
             # (make sure the particle is not in the same layer as one of the dipoles)
             return InitialPropagatingWave.spherical_wave_expansion(self, particle, layer_system)
         
@@ -797,7 +799,7 @@ class DipoleCollection(InitialField):
         e_x_in_response_list, e_y_in_response_list, e_z_in_response_list = [], [], []
         
         for dipole in tqdm(self.dipole_list, desc='Self and cross contrib.   ', file=sys.stdout,
-                                        bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}'):
+                           bar_format='{l_bar}{bar}| elapsed: {elapsed} ' 'remaining: {remaining}'):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message="invalid value encountered in multiply")
                 warnings.filterwarnings("ignore", message="divide by zero encountered in true_divide")

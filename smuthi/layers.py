@@ -3,9 +3,9 @@
 
 import numpy as np
 import mpmath
-import smuthi.memoizing as memo
-import smuthi.field_expansion as fldex
-import smuthi.coordinates as coord
+import smuthi.utility.memoizing as memo
+import smuthi.fields.expansions as fldex
+import smuthi.fields.coordinates_and_contours as coord
 
 
 # global variables

@@ -3,7 +3,7 @@ import argparse
 import smuthi.read_input
 import pkg_resources
 import os
-import pkgutil
+
 
 def main():
     """This function is called when Smuthi is executed as a script with an 
@@ -16,7 +16,7 @@ def main():
     args = parser.parse_args()
 
     if args.inputfile is None:
-        datadirname = os.path.abspath(pkg_resources.resource_filename('smuthi', 'data'))
+        datadirname = os.path.abspath(pkg_resources.resource_filename('smuthi', '_data'))
         args.inputfile = datadirname + '/example_input.dat'
 
     simulation = smuthi.read_input.read_input_yaml(args.inputfile)

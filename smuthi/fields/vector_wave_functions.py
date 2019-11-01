@@ -1,29 +1,9 @@
 # -*- coding: utf-8 -*-
 """This module contains the vector wave functions and their transformations."""
  
-from numba import int32,complex128,int64,jit
-import numba as nb
 import numpy as np
-import sys
-import smuthi.memoizing as memo
-import smuthi.spherical_functions as sf
-try:
-    from numba import cffi_support
-    from pywigxjpf_ffi import ffi, lib
-    import pywigxjpf_ffi
-    cffi_support.register_module(pywigxjpf_ffi)
-    nb_wig3jj = pywigxjpf_ffi.lib.wig3jj
+import smuthi.utility.math as sf
 
-    lib.wig_table_init(100,9)
-    lib.wig_temp_init(100)
-except:
-    sys.stdout.write('No pywigxjpf installation found,'
-    'using a much slower sympy implementaion.\n')
-    sys.stdout.flush()
-    from sympy.physics.wigner import wigner_3j
-    def nb_wig3jj(jj_1, jj_2, jj_3, mm_1, mm_2, mm_3):
-        return wigner_3j(jj_1/2, jj_2/2, jj_3/2,
-                         mm_1/2, mm_2/2, mm_3/2)
 
 def plane_vector_wave_function(x, y, z, kp, alpha, kz, pol):
     r"""Electric field components of plane wave (PVWF), see section 2.3.1 of
@@ -149,7 +129,7 @@ def spherical_vector_wave_function(x, y, z, k, nu, tau, l, m):
         zero = (r==0)
         nonzero = np.logical_not(zero)
         bes_kr[zero] = (l == 1) / 3
-        dxxz_kr[zero] =  (l == 1) * 2 / 3
+        dxxz_kr[zero] = (l == 1) * 2 / 3
         bes_kr[nonzero] = (bes[nonzero] / kr[nonzero])
         dxxz_kr[nonzero] = (dxxz[nonzero] / kr[nonzero])
     elif nu == 3:

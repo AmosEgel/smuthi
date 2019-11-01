@@ -1,6 +1,16 @@
 """This module contains functions to compute the layer mediated particle 
 coupling coefficients."""
 
+import numpy as np
+import scipy.special
+from numba import complex128, int64, jit
+import smuthi.fields.coordinates_and_contours as coord
+import smuthi.fields.expansions as fldex
+import smuthi.fields.transformations as trf
+import smuthi.layers as lay
+import smuthi.utility.math as sf
+
+
 @jit(complex128(complex128[:], complex128[:]),
      nopython=True, cache=True, nogil=True)
 def numba_trapz(y, x):
@@ -109,7 +119,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
                 m_vec[0][n] = m
                 for iplmn in range(2):
                     for pol in range(2):
-                        B[0][pol, iplmn, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm[iplmn],
+                        B[0][pol, iplmn, n, :] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm[iplmn],
                                                                                      taulm_list=taulm[iplmn], dagger=True)
    
     ct = kzis2 / kis2
@@ -126,7 +136,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
                 m_vec[1][n] = m
                 for iplmn in range(2):
                     for pol in range(2):
-                        B[1][pol, iplmn, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm[iplmn],
+                        B[1][pol, iplmn, n, :] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm[iplmn],
                                                                                      taulm_list=taulm[iplmn], dagger=False)
 
     # bessel function and jacobi factor

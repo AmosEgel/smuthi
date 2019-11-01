@@ -2,6 +2,26 @@
 coupling coefficients, which allows to efficiently treat large numbers of 
 particles. """
 
+import sys
+import tqdm
+import numpy as np
+import scipy.special
+import smuthi.fields.expansions as fldex
+import smuthi.utility.math as sf
+import smuthi.utility.cuda as cu
+import smuthi.fields.vector_wave_functions as vwf
+import smuthi.fields.coordinates_and_contours as coord
+import smuthi.layers as lay
+try:
+    import pycuda.autoinit
+    import pycuda.driver as drv
+    from pycuda import gpuarray
+    from pycuda.compiler import SourceModule
+    import pycuda.cumath
+except:
+    pass
+
+
 def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system, k_parallel='default', 
                                      resolution=None):
     """Prepare Sommerfeld integral lookup table to allow for a fast calculation of the coupling matrix by interpolation.

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Manage all post processing tasks after solving the linear system."""
 import numpy as np
-import smuthi.scattered_field as sf
-import smuthi.graphical_output as go
+import smuthi.post_processing.far_field as farf
+import smuthi.post_processing.graphical_output as go
 import sys
 
 
@@ -37,7 +37,7 @@ class PostProcessing:
                         save_plots=item.get('save plots', False),
                         save_data=item.get('save data', False), length_unit=simulation.length_unit)
                 elif type(initial_field).__name__ == 'GaussianBeam':
-                    self.total_far_field, self.initial_far_field, self.scattered_far_field = sf.total_far_field(
+                    self.total_far_field, self.initial_far_field, self.scattered_far_field = farf.total_far_field(
                         initial_field=initial_field, particle_list=particle_list, layer_system=layer_system)    
                 
                     go.show_far_field(far_field=self.total_far_field, save_plots=item.get('save plots', False),
@@ -83,7 +83,7 @@ class PostProcessing:
                     print('-------------------------------------------------------------------------')
                 elif (type(initial_field).__name__ == 'DipoleSource' 
                       or type(initial_field).__name__ == 'DipoleCollection'):
-                    self.total_far_field, self.initial_far_field, self.scattered_far_field = sf.total_far_field(
+                    self.total_far_field, self.initial_far_field, self.scattered_far_field = farf.total_far_field(
                         initial_field=initial_field, particle_list=particle_list, layer_system=layer_system)    
                 
                     go.show_far_field(far_field=self.total_far_field, save_plots=item.get('save plots', False),
@@ -177,14 +177,14 @@ def evaluate_cross_section(polar_angles='default', azimuthal_angles='default', i
 
 
     """
-    scattering_cross_section = sf.scattering_cross_section(initial_field=initial_field, polar_angles=polar_angles, 
+    scattering_cross_section = farf.scattering_cross_section(initial_field=initial_field, polar_angles=polar_angles,
                                                            azimuthal_angles=azimuthal_angles, 
                                                            particle_list=particle_list, layer_system=layer_system)
 
     if save_data:
         scattering_cross_section.export(output_directory=outputdir, tag='dsc')
 
-    extinction_cross_section = sf.extinction_cross_section(initial_field, particle_list, layer_system)
+    extinction_cross_section = farf.extinction_cross_section(initial_field, particle_list, layer_system)
 
     # distinguish the cases of top/bottom illumination
     i_top = layer_system.number_of_layers() - 1
