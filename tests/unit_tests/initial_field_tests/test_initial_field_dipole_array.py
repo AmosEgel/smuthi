@@ -1,9 +1,7 @@
 import smuthi.initial_field as init
 import smuthi.particles as part
-import smuthi.coordinates as coord
-import smuthi.simulation as simul
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.layers as lay
-import smuthi.scattered_field as sf
 import numpy as np
 
 

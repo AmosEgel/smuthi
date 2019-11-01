@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import smuthi.optical_constants as smoc
+import smuthi.utility.optical_constants as smoc
 import os
 
 from_wl = 500 # nm
@@ -13,6 +13,7 @@ test_data_files = ["Si-Green-1995-test.yml",  # Should rise an error, data
                                               # type "tabulated n" is not
                                               # implemented
                    "Au-Johnson-test.yml"]
+
 
 def test_yaml_read():
     for filename in test_data_files:
@@ -29,6 +30,6 @@ def test_yaml_read():
                 continue
             raise
 
+
 if __name__ == '__main__':
     test_yaml_read()
-              

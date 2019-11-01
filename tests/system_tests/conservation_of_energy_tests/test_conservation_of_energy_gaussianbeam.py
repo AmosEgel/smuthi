@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import numpy as np
 import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
-import smuthi.scattered_field as sf
+import smuthi.postprocessing.far_field as farf
 
 
 # Parameter input ----------------------------
@@ -40,11 +41,13 @@ init_fld = init.GaussianBeam(vacuum_wavelength=vacuum_wavelength, polar_angle=be
                              k_parallel_array=beam_neff_array*coord.angular_frequency(vacuum_wavelength))
 
 # initialize simulation object
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld, log_to_terminal=False)
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
+                              log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation.run()
 
-ttff, inff, scff = sf.total_far_field(initial_field=simulation.initial_field, particle_list=simulation.particle_list,
+ttff, inff, scff = farf.total_far_field(initial_field=simulation.initial_field, particle_list=simulation.particle_list,
                                       layer_system=simulation.layer_system)
+
 
 def test_power():
     relerr = abs(sum(ttff.integral()) / sum(init_fld.initial_intensity(lay_sys).integral()) - 1)

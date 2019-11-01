@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""This module is needed for the installation of the package."""
+
 import os
 from setuptools import setup
 from setuptools.command.install import install
@@ -15,7 +17,7 @@ class CustomInstallCommand(install):
         # compile nfmds if not built on readthedocs
         if ((sys.platform.startswith('linux') or sys.platform.startswith('darwin'))
             and not os.environ.get('READTHEDOCS')):
-            nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.nfmds', 'NFM-DS')
+            nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.linearsystem.tmatrix.nfmds', 'NFM-DS')
             os.chdir(nfmds_sources_dirname + '/TMATSOURCES')
             sys.stdout.write('Compiling sources at ' + nfmds_sources_dirname + ' ...')
             sys.stdout.flush()
@@ -36,11 +38,18 @@ setup(
     url='https://gitlab.com/AmosEgel/smuthi',
     description="Light scattering by multiple particles in thin-film systems",
     long_description=read('README.rst'),
-    packages=['smuthi', 'smuthi.nfmds'],
+    packages=['smuthi',
+              'smuthi.fields',
+              'smuthi.linearsystem',
+              'smuthi.linearsystem.tmatrix',
+              'smuthi.linearsystem.tmatrix.nfmds',
+              'smuthi.linearsystem.particlecoupling',
+              'smuthi.postprocessing',
+              'smuthi.utility'],
     cmdclass={'install': CustomInstallCommand},
-    package_data={'smuthi.nfmds': ['NFM-DS/*.txt', 'NFM-DS/TMATSOURCES/*', 'NFM-DS/TMATFILES/*',
-                                   'NFM-DS/INPUTFILES/*.dat', 'NFM-DS/OUTPUTFILES/*'],
-                  'smuthi': ['data/*']},
+    package_data={'smuthi.linearsystem.tmatrix.nfmds': ['NFM-DS/*.txt', 'NFM-DS/TMATSOURCES/*', 'NFM-DS/TMATFILES/*',
+                                                        'NFM-DS/INPUTFILES/*.dat', 'NFM-DS/OUTPUTFILES/*'],
+                  'smuthi': ['_data/*']},
     install_requires=[
         'argparse',
         'imageio',

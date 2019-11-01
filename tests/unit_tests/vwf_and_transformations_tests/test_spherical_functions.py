@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Test spherical_functions"""
 
-import smuthi.spherical_functions
+import smuthi.utility.math
 import numpy as np
 from sympy.physics.quantum.spin import Rotation
 
@@ -11,7 +11,7 @@ def test_wignerd():
     m_test = -3
     m_prime_test = 4
     beta_test = 0.64
-    wigd = smuthi.spherical_functions.wigner_d(l_test, m_test, m_prime_test, beta_test, wdsympy=False)
+    wigd = smuthi.utility.math.wigner_d(l_test, m_test, m_prime_test, beta_test, wdsympy=False)
     wigd_sympy = complex(Rotation.d(l_test, m_test, m_prime_test, beta_test).doit()).real
     err = abs((wigd - wigd_sympy) / wigd)
     assert err < 1e-10
@@ -25,7 +25,7 @@ def test_Plm_against_prototype():
     kz[kz.imag < 0] = -kz[kz.imag < 0]
     ct = kz / omega
     st = kp / omega
-    plm, pilm, taulm = smuthi.spherical_functions.legendre_normalized(ct, st, lmax)
+    plm, pilm, taulm = smuthi.utility.math.legendre_normalized(ct, st, lmax)
 
     # P_3^0
     np.testing.assert_almost_equal(plm[3][0][0], 1.870267465826245)
@@ -63,7 +63,7 @@ def test_Plm_against_prototype():
 def test_jn_against_prototype():
     n = 4
     z = np.array([0.01, 2, 5, 2+0.1j, 3-0.2j, 20+20j])
-    jnz = smuthi.spherical_functions.spherical_bessel(n, z)
+    jnz = smuthi.utility.math.spherical_bessel(n, z)
     np.testing.assert_almost_equal(jnz[0], 1.058196248205502e-11)
     np.testing.assert_almost_equal(jnz[1], 0.014079392762915)
     np.testing.assert_almost_equal(jnz[2], 0.187017655344890)
@@ -75,7 +75,7 @@ def test_jn_against_prototype():
 def test_hn_against_prototype():
     n = 4
     z = np.array([0.01, 2, 5, 2+0.1j, 3-0.2j, 20+20j])
-    hnz = smuthi.spherical_functions.spherical_hankel(n, z)
+    hnz = smuthi.utility.math.spherical_hankel(n, z)
     # np.testing.assert_almost_equal(hnz[0], 9.562028025173189e-05 - 1.050007500037500e+12j) this test fails - protype incorrect?
     np.testing.assert_almost_equal(hnz[1], 0.014079392762917 - 4.461291526363127j)
     np.testing.assert_almost_equal(hnz[2], 0.187017655344889 - 0.186615531479296j)
@@ -87,7 +87,7 @@ def test_hn_against_prototype():
 def test_dxxj_against_prototype():
     n = 4
     z = np.array([0.01, 2, 5, 2+0.1j, 3-0.2j, 20+20j])
-    dxxj = smuthi.spherical_functions.dx_xj(n, z)
+    dxxj = smuthi.utility.math.dx_xj(n, z)
     np.testing.assert_almost_equal(dxxj[0], 5.290971621054867e-11)
     np.testing.assert_almost_equal(dxxj[1], 0.065126624274088)
     np.testing.assert_almost_equal(dxxj[2], 0.401032469441925)
@@ -99,7 +99,7 @@ def test_dxxj_against_prototype():
 def test_dxxh_against_prototype():
     n = 4
     z = np.array([0.01, 2, 5, 2+0.1j, 3-0.2j, 20+20j])
-    dxxh = smuthi.spherical_functions.dx_xh(n, z)
+    dxxh = smuthi.utility.math.dx_xh(n, z)
     #np.testing.assert_almost_equal(dxxh[0], -3.824801872151283e-04 + 4.200015000000000e+12j)
     np.testing.assert_almost_equal(dxxh[1], 0.065126624274084 +14.876432990566345j)
     np.testing.assert_almost_equal(dxxh[2], 0.401032469441923 + 0.669247576352214j)
@@ -113,8 +113,8 @@ def test_dxxj_against_j():
     eps = 1e-8
     z0 = 0.5
     z = np.array([z0, z0 + eps, z0 - eps])
-    jn = smuthi.spherical_functions.spherical_bessel(n, z)
-    dxxj = smuthi.spherical_functions.dx_xj(n, z)
+    jn = smuthi.utility.math.spherical_bessel(n, z)
+    dxxj = smuthi.utility.math.dx_xj(n, z)
     d1 = dxxj[0]
     d2 = ((z0 + eps) * jn[1] - (z0 - eps) * jn[2]) / 2 / eps
     np.testing.assert_almost_equal(d1, d2)
@@ -125,8 +125,8 @@ def test_dxxh_against_h():
     eps = 1e-10
     z0 = 0.5
     z = np.array([z0, z0 + eps, z0 - eps])
-    hn = smuthi.spherical_functions.spherical_hankel(n, z)
-    dxxh = smuthi.spherical_functions.dx_xh(n, z)
+    hn = smuthi.utility.math.spherical_hankel(n, z)
+    dxxh = smuthi.utility.math.dx_xh(n, z)
     d1 = dxxh[0]
     d2 = ((z0 + eps) * hn[1] - (z0 - eps) * hn[2]) / 2 / eps
     assert (d1 - d2) / d1 < 1e-5

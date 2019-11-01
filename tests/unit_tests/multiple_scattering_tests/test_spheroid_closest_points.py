@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import smuthi.particles as part
-import smuthi.particle_coupling as pacou
-import smuthi.layers as lay
+import smuthi.linearsystem.particlecoupling.direct_coupling as pacou
 
 
 spheroid1 = part.Spheroid(position=[0, 0, 400], euler_angles=[0.324, 0.567, 1.234],
@@ -28,4 +27,3 @@ def test_closest_points():
 
 if __name__ == '__main__':
     test_closest_points()
-              

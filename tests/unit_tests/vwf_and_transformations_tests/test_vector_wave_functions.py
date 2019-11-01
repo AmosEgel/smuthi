@@ -2,8 +2,7 @@
 """Test the functions defined in vector_wave_functions.py."""
 
 import numpy as np
-import smuthi.field_expansion as fldex
-import smuthi.vector_wave_functions as vwf
+import smuthi.fields.vector_wave_functions as vwf
 
 tau = 0
 l = 4

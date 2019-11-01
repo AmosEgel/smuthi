@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import smuthi.vector_wave_functions as vwf
-import smuthi.spherical_functions as sf
+import sys
+import smuthi.fields.vector_wave_functions as vwf
+import smuthi.utility.math as sf
 import smuthi.particles as part
 import smuthi.simulation as simul
 import smuthi.layers as lay
 import smuthi.initial_field as init
-import smuthi.coordinates as coord
-import smuthi.scattered_field as scf
+import smuthi.fields.coordinates_and_contours as coord
+import smuthi.postprocessing.far_field as scf
 
 
 # Parameter input ----------------------------
@@ -25,13 +26,13 @@ l = 11
 m = -7
 k = 0.0126
                            
-r_prime = coord.vector_rotation(r, euler_angles=[alpha, beta, gamma])
+r_prime = sf.vector_rotation(r, euler_angles=[alpha, beta, gamma])
 
 # outgoing wave (rotated coordinate system)
 E_prime = vwf.spherical_vector_wave_function(r_prime[0], r_prime[1], r_prime[2], k, 3, tau, l, m)
 
 # transformation into the laboratory coordinate system
-E = coord.inverse_vector_rotation(E_prime, euler_angles=[alpha, beta, gamma])
+E = sf.inverse_vector_rotation(E_prime, euler_angles=[alpha, beta, gamma])
 
 # 
 Ex2, Ey2, Ez2 = complex(0), complex(0), complex(0)
@@ -87,8 +88,10 @@ planewave2 = init.PlaneWave(vacuum_wavelength=ld, polar_angle=polar_angle, azimu
                             polarization=0, amplitude=1, reference_point=rD2)
 
 # run simulation
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=planewave, log_to_terminal=False)
-simulation2 = simul.Simulation(layer_system=lay_sys, particle_list=part_list2, initial_field=planewave2, log_to_terminal=False)
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=planewave,
+                              log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
+simulation2 = simul.Simulation(layer_system=lay_sys, particle_list=part_list2, initial_field=planewave2,
+                               log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation.run()
 simulation2.run()
 scattered_ff = scf.scattered_far_field(ld, simulation.particle_list, simulation.layer_system)
@@ -96,7 +99,7 @@ scattered_ff_2 = scf.scattered_far_field(ld, simulation2.particle_list, simulati
 
 
 def test_t_matrix_rotation():
-    err = (sum(scattered_ff.integral()) - sum(scattered_ff_2.integral())) / sum(scattered_ff.integral())
+    err = abs(sum(scattered_ff.integral()) - sum(scattered_ff_2.integral())) / abs(sum(scattered_ff.integral()))
     print('error t_matrix_rotation', err)
     assert err < 1e-4
 

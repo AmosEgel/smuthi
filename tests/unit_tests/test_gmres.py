@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+import sys
 import numpy as np
 import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
 
 
@@ -39,19 +40,22 @@ init_fld = init.GaussianBeam(vacuum_wavelength=vacuum_wavelength, polar_angle=be
 
 # initialize simulation object
 simulation_lu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                                 solver_type='LU', log_to_terminal=False)
+                                 solver_type='LU', log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation_lu.run()
 coefficients_lu = particle_list[0].scattered_field.coefficients
 
 simulation_gmres = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                                    solver_type='gmres', solver_tolerance=1e-5, log_to_terminal=False)
+                                    solver_type='gmres', solver_tolerance=1e-5,
+                                    log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation_gmres.run()
 coefficients_gmres = particle_list[0].scattered_field.coefficients
+
 
 def test_result():
     relerr = np.linalg.norm(coefficients_lu - coefficients_gmres) / np.linalg.norm(coefficients_lu)
     print('relative error: ', relerr)
     assert  relerr < 1e-5
-    
+
+
 if __name__ == '__main__':
     test_result()

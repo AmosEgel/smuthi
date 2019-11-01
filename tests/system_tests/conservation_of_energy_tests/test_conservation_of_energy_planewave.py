@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import numpy as np
 import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
-import smuthi.scattered_field as sf
+import smuthi.postprocessing.far_field as farf
 
 
 # Parameter input ----------------------------
@@ -36,13 +37,14 @@ init_fld = init.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=plane
                           amplitude=plane_wave_amplitude, reference_point=[0, 0, 400])
 
 # initialize simulation object
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld, log_to_terminal=False)
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
+                              log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation.run()
 
-scs = sf.scattering_cross_section(initial_field=simulation.initial_field, particle_list=simulation.particle_list,
+scs = farf.scattering_cross_section(initial_field=simulation.initial_field, particle_list=simulation.particle_list,
                                   layer_system=simulation.layer_system)
 
-ecs = sf.extinction_cross_section(initial_field=simulation.initial_field,particle_list=simulation.particle_list,
+ecs = farf.extinction_cross_section(initial_field=simulation.initial_field,particle_list=simulation.particle_list,
                                   layer_system=simulation.layer_system)
 
 

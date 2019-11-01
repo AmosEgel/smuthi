@@ -1,10 +1,10 @@
+import sys
 import smuthi.initial_field as init
 import smuthi.particles as part
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
 import smuthi.layers as lay
-import smuthi.scattered_field as sf
-import numpy as np
+import smuthi.postprocessing.far_field as farf
 
 
 ld = 550
@@ -45,7 +45,8 @@ dipole_collection.append(dipole2)
 dipole_collection.append(dipole3)
 
 # run simulation
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole_collection, log_to_terminal=False)
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole_collection,
+                              log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 
 simulation.run()
 
@@ -54,7 +55,7 @@ power_list = simulation.initial_field.dissipated_power(particle_list=simulation.
                                                        layer_system=simulation.layer_system)
 
 power = sum(power_list)
-ff_tup = sf.total_far_field(simulation.initial_field, simulation.particle_list, simulation.layer_system)
+ff_tup = farf.total_far_field(simulation.initial_field, simulation.particle_list, simulation.layer_system)
 
 
 def test_energy_conservation():
@@ -67,6 +68,7 @@ def test_energy_conservation():
     assert err < 5e-4
     print("Test passed.")
 
+
 dipole_collection2 = init.DipoleCollection(vacuum_wavelength=ld, 
                                           compute_swe_by_pwe=True, 
                                           compute_dissipated_power_by_pwe=True)
@@ -77,6 +79,7 @@ dipole_collection2.append(dipole3)
 # evaluate power
 power_list_alt = dipole_collection2.dissipated_power(particle_list=simulation.particle_list,
                                                      layer_system=simulation.layer_system)
+
 
 def test_alternative_power():
     err = abs((sum(power_list) - sum(power_list_alt)) / sum(power_list))

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Provide class to manage a simulation."""
 
-import smuthi.linear_system as lsys
-import smuthi.coordinates as coord
+import smuthi.linearsystem.linear_system as lsys
+import smuthi.fields.coordinates_and_contours as coord
 import sys
 import os
 import matplotlib.pyplot as plt
@@ -103,7 +103,8 @@ class Simulation:
             pickle.dump(self, fn, -1)
 
     def initialize_linear_system(self):
-        self.linear_system = lsys.LinearSystem(particle_list=self.particle_list, 
+        self.linear_system = lsys.LinearSystem(particle_list=self.particle_list,
+
                                                initial_field=self.initial_field,
                                                layer_system=self.layer_system, 
                                                k_parallel=self.k_parallel,

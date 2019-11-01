@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
+"""This module contains a function to read input files and create a simulation
+object from them."""
+
 import yaml
 import smuthi.simulation
 import numpy as np
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.particles as part
 import smuthi.initial_field as init
 import smuthi.layers as lay
-import smuthi.cuda_sources as cu
-import smuthi.post_processing as pp
+import smuthi.utility.cuda as cu
+import smuthi.postprocessing.post_processing as pp
 import os
 
 
@@ -183,7 +186,7 @@ def read_input_yaml(filename):
         else:
             raise ValueError('polarization must be "TE" or "TM"')
         ref = [float(infld['focus point'][0]), float(infld['focus point'][1]), float(infld['focus point'][2])]
-        ang_res = infld.get('angular resolution', np.pi / 180 / ang_fac) * ang_fac
+        ang_res = infld.get('angular resolution', np.pi / 180 / angle_factor) * angle_factor
         bet_arr = np.arange(0, np.pi/2, ang_res)
         if pol_ang <= np.pi:
             kparr = np.sin(bet_arr) * simulation.layer_system.wavenumber(layer_number=0, vacuum_wavelength=wl)

@@ -1,7 +1,7 @@
 """Provide functionality to store intermediate results in lookup tables (memoize)"""
+
 import pickle
 import functools
-
 
 class Memoize:
     """To be used as a decorator for functions that are memoized."""
