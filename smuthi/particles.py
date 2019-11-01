@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Provide class for the representation of scattering particles."""
+
 import smuthi.field_expansion as fldex
 import smuthi.t_matrix as tmt
 import numpy as np

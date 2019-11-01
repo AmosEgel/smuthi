@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-
 import argparse
 import smuthi.read_input
 import pkg_resources
 import os
-
 import pkgutil
 
 def main():
+    """This function is called when Smuthi is executed as a script with an 
+    input file (rather than from within Python)"""
     parser = argparse.ArgumentParser()
     parser.add_argument('inputfile', nargs='?', default=None, type=str,
                         help='Input file containing the parameters of the simulations.'

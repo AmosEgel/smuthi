@@ -12,7 +12,6 @@ import shutil
 import pickle
 import numpy as np
 
-
 class Simulation:
     """Central class to manage a simulation.
 

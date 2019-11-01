@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""This module contains a function to read input files and create a simulation
+object from them."""
+
 import yaml
 import smuthi.simulation
 import numpy as np
@@ -9,7 +12,6 @@ import smuthi.layers as lay
 import smuthi.cuda_sources as cu
 import smuthi.post_processing as pp
 import os
-
 
 def read_input_yaml(filename):
     """Parse input file

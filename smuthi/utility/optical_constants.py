@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """Provide functionality to read optical constants in format provided by `refractiveindex.info <https://refractiveindex.info/>`_ website"""
+
 from scipy.interpolate import interp1d
 import io
 import numpy as np
 import yaml
-
 
 def read_refractive_index_from_yaml(filename, vacuum_wavelength, units="mkm", kind=1):
     """Read optical constants in format provided by refractiveindex.info website.

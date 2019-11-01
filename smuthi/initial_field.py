@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""This module defines classes to represent the initial excitation."""
 
 import numpy as np
 import smuthi.coordinates as coord

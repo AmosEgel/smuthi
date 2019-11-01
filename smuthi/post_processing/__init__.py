@@ -265,4 +265,3 @@ def evaluate_cross_section(polar_angles='default', azimuthal_angles='default', i
                       outputdir=outputdir, flip_downward=True, split=True)
         
     return scattering_cross_section, extinction_cross_section    
-    

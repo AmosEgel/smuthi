@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""This module is needed for the installation of the package."""
+
 import os
 from setuptools import setup
 from setuptools.command.install import install
