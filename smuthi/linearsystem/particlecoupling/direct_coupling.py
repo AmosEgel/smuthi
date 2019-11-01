@@ -182,7 +182,7 @@ def spheroids_closest_points(ab_halfaxis1, c_halfaxis1, center1, orientation1, a
     length_constraints = {'type' : 'eq', 'fun' : constraint_fun}
     
     flag = False
-    while flag == False:
+    while not flag:
         x0 = -1 + np.dot((1 + 1), np.random.rand(3))
         optimization_result = scipy.optimize.minimize(minimization_fun, x0, method='SLSQP', bounds=bnds,
                                                       constraints=length_constraints, tol=None, callback=None, options=None)
@@ -207,7 +207,7 @@ def spheroids_closest_points(ab_halfaxis1, c_halfaxis1, center1, orientation1, a
     f = np.dot(np.transpose(ctr1 - p), np.transpose(np.linalg.inv(E1_L)))
        
     flag = False
-    while not flag == False:
+    while not flag:
         x0 = -1 + np.dot((1 + 1), np.random.rand(3))
         optimization_result2 = scipy.optimize.minimize(minimization_fun, x0, method='SLSQP', bounds=bnds,
                                                       constraints=length_constraints, tol=None, callback=None, options=None)
@@ -328,7 +328,7 @@ def direct_coupling_block_pvwf_mediated(vacuum_wavelength, receiving_particle, e
                                 integrand = prefactor * B * B_dag
                                 w[n1, n2] += np.trapz(integrand, k_parallel) 
                                 
-    rot_mat_1 = fldex.block_rotation_matrix_D_svwf(lmax1, mmax1, 0, beta, alpha)
-    rot_mat_2 = fldex.block_rotation_matrix_D_svwf(lmax2, mmax2, -alpha, -beta, 0)
+    rot_mat_1 = trf.block_rotation_matrix_D_svwf(lmax1, mmax1, 0, beta, alpha)
+    rot_mat_2 = trf.block_rotation_matrix_D_svwf(lmax2, mmax2, -alpha, -beta, 0)
     
     return np.dot(np.dot(np.transpose(rot_mat_1), w), np.transpose(rot_mat_2))

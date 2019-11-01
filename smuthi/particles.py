@@ -2,7 +2,7 @@
 """Provide class for the representation of scattering particles."""
 
 import smuthi.fields.expansions as fldex
-import smuthi.linear_system.t_matrix as tmt
+import smuthi.linearsystem.tmatrix as tmt
 import numpy as np
 
 

@@ -8,7 +8,7 @@ https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds
 """
 
 import smuthi.fields.expansions as fldex
-import smuthi.linear_system.t_matrix.nfmds as nfmds
+import smuthi.linearsystem.tmatrix.nfmds as nfmds
 import smuthi.utility.memoizing as memo
 import os
 import subprocess

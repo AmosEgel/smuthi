@@ -2,7 +2,7 @@ import numpy as np
 import smuthi.initial_field as init
 import smuthi.layers
 import smuthi.particles
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 
 ld = 532
 A = 1

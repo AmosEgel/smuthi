@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import argparse
-import smuthi.read_input
+import smuthi.utility.read_input
 import pkg_resources
 import os
 
@@ -19,7 +19,7 @@ def main():
         datadirname = os.path.abspath(pkg_resources.resource_filename('smuthi', '_data'))
         args.inputfile = datadirname + '/example_input.dat'
 
-    simulation = smuthi.read_input.read_input_yaml(args.inputfile)
+    simulation = smuthi.utility.read_input.read_input_yaml(args.inputfile)
     simulation.run()
 
 

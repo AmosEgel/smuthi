@@ -31,7 +31,7 @@ if mpi_rank != 0:
         os.mkdir(mpi_bindir)
     nfmds_folder = mpi_bindir
 
-nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.linear_system.t_matrix.nfmds', 'NFM-DS')
+nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.linearsystem.tmatrix.nfmds', 'NFM-DS')
 
 
 def initialize_source():

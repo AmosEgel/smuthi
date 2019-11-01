@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import scipy.interpolate as interp
-import smuthi.post_processing.scattered_field as sf
+import smuthi.postprocessing.scattered_field as sf
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Ellipse, Rectangle
 import tempfile

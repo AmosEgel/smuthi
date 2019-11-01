@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """This script runs a simulation for a single sphere on a substrate, illuminated by a plane wave."""
 
+import sys
 import numpy as np
 import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
 import smuthi.simulation as sim
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 
 
 # Parameter input ----------------------------
@@ -44,7 +45,8 @@ init_fld = init.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=plane
                           amplitude=plane_wave_amplitude, reference_point=[0, 0, 0])
 
 # simulation
-simulation = sim.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld, log_to_terminal=False)
+simulation = sim.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
+                            log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 
 simulation.run()
 

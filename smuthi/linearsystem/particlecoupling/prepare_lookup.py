@@ -3,13 +3,14 @@ coupling coefficients, which allows to efficiently treat large numbers of
 particles. """
 
 import sys
-import tqdm
+from tqdm import tqdm
 import numpy as np
 import scipy.special
 import smuthi.fields.expansions as fldex
 import smuthi.utility.math as sf
 import smuthi.utility.cuda as cu
 import smuthi.fields.vector_wave_functions as vwf
+import smuthi.fields.transformations as trf
 import smuthi.fields.coordinates_and_contours as coord
 import smuthi.layers as lay
 try:
@@ -20,7 +21,7 @@ try:
     import pycuda.cumath
 except:
     pass
-
+import smuthi.linearsystem.particlecoupling.prepare_lookup_cuda as cusrc
 
 def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system, k_parallel='default', 
                                      resolution=None):
@@ -112,7 +113,7 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
                     A = np.zeros((len_rho, len_dz), dtype=complex)
                     B = np.zeros((len_rho, len_dz), dtype=complex)
                     for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
-                        a5, b5 = vwf.ab5_coefficients(l2, m2, l1, m1, ld)    # remember that w = A.T
+                        a5, b5 = trf.ab5_coefficients(l2, m2, l1, m1, ld)    # remember that w = A.T
                         A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]   # remember that w = A.T
                         B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]   # remember that w = A.T
                     for tau1 in range(2):
@@ -165,13 +166,13 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
                 n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
                 m_list[n] = m
                 for pol in range(2):
-                    B_dag[pol, 0, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
+                    B_dag[pol, 0, n, :] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
                                                                                     taulm_list=taulm_pl, dagger=True)
-                    B_dag[pol, 1, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
+                    B_dag[pol, 1, n, :] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
                                                                                     taulm_list=taulm_mn, dagger=True)
-                    B[pol, 0, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
+                    B[pol, 0, n, :] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
                                                                              taulm_list=taulm_pl, dagger=False)
-                    B[pol, 1, n, :] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
+                    B[pol, 1, n, :] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
                                                                              taulm_list=taulm_mn, dagger=False)
     
     # pairs of (n1, n2), listed by abs(m1-m2)
@@ -189,7 +190,7 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     if cu.use_gpu:
         re_dkp_d = gpuarray.to_gpu(np.float32(dkp.real))
         im_dkp_d = gpuarray.to_gpu(np.float32(dkp.imag))
-        kernel_source_code = cu.volume_lookup_assembly_code %(blocksize, len_rho, len_sz, len_kp)
+        kernel_source_code = cusrc.volume_lookup_assembly_code %(blocksize, len_rho, len_sz, len_kp)
         helper_function = SourceModule(kernel_source_code).get_function("helper")
         cuda_blocksize = 128
         cuda_gridsize = (len_rho * len_sz + cuda_blocksize - 1) // cuda_blocksize
@@ -325,7 +326,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
                     A = np.zeros(len_rho, dtype=complex)
                     B = np.zeros(len_rho, dtype=complex)
                     for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
-                        a5, b5 = vwf.ab5_coefficients(l2, m2, l1, m1, ld)
+                        a5, b5 = trf.ab5_coefficients(l2, m2, l1, m1, ld)
                         A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                         B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                     for tau1 in range(2):
@@ -376,13 +377,13 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
                 n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
                 m_list[n] = m
                 for pol in range(2):
-                    B_dag[pol,0,n,:] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
+                    B_dag[pol,0,n,:] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
                                                                            taulm_list=taulm_pl, dagger=True)
-                    B_dag[pol,1,n,:] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
+                    B_dag[pol,1,n,:] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
                                                                            taulm_list=taulm_mn, dagger=True)
-                    B[pol,0,n,:] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
+                    B[pol,0,n,:] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
                                                                        taulm_list=taulm_pl, dagger=False)
-                    B[pol,1,n,:] = vwf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
+                    B[pol,1,n,:] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_mn,
                                                                        taulm_list=taulm_mn, dagger=False)
     
     # pairs of (n1, n2), listed by abs(m1-m2)
@@ -399,7 +400,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     if cu.use_gpu:
         re_dkp_d = gpuarray.to_gpu(np.float32(dkp.real))
         im_dkp_d = gpuarray.to_gpu(np.float32(dkp.imag))
-        kernel_source_code = cu.radial_lookup_assembly_code %(blocksize, len_rho, len_kp)
+        kernel_source_code = cusrc.radial_lookup_assembly_code %(blocksize, len_rho, len_kp)
         helper_function = SourceModule(kernel_source_code).get_function("helper")
         cuda_blocksize = 128
         cuda_gridsize = (len_rho + cuda_blocksize - 1) // cuda_blocksize

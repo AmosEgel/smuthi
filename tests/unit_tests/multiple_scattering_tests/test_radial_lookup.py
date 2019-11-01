@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
+import sys
 import numpy as np
 import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
-import smuthi.particle_coupling as coup
-import smuthi.field_expansion as fldex
-import smuthi.linear_system as linsys
-import smuthi.cuda_sources as cu
+import smuthi.utility.cuda as cu
+from smuthi.linearsystem.particlecoupling.direct_coupling import direct_coupling_block
+from smuthi.linearsystem.particlecoupling.layer_mediated_coupling import layer_mediated_coupling_block
 
 
 # Parameter input ----------------------------
@@ -38,13 +38,13 @@ lay_sys = lay.LayerSystem([0, 400, 0], [1.5, 2 + 0.01j, 1])
 
 phi12 = np.arctan2(sphere1.position[1] - sphere2.position[1], sphere1.position[0] - sphere2.position[0])
 rho12 = np.sqrt(sum([(sphere1.position[i]-sphere2.position[i])**2 for i in range(3)]))
-wr12 = coup.layer_mediated_coupling_block(vacuum_wavelength, sphere1, sphere2, lay_sys)
-w12 = coup.direct_coupling_block(vacuum_wavelength, sphere1, sphere2, lay_sys)
+wr12 = layer_mediated_coupling_block(vacuum_wavelength, sphere1, sphere2, lay_sys)
+w12 = direct_coupling_block(vacuum_wavelength, sphere1, sphere2, lay_sys)
 
 phi13 = np.arctan2(sphere1.position[1] - sphere3.position[1], sphere1.position[0] - sphere3.position[0])
 rho13 = np.sqrt(sum([(sphere1.position[i]-sphere3.position[i])**2 for i in range(3)])) 
-wr13 = coup.layer_mediated_coupling_block(vacuum_wavelength, sphere1, sphere3, lay_sys)
-w13 = coup.direct_coupling_block(vacuum_wavelength, sphere1, sphere3, lay_sys)
+wr13 = layer_mediated_coupling_block(vacuum_wavelength, sphere1, sphere3, lay_sys)
+w13 = direct_coupling_block(vacuum_wavelength, sphere1, sphere3, lay_sys)
  
 # initialize initial field object
 init_fld = init.GaussianBeam(vacuum_wavelength=vacuum_wavelength, polar_angle=beam_polar_angle,
@@ -54,7 +54,8 @@ init_fld = init.GaussianBeam(vacuum_wavelength=vacuum_wavelength, polar_angle=be
 
 # initialize simulation object
 simulation_direct = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                                    solver_type='LU', store_coupling_matrix=True, log_to_terminal=False)
+                                     solver_type='LU', store_coupling_matrix=True,
+                                     log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation_direct.run()
 coefficients_direct = particle_list[0].scattered_field.coefficients
 
@@ -63,7 +64,7 @@ simulation_lookup_linear_gpu = simul.Simulation(layer_system=lay_sys, particle_l
                                                 initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
                                                 coupling_matrix_lookup_resolution=lookup_resol, 
                                                 coupling_matrix_interpolator_kind='linear',
-                                                log_to_terminal=False)
+                                                log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation_lookup_linear_gpu.run()
 coefficients_lookup_linear_gpu = particle_list[0].scattered_field.coefficients
 
@@ -71,7 +72,7 @@ simulation_lookup_cubic_gpu = simul.Simulation(layer_system=lay_sys, particle_li
                                                initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
                                                coupling_matrix_lookup_resolution=lookup_resol, 
                                                coupling_matrix_interpolator_kind='cubic',
-                                               log_to_terminal=False)
+                                               log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation_lookup_cubic_gpu.run()
 coefficients_lookup_cubic_gpu = particle_list[0].scattered_field.coefficients
 
@@ -80,7 +81,7 @@ simulation_lookup_linear_cpu = simul.Simulation(layer_system=lay_sys, particle_l
                                                 initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
                                                 coupling_matrix_lookup_resolution=lookup_resol, 
                                                 coupling_matrix_interpolator_kind='linear',
-                                                log_to_terminal=False)
+                                                log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation_lookup_linear_cpu.run()
 coefficients_lookup_linear_cpu = particle_list[0].scattered_field.coefficients
 
@@ -88,7 +89,7 @@ simulation_lookup_cubic_cpu = simul.Simulation(layer_system=lay_sys, particle_li
                                                 initial_field=init_fld, solver_type='gmres', store_coupling_matrix=False,
                                                 coupling_matrix_lookup_resolution=lookup_resol, 
                                                 coupling_matrix_interpolator_kind='cubic',
-                                                log_to_terminal=False)
+                                                log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation_lookup_cubic_cpu.run()
 coefficients_lookup_cubic_cpu = particle_list[0].scattered_field.coefficients
 
@@ -116,7 +117,8 @@ def test_linear_operator():
     relerr = np.linalg.norm(M_cubic_gpu_test_vec - M_direct_test_vec) / np.linalg.norm(M_direct_test_vec)
     print('relative error linear operator cubic interpoloation GPU: ', relerr)
     assert relerr < 5e-4    
-            
+
+
 def test_result():
     relerr = np.linalg.norm(coefficients_lookup_linear_cpu - coefficients_direct) / np.linalg.norm(coefficients_direct)
     print('relative error coefficient solution linear interpolation CPU: ', relerr)
@@ -133,7 +135,8 @@ def test_result():
     relerr = np.linalg.norm(coefficients_lookup_cubic_gpu - coefficients_direct) / np.linalg.norm(coefficients_direct)
     print('relative error coefficient solution cubic interpolation GPU: ', relerr)
     assert relerr < 5e-4    
-    
+
+
 if __name__ == '__main__':
     test_linear_operator()
     test_result()

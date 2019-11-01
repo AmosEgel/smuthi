@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import smuthi.field_expansion as fldex
+import smuthi.fields.expansions as fldex
+import smuthi.fields.transformations as trf
 import smuthi.layers as lay
 
 omega = 2 * 3.15 / 550
@@ -42,7 +43,7 @@ pwe.coefficients[1, :, :] = -100000 * np.exp(- pwe.k_parallel_grid() / k / 10)
 
 def test_swe2pwe():
     ex, ey, ez = swe.electric_field(x, y, z)
-    pwe_up, pwe_down = fldex.swe_to_pwe_conversion(swe, k_parallel=kp, azimuthal_angles=a, layer_system=layer_system)
+    pwe_up, pwe_down = trf.swe_to_pwe_conversion(swe, k_parallel=kp, azimuthal_angles=a, layer_system=layer_system)
     ex2, ey2, ez2 = pwe_up.electric_field(x, y, z)
     err2 = abs(ex - ex2) ** 2 + abs(ey - ey2) ** 2 + abs(ez - ez2) ** 2
     norme2 = abs(ex) ** 2 + abs(ey) ** 2 + abs(ez) ** 2
@@ -52,7 +53,7 @@ def test_swe2pwe():
 
 def test_pwe2swe():
     ex4, ey4, ez4 = pwe.electric_field(x, y, z)
-    swe_reg = fldex.pwe_to_swe_conversion(pwe, 6, 6, reference_point=swe_ref)
+    swe_reg = trf.pwe_to_swe_conversion(pwe, 6, 6, reference_point=swe_ref)
     ex5, ey5, ez5 = swe_reg.electric_field(x, y, z)
     err2 = abs(ex4 - ex5)**2 + abs(ey4 - ey5)**2 + abs(ez4 - ez5)**2
     norme2 = abs(ex4)**2 + abs(ey4)**2 + abs(ez4)**2

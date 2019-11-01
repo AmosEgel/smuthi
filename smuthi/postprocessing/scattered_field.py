@@ -1,7 +1,7 @@
 """Manage post processing steps to evaluate the scattered electric field"""
 
 import sys
-import tqdm
+from tqdm import tqdm
 import smuthi.fields.expansions as fldex
 import smuthi.fields.coordinates_and_contours as coord
 import smuthi.fields.transformations as trf
@@ -43,7 +43,7 @@ def scattered_field_piecewise_expansion(vacuum_wavelength, particle_list, layer_
                                             kind='downgoing', reference_point=ref, lower_z=vb[0], upper_z=vb[1])
         for particle in particle_list:
             add_up, add_down = trf.swe_to_pwe_conversion(particle.scattered_field, k_parallel, azimuthal_angles,
-                                                           layer_system, i, True)
+                                                         layer_system, i, True)
             pwe_up = pwe_up + add_up
             pwe_down = pwe_down + add_down
 
@@ -100,15 +100,15 @@ def scattered_field_pwe(vacuum_wavelength, particle_list, layer_system, layer_nu
         # direct contribution
         if i_iS == layer_number and include_direct:
             pu, pd = trf.swe_to_pwe_conversion(swe=particle.scattered_field, k_parallel=k_parallel,
-                                                 azimuthal_angles=azimuthal_angles, layer_system=layer_system)
+                                               azimuthal_angles=azimuthal_angles, layer_system=layer_system)
             pwe_up = pwe_up + pu
             pwe_down = pwe_down + pd
 
         # layer mediated contribution
         if include_layer_response:
             pu, pd = trf.swe_to_pwe_conversion(swe=particle.scattered_field, k_parallel=k_parallel,
-                                                 azimuthal_angles=azimuthal_angles, layer_system=layer_system,
-                                                 layer_number=layer_number, layer_system_mediated=True)
+                                               azimuthal_angles=azimuthal_angles, layer_system=layer_system,
+                                               layer_number=layer_number, layer_system_mediated=True)
             pwe_up = pwe_up + pu
             pwe_down = pwe_down + pd
 

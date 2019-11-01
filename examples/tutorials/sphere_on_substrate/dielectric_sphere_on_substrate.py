@@ -9,8 +9,8 @@ import smuthi.simulation
 import smuthi.initial_field
 import smuthi.layers
 import smuthi.particles
-import smuthi.scattered_field
-import smuthi.graphical_output
+import smuthi.postprocessing.far_field
+import smuthi.postprocessing.graphical_output
 
 
 # In this file, all lengths are given in nanometers
@@ -44,11 +44,11 @@ simulation = smuthi.simulation.Simulation(layer_system=two_layers,
 simulation.run()
 
 # Show differential scattering cross section
-dscs = smuthi.scattered_field.scattering_cross_section(initial_field=plane_wave,
-                                                       particle_list=one_sphere,
-                                                       layer_system=two_layers)
+dscs = smuthi.postprocessing.far_field.scattering_cross_section(initial_field=plane_wave,
+                                                                particle_list=one_sphere,
+                                                                layer_system=two_layers)
 
-smuthi.graphical_output.show_far_field(dscs, 
+smuthi.postprocessing.graphical_output.show_far_field(dscs,
                                        save_plots=True, 
                                        show_plots=False, 
                                        outputdir='output')

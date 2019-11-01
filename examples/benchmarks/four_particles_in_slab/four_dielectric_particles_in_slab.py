@@ -7,12 +7,11 @@
 
 import smuthi.initial_field as init
 import smuthi.particles as part
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
 import smuthi.layers as lay
-import smuthi.scattered_field as sf
-import smuthi.graphical_output as go
-import smuthi.cuda_sources as cu
+import smuthi.postprocessing.scattered_field as sf
+import smuthi.utility.cuda as cu
 import numpy as np
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt

@@ -4,9 +4,7 @@ functions as well as of plane and spherical wave fex."""
 import numpy as np
 from smuthi.fields import nb_wig3jj
 import smuthi.fields.expansions as fex
-import smuthi.fields.vector_wave_functions as vwf
 import smuthi.fields.coordinates_and_contours as coord
-import smuthi.post_processing.far_field as farfield
 import smuthi.utility.math as mathfunc
 import smuthi.utility.memoizing as memo
 
@@ -119,7 +117,7 @@ def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
             for tau in range(2):
                 ak_integrand = np.zeros(kpgrid.shape, dtype=complex)
                 for pol in range(2):
-                    Bdag = vwf.transformation_coefficients_vwf(tau, l, m, pol=pol, pilm_list=pilm_list, 
+                    Bdag = transformation_coefficients_vwf(tau, l, m, pol=pol, pilm_list=pilm_list,
                                                                taulm_list=taulm_list, kz=kzvec, dagger=True)
                     ak_integrand += Bdag[:, None] * emjma_geijkriSS[pol, :, :]
                 if len(pwe.k_parallel) > 1:
@@ -217,37 +215,6 @@ def swe_to_pwe_conversion(swe, k_parallel='default', azimuthal_angles='default',
         pwe_up, pwe_down = layer_system.response((pwe_up, pwe_down), i_swe, layer_number)
 
     return pwe_up, pwe_down
-
-
-def pwe_to_ff_conversion(vacuum_wavelength, plane_wave_expansion):
-    """Compute the far field of a plane wave expansion object.
-
-    Args:
-        vacuum_wavelength (float):                 Vacuum wavelength in length units.
-        plane_wave_expansion (fex.PlaneWaveExpansion): Plane wave expansion to convert into far field object.
-
-    Returns:
-        A FarField object containing the far field intensity.
-    """
-    omega = coord.angular_frequency(vacuum_wavelength)
-    k = plane_wave_expansion.k
-    kp = plane_wave_expansion.k_parallel
-    if plane_wave_expansion.kind == 'upgoing':
-        polar_angles = np.arcsin(kp / k)
-    elif plane_wave_expansion.kind == 'downgoing':
-        polar_angles = np.pi - np.arcsin(kp / k)
-    else:
-        raise ValueError('PWE type not specified')
-    if any(polar_angles.imag):
-        raise ValueError('complex angles are not allowed')
-    azimuthal_angles = plane_wave_expansion.azimuthal_angles
-    kkz2 = coord.k_z(k_parallel=kp, k=k) ** 2 * k
-    intens = (2 * np.pi ** 2 / omega * kkz2[np.newaxis, :, np.newaxis] 
-              * abs(plane_wave_expansion.coefficients) ** 2).real
-    srt_idcs = np.argsort(polar_angles)  # reversing order in case of downgoing
-    ff = farfield.FarField(polar_angles=polar_angles[srt_idcs], azimuthal_angles=azimuthal_angles)
-    ff.signal = intens[:, srt_idcs, :]    
-    return ff
 
 
 ###############################################################################

@@ -1,10 +1,11 @@
+import sys
 import smuthi.initial_field as init
 import smuthi.particles as part
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
 import smuthi.layers as lay
-import smuthi.scattered_field as sf
-import smuthi.cuda_sources as cu
+import smuthi.postprocessing.scattered_field as sf
+import smuthi.utility.cuda as cu
 import numpy as np
 
 ld = 550
@@ -28,7 +29,8 @@ lay_sys = lay.LayerSystem([0, 400, 0], [1+6j, 2.3, 1.5])
 dipole = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D, position=rD)
 
 # run simulation
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole, log_to_terminal=False)
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole,
+                              log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation.run()
 
 xarr = np.array([-300, 400, -100, 200])
@@ -65,4 +67,3 @@ def test_electric_field():
 
 if __name__ == '__main__':
     test_electric_field()
-    

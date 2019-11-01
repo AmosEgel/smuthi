@@ -1,9 +1,9 @@
+import sys
 import smuthi.initial_field as init
 import smuthi.particles
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
 import smuthi.layers as lay
-import numpy as np
 
 # Parameter input ----------------------------
 ld = 550
@@ -22,7 +22,8 @@ coord.set_default_k_parallel(vacuum_wavelength=ld, neff_waypoints=waypoints, nef
 dipole = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D, position=rD)
 laysys = lay.LayerSystem(thicknesses=thick, refractive_indices=n)
 particle = smuthi.particles.Sphere(position=rS, l_max=3, m_max=3, refractive_index=nS, radius=RS)
-simulation = simul.Simulation(layer_system=laysys, particle_list=[particle], initial_field=dipole, log_to_terminal=False)
+simulation = simul.Simulation(layer_system=laysys, particle_list=[particle], initial_field=dipole,
+                              log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 
 aI = dipole.spherical_wave_expansion(particle, laysys)
 

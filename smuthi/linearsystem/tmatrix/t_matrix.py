@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import smuthi.utility.math as sf
-import smuthi.linear_system.t_matrix.nfmds.t_matrix_axsym as nftaxs
+import smuthi.linearsystem.tmatrix.nfmds.t_matrix_axsym as nftaxs
 import smuthi.fields.expansions as fldex
 import smuthi.fields.transformations as trf
 
@@ -57,7 +57,7 @@ def t_matrix_sphere(k_medium, k_particle, radius, l_max, m_max):
     t = np.zeros((fldex.blocksize(l_max, m_max), fldex.blocksize(l_max, m_max)), dtype=complex)
     for tau in range(2):
         for m in range(-m_max, m_max + 1):
-            for l in range(max(1, abs(m)), l_max+1):
+            for l in range(max(1, abs(m)), l_max + 1):
                 n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
                 t[n, n] = mie_coefficient(tau, l, k_medium, k_particle, radius)
     return t
@@ -107,33 +107,33 @@ def t_matrix(vacuum_wavelength, n_medium, particle):
 
 
 def rotate_t_matrix(T, l_max, m_max, euler_angles, wdsympy=False):
-    """T-matrix of a rotated particle. 
-    
+    """T-matrix of a rotated particle.
+
     Args:
-        T (numpy.array):        T-matrix 
+        T (numpy.array):        T-matrix
         l_max (int):            Maximal multipole degree
         m_max (int):            Maximal multipole order
         euler_angles (list):    Euler angles [alpha, beta, gamma] of rotated particle in (zy'z''-convention) in radian
-        
+
     Returns:
         rotated T-matrix (numpy.array)
     """
-    
+
     if euler_angles == [0, 0, 0]:
         return T
     else:
         blocksize = fldex.blocksize(l_max, m_max)
         T_mat_rot = np.zeros([blocksize, blocksize], dtype=complex)
-    
-        # Doicu, Light Scattering by Systems of Particles, p. 70 (1.115) 
+
+        # Doicu, Light Scattering by Systems of Particles, p. 70 (1.115)
         rot_mat_1 = trf.block_rotation_matrix_D_svwf(l_max, m_max, -euler_angles[2], -euler_angles[1],
-                                                       -euler_angles[0], wdsympy)
+                                                     -euler_angles[0], wdsympy)
         rot_mat_2 = trf.block_rotation_matrix_D_svwf(l_max, m_max, euler_angles[0], euler_angles[1], euler_angles[2],
-                                                       wdsympy)     
-        T_mat_rot = (np.dot(np.dot(np.transpose(rot_mat_1),T), np.transpose(rot_mat_2)))
+                                                     wdsympy)
+        T_mat_rot = (np.dot(np.dot(np.transpose(rot_mat_1), T), np.transpose(rot_mat_2)))
 
         # Mishchenko, Scattering, Absorption and Emission of Light by small Particles, p.120 (5.29)
-#       T_rot_matrix = np.dot(np.dot(trf.rotation_matrix_D(l_max, alpha, beta, gamma), T),
-#                             trf.rotation_matrix_D(l_max, -gamma, -beta, -alpha))
+        #       T_rot_matrix = np.dot(np.dot(trf.rotation_matrix_D(l_max, alpha, beta, gamma), T),
+        #                             trf.rotation_matrix_D(l_max, -gamma, -beta, -alpha))
 
         return T_mat_rot

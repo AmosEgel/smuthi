@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Test the index_conversion module"""
 
-import smuthi.field_expansion as fldex
+import smuthi.fields.expansions as fldex
 
 
 def test_multi2single_stlm():

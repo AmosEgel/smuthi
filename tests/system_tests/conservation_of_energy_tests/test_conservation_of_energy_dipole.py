@@ -1,10 +1,11 @@
 import smuthi.initial_field as init
 import smuthi.particles as part
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
 import smuthi.layers as lay
-import smuthi.scattered_field as sf
-import numpy as np
+import smuthi.postprocessing.far_field as ff
+import sys
+
 
 ld = 550
 rD = [100, -100, 100]
@@ -27,13 +28,14 @@ lay_sys = lay.LayerSystem([0, 400, 0], [2, 1.3, 2])
 dipole = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D, position=rD)
 
 # run simulation
-simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole, log_to_terminal=False)
+simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole,
+                              log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation.run()
 
 power_hom = dipole.dissipated_power_homogeneous_background(layer_system=simulation.layer_system)
 power = dipole.dissipated_power(particle_list=simulation.particle_list, layer_system=simulation.layer_system)
 power2 = dipole.dissipated_power_alternative(particle_list=simulation.particle_list, layer_system=simulation.layer_system)
-ff_tup = sf.total_far_field(simulation.initial_field, simulation.particle_list, simulation.layer_system)
+ff_tup = ff.total_far_field(simulation.initial_field, simulation.particle_list, simulation.layer_system)
 
 
 def test_energy_conservation():

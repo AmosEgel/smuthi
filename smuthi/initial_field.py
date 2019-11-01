@@ -7,9 +7,10 @@ import smuthi.fields.expansions as fldex
 import smuthi.fields.transformations as trf
 import smuthi.fields.vector_wave_functions as vwf
 import smuthi.particles as part
-import smuthi.linear_system.particle_coupling.direct_coupling as dircoup
-import smuthi.linear_system.particle_coupling.layer_mediated_coupling as laycoup
-import smuthi.post_processing.scattered_field as sf
+import smuthi.linearsystem.particlecoupling.direct_coupling as dircoup
+import smuthi.linearsystem.particlecoupling.layer_mediated_coupling as laycoup
+import smuthi.postprocessing.scattered_field as sf
+import smuthi.postprocessing.far_field as farf
 import smuthi.utility.memoizing as memo
 import warnings
 import sys
@@ -231,8 +232,8 @@ class GaussianBeam(InitialPropagatingWave):
                                             plane_wave_expansion=self.plane_wave_expansion(layer_system, 0)[0])
         else:  # top illumination
             i_top = layer_system.number_of_layers() - 1
-            ff = trf.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
-                                            plane_wave_expansion=self.plane_wave_expansion(layer_system, i_top)[1])
+            ff = farf.pwe_to_ff_conversion(vacuum_wavelength=self.vacuum_wavelength,
+                                           plane_wave_expansion=self.plane_wave_expansion(layer_system, i_top)[1])
         return ff
 
 

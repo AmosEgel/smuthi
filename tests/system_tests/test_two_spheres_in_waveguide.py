@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """This script runs a simulation for two spheres in a slab waveguide, illuminated by a plane wave."""
 
+import sys
 import numpy as np
 import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
-import smuthi.scattered_field as sf
+import smuthi.postprocessing.far_field as farf
 
 
 # Parameter input ----------------------------
@@ -38,13 +39,15 @@ plane_wave = init.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=pla
                             amplitude=plane_wave_amplitude, reference_point=[0, 0, 400])
 
 # initialize simulation object
-simulation1 = simul.Simulation(layer_system=lay_sys1, particle_list=[part1,part2], initial_field=plane_wave, log_to_terminal=False)
+simulation1 = simul.Simulation(layer_system=lay_sys1, particle_list=[part1,part2], initial_field=plane_wave,
+                               log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation1.run()
 
-simulation2 = simul.Simulation(layer_system=lay_sys2, particle_list=[part1,part2], initial_field=plane_wave, log_to_terminal=False)
+simulation2 = simul.Simulation(layer_system=lay_sys2, particle_list=[part1,part2], initial_field=plane_wave,
+                               log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
 simulation2.run()
 
-ff = sf.scattered_far_field(vacuum_wavelength=vacuum_wavelength, particle_list=simulation1.particle_list,
+ff = farf.scattered_far_field(vacuum_wavelength=vacuum_wavelength, particle_list=simulation1.particle_list,
                             layer_system=simulation1.layer_system)
 
 

@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """Test the layerresponse functions defined in layers.py."""
 
-import unittest
 import numpy as np
 import smuthi.layers as lay
-import smuthi.field_expansion as fldex
+import smuthi.fields.expansions as fldex
 
 
 layer_d = [0, 300, 400, 0]
@@ -86,7 +85,6 @@ def test_layerresponse_method():
 
     # print(pwe_r_up.coefficients[0, 0, 0] + pwe_r_up2.coefficients[0, 0, 0])
     # print(pwe_r_up3.coefficients[0, 0, 0])
-
 
 
 if __name__ == '__main__':

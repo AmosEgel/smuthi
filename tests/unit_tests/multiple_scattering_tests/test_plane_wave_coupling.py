@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import smuthi.particles as part
-import smuthi.particle_coupling as pacou
+import smuthi.linearsystem.particlecoupling.direct_coupling as pacou
 import smuthi.layers as lay
-import smuthi.coordinates as coord
+import smuthi.fields.coordinates_and_contours as coord
+
 import matplotlib.pyplot as plt
 
 wl = 550
@@ -51,10 +52,10 @@ def test_W_block_pvwf_coupling():
 #     print(W)
 #     print(W_pvwf)
 #     
-    err =  np.linalg.norm(W-W_pvwf) / np.linalg.norm(W) 
+    err = np.linalg.norm(W-W_pvwf) / np.linalg.norm(W)
     print('error direct_coupling_block:', err)
     assert err < 5e-4
 
+
 if __name__ == '__main__':
     test_W_block_pvwf_coupling()
-              
