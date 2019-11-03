@@ -11,12 +11,9 @@ License: SMUTHI is provided under the MIT license.
 
 Author: Amos Egel (amos.egel@gmail.com).
 
-The following persons have contributed to the project:
-
- - Dominik Theobald (functions for the simulation of rotated particles, plane wave based particle coupling for 
-   non-spherical particles with overlapping circumscribing spheres) 
- - Lorenzo Pattelli (logo)
- - Konstantin Ladutenko (numerous additions and improvements for a smooth user experience, correction of bugs)
+The following persons have contributed to the project: Dominik Theobald (functions for the simulation of rotated particles, 
+plane wave based particle coupling for non-spherical particles with overlapping circumscribing spheres), Lorenzo Pattelli (logo),
+Konstantin Ladutenko (MPI support, numerous additions and improvements for a smooth user experience, correction of bugs)
 
 We thank Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use their NFM-DS Fortran code, 
 and Ilia Rasskazov for bug reports and useful comments.
