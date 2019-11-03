@@ -16,7 +16,7 @@ plane wave based particle coupling for non-spherical particles with overlapping 
 Konstantin Ladutenko (MPI support, numerous additions and improvements for a smooth user experience, correction of bugs)
 
 We thank Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use their NFM-DS Fortran code, 
-and Ilia Rasskazov for bug reports and useful comments.
+and Ilia Rasskazov as well as Fabio Mangini for bug reports and useful comments.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
 
