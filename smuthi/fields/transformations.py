@@ -326,7 +326,7 @@ def translation_coefficients_svwf_out_to_out(tau1, l1, m1, tau2, l2, m2, k, d, s
         sinthetd = np.sqrt(d[0] ** 2 + d[1] ** 2) / dd
         legendre, _, _ = mathfunc.legendre_normalized(costthetd, sinthetd, l1 + l2)
 
-    A = complex(0), complex(0)
+    A = complex(0)
     for ld in range(abs(l1 - l2), l1 + l2 + 1):
         a5, b5 = ab5_coefficients(l1, m1, l2, m2, ld)
         if tau1==tau2:

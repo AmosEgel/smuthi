@@ -311,6 +311,9 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
                 e = e_z
                 filename = filename + '_z'
                 plt_title = 'z-component of ' + field_type_string
+            else:
+                print('Quantity:', quantity)
+                raise ValueError('field component not specified')
             # plt.pcolormesh(dim1vecfine, dim2vecfine, e.real, vmin=vmin, vmax=vmax, cmap='RdYlBu')
             step2 = interpolate_step/2
             plt.imshow(e.real, vmin=vmin, vmax=vmax, cmap='RdYlBu',
