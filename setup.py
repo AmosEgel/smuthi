@@ -8,6 +8,7 @@ import pkg_resources
 import os
 import subprocess
 import sys
+import warnings
 
 
 class CustomInstallCommand(install):
@@ -30,6 +31,28 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
+def get_requirements():
+    requirements = ['argparse',
+                    'imageio',
+                    'matplotlib',
+                    'mpmath',
+                    'numpy',
+                    'numba',
+                    'pyyaml',
+                    'scipy',
+                    'sympy',
+                    'tqdm',]
+    if sys.platform.startswith('win'):
+        warnings.warn('\n****************************************************\n'
+                      'Due to reported issues, the installation of pywigxjpf is omitted on Windows machines.\n'
+                      'If you want to benefit from faster evaluation of Wigner-3j symbols,\n'
+                      'try to manually install that package, e.g. by "pip install pywigxjpf".'
+                      '\n****************************************************\n',                      
+                      UserWarning)
+    else:
+        requirements.append('pywigxjpf')
+    return requirements
+
 setup(
     name="SMUTHI",
     version="0.9.1",
@@ -50,19 +73,7 @@ setup(
     package_data={'smuthi.linearsystem.tmatrix.nfmds': ['NFM-DS/*.txt', 'NFM-DS/TMATSOURCES/*', 'NFM-DS/TMATFILES/*',
                                                         'NFM-DS/INPUTFILES/*.dat', 'NFM-DS/OUTPUTFILES/*'],
                   'smuthi': ['_data/*']},
-    install_requires=[
-        'argparse',
-        'imageio',
-        'matplotlib',
-        'mpmath',
-        'numpy',
-        'numba',
-        'pywigxjpf',
-        'pyyaml',
-        'scipy',
-        'sympy',
-        'tqdm',
-    ],
+    install_requires=get_requirements(),
     extras_require={'cuda':  ['PyCuda']},
     entry_points={'console_scripts': ['smuthi = smuthi.__main__:main']},
     license='MIT',

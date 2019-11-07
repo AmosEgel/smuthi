@@ -14,8 +14,10 @@ try:
     lib.wig_table_init(100,9)
     lib.wig_temp_init(100)
 except:
-    sys.stdout.write('No pywigxjpf installation found,'
-    'using a much slower sympy implementaion.\n')
+    sys.stdout.write('No pywigxjpf installation found, '
+    'using sympy implementaion of Wigner-3j symbols instead.\n'
+    'In certain cases, this can significantly increase the simulation time.\n'
+    'You can try "pip install pywigxjpf".\n')
     sys.stdout.flush()
     from sympy.physics.wigner import wigner_3j
     def nb_wig3jj(jj_1, jj_2, jj_3, mm_1, mm_2, mm_3):
