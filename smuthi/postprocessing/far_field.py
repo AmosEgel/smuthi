@@ -38,7 +38,7 @@ class FarField:
         self.signal.fill(np.nan)
         self.signal_type = signal_type
 
-    def azimuthal_integral(self):
+    def azimuthal_integral_times_sin_beta(self):
         r"""Far field as a function of polar angle only.
 
         .. math::
@@ -57,6 +57,25 @@ class FarField:
         else:
             return None
 
+    def azimuthal_integral(self):
+        r"""Far field as a function of the polar angle cosine only.
+
+        .. math::
+            P = \sum_{j=1}^2 \int \mathrm{d} \cos\beta \, I_{\cos\beta,j}(\beta),
+
+        with
+
+        .. math::
+            I_{\beta,j}(\beta) = \int \mathrm{d} \alpha \, I_j(\beta, \alpha),
+
+        Returns:
+            :math:`I_{\cos\beta,j}(\beta)` as numpy ndarray. First index is polarization, second is polar angle.
+        """
+        if len(self.azimuthal_angles) > 2:
+            return np.trapz(self.signal, self.azimuthal_angles[None, None, :])
+        else:
+            return None
+
     def integral(self):
         r"""Integrate intensity to obtain total power :math:`P`.
 
@@ -64,7 +83,7 @@ class FarField:
             :math:`P_j` as numpy 1D-array with length 2, the index referring to polarization.
         """
         if len(self.azimuthal_angles) > 2:
-            return np.trapz(self.azimuthal_integral(), self.polar_angles[None, :])
+            return np.trapz(self.azimuthal_integral_times_sin_beta(), self.polar_angles[None, :])
         else:
             return None
 
