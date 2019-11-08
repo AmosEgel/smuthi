@@ -1,5 +1,18 @@
+.. image:: https://gitlab.com/AmosEgel/smuthi/badges/master/pipeline.svg
+
+.. image:: https://readthedocs.org/projects/smuthi/badge/?version=latest
+   :target: https://smuthi.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
+   :align: right
+
+
+
+|
+
 .. image:: https://gitlab.com/AmosEgel/smuthi/raw/master/docs/images/logo_cropped.png
    :align: center
+
+   
 
 SMUTHI stands for 'scattering by multiple particles in thin-film systems'. The software allows to simulate light
 scattering by multiple particles near (or between) planar interfaces. It is based on the T-matrix method for the single
