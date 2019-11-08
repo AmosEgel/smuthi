@@ -7,4 +7,4 @@ argparse
 imageio
 sympy
 tqdm
-
+numba
