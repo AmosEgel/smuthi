@@ -2,144 +2,252 @@ API
 =====
 Smuthi is a Python package with the following modules and sub-packages.
 
-smuthi.coordinates module
--------------------------
+smuthi.__main__
+---------------
 
-.. automodule:: smuthi.coordinates
+.. automodule:: smuthi.__main__
     :members:
     :undoc-members:
 
-smuthi.cuda_sources module
----------------------------
-
-.. automodule:: smuthi.cuda_sources
-    :members:
-    :undoc-members:
-
-smuthi.field_expansion module
------------------------------
-
-.. automodule:: smuthi.field_expansion
-    :members:
-    :undoc-members:
-
-smuthi.graphical_output module
-------------------------------
-
-.. automodule:: smuthi.graphical_output
-    :members:
-    :undoc-members:
-
-smuthi.initial_field module
----------------------------
-
-.. automodule:: smuthi.initial_field
-    :members:
-    :undoc-members:
-
-smuthi.layers module
---------------------
-
-.. automodule:: smuthi.layers
-    :members:
-    :undoc-members:
-
-smuthi.linear_system module
-----------------------------
-
-.. automodule:: smuthi.linear_system
-    :members:
-    :undoc-members:
-
-smuthi.memoizing module
----------------------------
-
-.. automodule:: smuthi.memoizing
-    :members:
-    :undoc-members:
-
-smuthi.optical_constants module
----------------------------
-
-.. automodule:: smuthi.optical_constants
-    :members:
-    :undoc-members:
-    
-smuthi.particle_coupling module
--------------------------------
-
-.. automodule:: smuthi.particle_coupling
-    :members:
-    :undoc-members:
-
-smuthi.particles module
------------------------
-
-.. automodule:: smuthi.particles
-    :members:
-    :undoc-members:
-
-smuthi.post_processing module
------------------------------
-
-.. automodule:: smuthi.post_processing
-    :members:
-    :undoc-members:
-
-smuthi.read_input module
-------------------------
-
-.. automodule:: smuthi.read_input
-    :members:
-    :undoc-members:
-
-smuthi.scattered_field module
------------------------------
-
-.. automodule:: smuthi.scattered_field
-    :members:
-    :undoc-members:
-
-smuthi.simulation module
-------------------------
+smuthi.simulation
+-----------------
 
 .. automodule:: smuthi.simulation
     :members:
     :undoc-members:
 
-smuthi.spherical_functions module
----------------------------------
+smuthi.initial_field
+--------------------
 
-.. automodule:: smuthi.spherical_functions
+.. automodule:: smuthi.initial_field
     :members:
     :undoc-members:
 
-smuthi.t_matrix module
-----------------------
+smuthi.layers
+-------------
 
-.. automodule:: smuthi.t_matrix
+.. automodule:: smuthi.layers
     :members:
     :undoc-members:
 
-smuthi.vector_wave_functions module
------------------------------------
+smuthi.particles
+----------------
 
-.. automodule:: smuthi.vector_wave_functions
+.. automodule:: smuthi.particles
     :members:
     :undoc-members:
 
-
-smuthi.nfmds package
+smuthi.fields
 ---------------------
 
-.. automodule:: smuthi.nfmds
+.. automodule:: smuthi.fields
+    :members:
+    :undoc-members:
+
+... fields.coordinates_and_contours
+--------------------------------------
+
+.. automodule:: smuthi.fields.coordinates_and_contours
+    :members:
+    :undoc-members:
+
+... fields.expansions
+------------------------
+
+.. automodule:: smuthi.fields.expansions
     :members:
     :undoc-members:
 
 
-smuthi.nfmds.t_matrix_axsym module
-----------------------------------
+... fields.expansions_cuda
+-----------------------------
 
-.. automodule:: smuthi.nfmds.t_matrix_axsym
+.. automodule:: smuthi.fields.expansions_cuda
     :members:
     :undoc-members:
+
+... fields.transformatinos
+-----------------------------
+
+.. automodule:: smuthi.fields.transformations
+    :members:
+    :undoc-members:
+
+... fields.vector_wave_functions
+-----------------------------------
+
+.. automodule:: smuthi.fields.vector_wave_functions
+    :members:
+    :undoc-members:
+
+smuthi.linearsystem
+-------------------
+
+.. automodule:: smuthi.linearsystem
+    :members:
+    :undoc-members:
+
+... linearsystem.linear_system
+---------------------------------
+
+.. automodule:: smuthi.linearsystem.linear_system
+    :members:
+    :undoc-members:
+
+... linearsystem.linear_system_cuda
+--------------------------------------
+
+.. automodule:: smuthi.linearsystem.linear_system_cuda
+    :members:
+    :undoc-members:
+
+... linearsystem.system_t_matrix
+-----------------------------------
+
+.. automodule:: smuthi.linearsystem.system_t_matrix
+    :members:
+    :undoc-members:
+
+... linearsystem.particlecoupling
+------------------------------------
+
+.. automodule:: smuthi.fields.linearsystem.particlecoupling
+    :members:
+    :undoc-members:
+
+... particlecoupling.direct_coupling
+-------------------------------------
+
+.. automodule:: smuthi.linearsystem.particlecoupling.direct_coupling
+    :members:
+    :undoc-members:
+
+... particlecoupling.layer_mediated_coupling
+--------------------------------------------
+
+.. automodule:: smuthi.linearsystem.particlecoupling.layer_mediated_coupling
+    :members:
+    :undoc-members:
+
+... particlecoupling.prepare_lookup
+-----------------------------------
+
+.. automodule:: smuthi.linearsystem.particlecoupling.prepare_lookup
+    :members:
+    :undoc-members:
+
+... particlecoupling.prepare_lookup_cuda
+----------------------------------------
+
+.. automodule:: smuthi.linearsystem.particlecoupling.prepare_lookup_cuda
+    :members:
+    :undoc-members:
+
+... linearsystem.tmatrix
+----------------------------
+
+.. automodule:: smuthi.linearsystem.tmatrix
+    :members:
+    :undoc-members:
+
+... tmatrix.t_matrix
+---------------------
+
+.. automodule:: smuthi.linearsystem.tmatrix.t_matrix
+    :members:
+    :undoc-members:
+
+... tmatrix.nfmds
+------------------
+
+.. automodule:: smuthi.linearsystem.tmatrix.nfmds
+    :members:
+    :undoc-members:
+
+... nfmds.t_matrix_axsym
+-------------------------
+
+.. automodule:: smuthi.linearsystem.tmatrix.nfmds.t_matrix_axsym
+    :members:
+    :undoc-members:
+
+smuthi.postprocessing
+---------------------
+
+.. automodule:: smuthi.postprocessing
+    :members:
+    :undoc-members:
+
+... postprocessing.far_field
+----------------------------
+
+.. automodule:: smuthi.postprocessing.far_field
+    :members:
+    :undoc-members:
+
+... postprocessing.graphical_output
+--------------------------------------
+
+.. automodule:: smuthi.postprocessing.graphical_output
+    :members:
+    :undoc-members:
+
+... postprocessing.post_processing
+-------------------------------------
+
+.. automodule:: smuthi.postprocessing.post_processing
+    :members:
+    :undoc-members:
+
+... postprocessing.scattered_field
+-------------------------------------
+
+.. automodule:: smuthi.postprocessing.scattered_field
+    :members:
+    :undoc-members:
+
+smuthi.utility
+--------------
+
+.. automodule:: smuthi.utility
+    :members:
+    :undoc-members:
+
+... utility.cuda
+-------------------
+
+.. automodule:: smuthi.utility.cuda
+    :members:
+    :undoc-members:
+
+... utility.math
+--------------------
+
+.. automodule:: smuthi.utility.math
+    :members:
+    :undoc-members:
+
+... utility.memoizing
+------------------------
+
+.. automodule:: smuthi.utility.memoizing
+    :members:
+    :undoc-members:
+
+... utility.optical_constants
+--------------------------------
+
+.. automodule:: smuthi.utility.optical_constants
+    :members:
+    :undoc-members:
+
+... utility.read_input
+-------------------------
+
+.. automodule:: smuthi.utility.read_input
+    :members:
+    :undoc-members:
+
+
+
+
