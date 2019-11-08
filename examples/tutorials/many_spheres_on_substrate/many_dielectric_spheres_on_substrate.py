@@ -6,8 +6,11 @@
 #*****************************************************************************#
 
 import time
+import tempfile
 import numpy as np
+import shutil
 import matplotlib.pyplot as plt
+import imageio
 import smuthi.simulation
 import smuthi.initial_field
 import smuthi.layers
@@ -24,6 +27,22 @@ coord.set_default_k_parallel(vacuum_wavelength=550,
                              neff_resolution=5e-3,
                              neff_max=2.5,
                              neff_imag=1e-2)
+
+
+def vogel_spiral(number_of_spheres):
+    # Scattering particles (Vogel spiral)
+    spheres_list = []
+    for i in range(1, number_of_spheres):
+        r = 200 * np.sqrt(i)
+        theta = i * 137.508 * np.pi/180
+        spheres_list.append(smuthi.particles.Sphere(position=[r*np.cos(theta),
+                                                               r*np.sin(theta),
+                                                               100],
+                                                    refractive_index=1.52,
+                                                    radius=100,
+                                                    l_max=3))
+    return spheres_list
+
 
 def simulate_N_spheres(number_of_spheres=100,
                        direct_inversion=True,
@@ -42,17 +61,7 @@ def simulate_N_spheres(number_of_spheres=100,
                                                 azimuthal_angle=0,
                                                 polarization=0)  # 0=TE 1=TM
     
-    # Scattering particles (Vogel spiral)
-    spheres_list = []
-    for i in range(1, number_of_spheres):
-        r = 200 * np.sqrt(i)
-        theta = i * 137.508 * np.pi/180
-        spheres_list.append(smuthi.particles.Sphere(position=[r*np.cos(theta),
-                                                               r*np.sin(theta),
-                                                               100],
-                                                    refractive_index=1.52,
-                                                    radius=100,
-                                                    l_max=3))
+    spheres_list = vogel_spiral(number_of_spheres)
     
     # Initialize and run simulation
     cu.enable_gpu(use_gpu)
@@ -63,56 +72,85 @@ def simulate_N_spheres(number_of_spheres=100,
     preparation_time = 0
     solution_time = 0
 
+    simulation = None
     if direct_inversion:
         simulation = smuthi.simulation.Simulation(layer_system=two_layers,
                                               particle_list=spheres_list,
                                               initial_field=plane_wave)
+    else:
+        simulation = smuthi.simulation.Simulation(layer_system=two_layers,
+                                                  particle_list=spheres_list,
+                                                  initial_field=plane_wave,
+                                                  solver_type='gmres',
+                                                  solver_tolerance=solver_tolerance,
+                                                  store_coupling_matrix=False,
+                                                  coupling_matrix_lookup_resolution=lookup_resolution,
+                                                  coupling_matrix_interpolator_kind=interpolation_order)
 
     # Here, we could start the simulation by 'simulation.run()'
     # This command triggers the preparation and solution of the linear system.
     # However, we will not use 'simulation.run()', but rather trigger the
     # assembly and solution of the linear system manually in order to measure
     # the time.
-        start = time.time()
-        simulation.initialize_linear_system()
-        simulation.linear_system.prepare()
-        end = time.time()
-        preparation_time = end - start
- 
-        start = time.time()
-        simulation.linear_system.solve()
-        end = time.time()
-        solution_time = end - start
+    start = time.time()
+    simulation.initialize_linear_system()
+    simulation.linear_system.prepare()
+    end = time.time()
+    preparation_time = end - start
 
-    else:
-        simulation = smuthi.simulation.Simulation(layer_system=two_layers,
-                                                  particle_list=spheres_list,
-                                                  initial_field=plane_wave,
-                                                  solver_type='gmres', 
-                                                  solver_tolerance=solver_tolerance, 
-                                                  store_coupling_matrix=False,
-                                                  coupling_matrix_lookup_resolution=lookup_resolution, 
-                                                  coupling_matrix_interpolator_kind=interpolation_order)
+    start = time.time()
+    simulation.linear_system.solve()
+    end = time.time()
+    solution_time = end - start
 
-        start = time.time()
-        simulation.initialize_linear_system()
-        simulation.linear_system.prepare()
-        end = time.time()
-        preparation_time = end - start
- 
-        start = time.time()
-        simulation.linear_system.solve()
-        end = time.time()
-        solution_time = end - start
-
-    
     # compute cross section
-    ecs = smuthi.scattered_field.extinction_cross_section(initial_field=plane_wave,
-                                                          particle_list=spheres_list,
-                                                          layer_system=two_layers)
+    ecs = smuthi.postprocessing.far_field.extinction_cross_section(
+        initial_field=plane_wave,
+        particle_list=spheres_list,
+        layer_system=two_layers)
 
     return [(ecs["top"] + ecs["bottom"]).real, preparation_time, solution_time]
     
+# display spheres configuration
+limit = 7000
+number_of_spheres = 1000
+spheres_list = vogel_spiral(number_of_spheres)
+plt.xlim([-limit, limit])
+plt.xlabel('x (nm)')
+plt.ylabel('y (nm)')
+plt.ylim([-limit, limit])
+plt.gca().set_aspect("equal")
+plt.title("Vogel spiral with %i spheres"%number_of_spheres)
+smuthi.postprocessing.graphical_output.plot_particles(
+    -limit, limit, -limit, limit, 0, 0, spheres_list, 1000, False)
+plt.savefig("vogel_spiral_%i.png"%number_of_spheres)
+plt.show()
+
+# create gif
+sphere_numbers = [5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000]
+tempdir = tempfile.mkdtemp()
+images = []
+limit = 14000
+for number_of_spheres in sphere_numbers:
+    spheres_list = vogel_spiral(number_of_spheres)
+    tempfig = plt.figure()
+    plt.xlim([-limit, limit])
+    plt.xlabel('x (nm)')
+    plt.ylabel('y (nm)')
+    plt.ylim([-limit, limit])
+    plt.gca().set_aspect("equal")
+    plt.title("Vogel spiral with %i spheres"%number_of_spheres)
+    smuthi.postprocessing.graphical_output.plot_particles(
+        -limit, limit, -limit, limit, 0, 0, spheres_list, 1000, False)
+    #plt.savefig("vogel_spiral_%i.png"%number_of_spheres)
+    tempfig_filename = tempdir + '/temp_' + str(number_of_spheres) + '.png'
+    plt.savefig(tempfig_filename)
+    plt.close(tempfig)
+    images.append(imageio.imread(tempfig_filename))
+
+imageio.mimsave('Vogel_spirals.gif', images, duration=0.5)
+shutil.rmtree(tempdir)
+plt.show()
 
 # launch a series of simulations:
 
@@ -161,7 +199,6 @@ for particle_number in cpu_iterative_particle_numbers:
     cpu_iterative_preptimes.append(results[1])
     cpu_iterative_ecs.append(results[0])
 
-      
 # get GPU device name
 import pycuda.driver as drv
 drv.init()
