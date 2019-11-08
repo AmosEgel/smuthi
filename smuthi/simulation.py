@@ -8,6 +8,7 @@ import os
 import matplotlib.pyplot as plt
 import pkg_resources
 import datetime
+import time
 import shutil
 import pickle
 import numpy as np
@@ -122,27 +123,40 @@ class Simulation:
         if coord.default_k_parallel is None:
             neff_resolution = 5e-3
             neff_max = max(np.array(self.layer_system.refractive_indices).real) + 1
-            neff_imag = 5e-2
+            neff_imag = 1e-2
             coord.set_default_k_parallel(vacuum_wavelength=self.initial_field.vacuum_wavelength, 
                                          neff_resolution=neff_resolution, 
                                          neff_max=neff_max, 
                                          neff_imag=neff_imag)
-        
+
+        # prepare and solve linear system
+        start = time.time()
         self.initialize_linear_system()
         self.linear_system.prepare()
+        end = time.time()
+        preparation_time = end - start
+
+        start = time.time()
         self.linear_system.solve()
+        end = time.time()
+        solution_time = end - start
 
         # post processing
+        start = time.time()
         if self.post_processing:
             self.post_processing.run(self)
-            
+        end = time.time()
+        postprocessing_time = end - start
+
         if self.save_after_run:
             self.save(self.output_dir + '/simulation.p')
         
         sys.stdout.write('\n')
         sys.stdout.flush()
             
-        plt.show()
+        #plt.show()
+
+        return preparation_time, solution_time, postprocessing_time
 
 
 class Logger(object):
