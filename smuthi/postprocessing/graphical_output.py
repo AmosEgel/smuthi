@@ -6,6 +6,7 @@ import scipy.interpolate as interp
 import smuthi.postprocessing.scattered_field as sf
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Ellipse, Rectangle
+from matplotlib.colors import LogNorm
 import tempfile
 import shutil
 import imageio
@@ -434,7 +435,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
 
 
 def show_far_field(far_field, save_plots, show_plots, save_data=False, tag='far_field', outputdir='.', 
-                   flip_downward=True, split=True):
+                   flip_downward=True, split=True, log_scale=False):
     """Display and export the far field.
     
     Args:
@@ -448,11 +449,14 @@ def show_far_field(far_field, save_plots, show_plots, save_data=False, tag='far_
                                                         if true
         split (bool):                                   show two different plots for upward and downward directions 
                                                         if true
+        log_scale (bool):                               do plots in logarithmic scale if true
     """
     
     if split and any(far_field.polar_angles < np.pi/2) and any(far_field.polar_angles > np.pi/2):
-        show_far_field(far_field.top(), save_plots, show_plots, save_data, tag+'_top', outputdir, True, False)
-        show_far_field(far_field.bottom(), save_plots, show_plots, save_data, tag+'_bottom', outputdir, True, False)
+        show_far_field(far_field.top(), save_plots, show_plots, save_data,
+                       tag+'_top', outputdir, True, False, log_scale)
+        show_far_field(far_field.bottom(), save_plots, show_plots, save_data,
+                       tag+'_bottom', outputdir, True, False, log_scale)
         return
     
     if (not os.path.exists(outputdir)) and (save_plots or save_data):
@@ -464,14 +468,21 @@ def show_far_field(far_field, save_plots, show_plots, save_data=False, tag='far_
     alpha_grid = far_field.alpha_grid()
     beta_grid = far_field.beta_grid()*180/np.pi
 
+    # 2D polar plot of far field
     fig = plt.figure()
     ax = fig.add_subplot(111, polar=True)
+
+    color_norm = None
+    if log_scale:
+        color_norm = LogNorm()
+
     if flip_downward and all(far_field.polar_angles >= np.pi / 2):
         pcm = ax.pcolormesh(alpha_grid, 180 - beta_grid, (far_field.signal[0, :, :] + far_field.signal[1, :, :]),
-                            cmap='inferno')
+                            cmap='inferno', norm=color_norm)
     else:
         pcm = ax.pcolormesh(alpha_grid, beta_grid, (far_field.signal[0, :, :] + far_field.signal[1, :, :]),
-                            cmap='inferno')
+                            cmap='inferno', norm=color_norm)
+
     plt.colorbar(pcm, ax=ax)
     plt.title(tag)
     if save_plots:
@@ -480,17 +491,20 @@ def show_far_field(far_field, save_plots, show_plots, save_data=False, tag='far_
         plt.draw()
     else:
         plt.close(fig)
+
+    # 1D polar plot of far field
     fig = plt.figure()
     if flip_downward and all(far_field.polar_angles >= np.pi/2):
         plt.plot(180 - far_field.polar_angles * 180 / np.pi, np.sum(far_field.azimuthal_integral(), axis=0) * np.pi / 180)
     else:
         plt.plot(far_field.polar_angles * 180 / np.pi, np.sum(far_field.azimuthal_integral(), axis=0) * np.pi / 180)
-
+    if log_scale:
+        plt.yscale('log')
     plt.xlabel('polar angle (degree)')
     if far_field.signal_type == 'differential scattering cross section':
-        plt.ylabel('d_CS/d_beta')
+        plt.ylabel('d_CS/d_cos(beta)')
     elif far_field.signal_type == 'intensity':
-        plt.ylabel('d_P/d_beta')
+        plt.ylabel('d_P/d_cos(beta)')
     plt.grid(True)
     plt.title(tag)
     if save_plots:
