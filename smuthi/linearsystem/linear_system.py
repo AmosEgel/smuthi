@@ -128,6 +128,11 @@ class LinearSystem:
 
     def compute_coupling_matrix(self):
         """Initialize coupling matrix object."""
+
+        # LU factorization only possible with explicit matrix.
+        if self.solver_type == 'LU':
+            self.store_coupling_matrix = True
+
         if self.coupling_matrix_lookup_resolution is not None:
             z_list = [particle.position[2] for particle in self.particle_list]
             is_list = [self.layer_system.layer_number(z) for z in z_list]
