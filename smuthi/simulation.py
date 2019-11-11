@@ -86,10 +86,7 @@ class Simulation:
          coord.default_k_parallel, coord.default_polar_angles, coord.default_azimuthal_angles) = state
         
     def print_simulation_header(self):
-        version = pkg_resources.get_distribution("smuthi").version
-        #welcome_msg = ("\n" + "=" * 42 + "\n SMUTHI version " + version + " - starting simulation\n" + "=" * 42 + "\n")
-        welcome_msg = ("Starting simulation.\n")
-        sys.stdout.write(welcome_msg)
+        sys.stdout.write("Starting simulation.\n")
         sys.stdout.flush()
 
     def save(self, filename=None):
