@@ -1,19 +1,11 @@
 import numpy as np
 import warnings
 import sys
-try:
-    import pycuda.autoinit
-    import pycuda.driver as drv
-    from pycuda import gpuarray
-    from pycuda.compiler import SourceModule
-    import pycuda.cumath
-    pycuda_available = True
-except:
-    pycuda_available = False
 
 use_gpu = False
 
 default_blocksize = 128
+
 
 def enable_gpu(enable=True):
     """Sets the use_gpu flag to enable/disable the use of CUDA kernels.
@@ -23,16 +15,26 @@ def enable_gpu(enable=True):
     """
     # todo: do gpuarrays require cuda toolkit? otherwise distinguish if only gpuarrays work but no kernel compilation
     global use_gpu
-    
+
     if use_gpu == enable:
         return
-    
+
     if not enable:
         use_gpu = False
         sys.stdout.write('Disabling GPU usage.\n')
         sys.stdout.flush()
         return
-    
+
+    try:
+        import pycuda.autoinit
+        import pycuda.driver as drv
+        from pycuda import gpuarray
+        from pycuda.compiler import SourceModule
+        import pycuda.cumath
+        pycuda_available = True
+    except ImportError:
+        pycuda_available = False
+
     if not pycuda_available:
         warnings.warn("Unable to import PyCuda - fall back to CPU mode")
         use_gpu = False
