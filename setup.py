@@ -10,6 +10,11 @@ import subprocess
 import sys
 import warnings
 
+version = {}
+with open("smuthi/version.py") as fp:
+    exec(fp.read(), version)
+__version__ = version['__version__']
+
 
 class CustomInstallCommand(install):
     """Compile nfmds code."""
@@ -55,7 +60,7 @@ def get_requirements():
 
 setup(
     name="SMUTHI",
-    version="0.9.1",
+    version=__version__,
     author="Amos Egel",
     author_email="amos.egel@gmail.com",
     url='https://gitlab.com/AmosEgel/smuthi',
