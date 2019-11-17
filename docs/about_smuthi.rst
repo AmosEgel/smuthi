@@ -1,3 +1,5 @@
+.. iclude:: literature
+
 About Smuthi
 ========================
 
@@ -15,19 +17,14 @@ It solves the Maxwell equations (3D wave optics) in frequency domain (one wavele
 Simulation method
 ------------------
 
-Smuthi is based on the T-matrix method for the single particle scattering and on the scattering-matrix method for the propagation through the layered medium. This combination of methods is described in the following papers:
+Smuthi is based on the T-matrix method for the single particle scattering and on the scattering-matrix method
+for the propagation through the layered medium.
+See :doc:`[Egel 2018] <literature>` and other publications listed in the :doc:`literature section <literature>` for a description of the method.
 
-  - `Egel, Amos, and Uli Lemmer. JQSRT 148 (2014): 165-176. <https://www.sciencedirect.com/science/article/pii/S0022407314002829?via%3Dihub>`_
-  - `Egel, Amos, Siegfried W. Kettlitz, and Uli Lemmer. JOSA A 33.4 (2016): 698-706. <https://www.osapublishing.org/josaa/abstract.cfm?uri=josaa-33-4-698>`_
-  - `Egel, Amos: PhD thesis <https://publikationen.bibliothek.kit.edu/1000093961/26467128>`_
-
-For spheres, the T-matrix of the individual particles is given by the Mie-coefficients. 
-For spheroids and finite cylinders, Smuthi calls the 
+For spheroids and finite cylinders, Smuthi calls the
 `NFM-DS <https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds>`_
-to compute the single particle T-matrix. This is a Fortran software package written by 
-A. Doicu, T. Wriedt and Y. Eremin, based on the "Null-field method with discrete sources", see
-
-  - `Doicu, Adrian, Thomas Wriedt, and Yuri A. Eremin. Light scattering by systems of particles: null-field method with discrete sources: theory and programs. Vol. 124. Springer, 2006. <http://www.springer.com/us/book/9783540336969>`_
+by Doicu, Wriedt and Eremin to compute the single particle T-matrix. This is a Fortran software package written by
+based on the "Null-field method with discrete sources", see :doc:`[Doicu et al. 2006] <literature>`.
 
 
 Performance critical parts of the software are implemented in CUDA. When dealing with a large number of particles, Smuthi can benefit from a substantial acceleration if a suitable (NVIDIA) GPU is available.
