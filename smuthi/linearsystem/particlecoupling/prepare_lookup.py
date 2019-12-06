@@ -13,14 +13,6 @@ import smuthi.fields.vector_wave_functions as vwf
 import smuthi.fields.transformations as trf
 import smuthi.fields.coordinates_and_contours as coord
 import smuthi.layers as lay
-try:
-    import pycuda.autoinit
-    import pycuda.driver as drv
-    from pycuda import gpuarray
-    from pycuda.compiler import SourceModule
-    import pycuda.cumath
-except:
-    pass
 import smuthi.linearsystem.particlecoupling.prepare_lookup_cuda as cusrc
 
 def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system, k_parallel='default', 
@@ -188,16 +180,16 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     
     dkp = np.diff(k_parallel)
     if cu.use_gpu:
-        re_dkp_d = gpuarray.to_gpu(np.float32(dkp.real))
-        im_dkp_d = gpuarray.to_gpu(np.float32(dkp.imag))
+        re_dkp_d = cu.gpuarray.to_gpu(np.float32(dkp.real))
+        im_dkp_d = cu.gpuarray.to_gpu(np.float32(dkp.imag))
         kernel_source_code = cusrc.volume_lookup_assembly_code %(blocksize, len_rho, len_sz, len_kp)
-        helper_function = SourceModule(kernel_source_code).get_function("helper")
+        helper_function = cu.SourceModule(kernel_source_code).get_function("helper")
         cuda_blocksize = 128
         cuda_gridsize = (len_rho * len_sz + cuda_blocksize - 1) // cuda_blocksize
-    
-        re_dwr_d = gpuarray.to_gpu(np.zeros((len_rho, len_sz), dtype=np.float32))
-        im_dwr_d = gpuarray.to_gpu(np.zeros((len_rho, len_sz), dtype=np.float32))
-    
+
+        re_dwr_d = cu.gpuarray.to_gpu(np.zeros((len_rho, len_sz), dtype=np.float32))
+        im_dwr_d = cu.gpuarray.to_gpu(np.zeros((len_rho, len_sz), dtype=np.float32))
+
     pbar = tqdm(total=blocksize**2, 
                 desc='Layer mediated coupling   ', 
                 file=sys.stdout,
@@ -222,14 +214,13 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
                               + (L[pol, 1, 1, :] * B_dag[pol, 1, n1, :] * B[pol, 1, n2, :])[None, :] * emnjkdz)
             
             if cu.use_gpu:
-                re_belbee_pl_d = gpuarray.to_gpu(np.float32(belbee_pl[None, :, :].real))
-                im_belbee_pl_d = gpuarray.to_gpu(np.float32(belbee_pl[None, :, :].imag))
-                re_belbee_mn_d = gpuarray.to_gpu(np.float32(belbee_mn[None, :, :].real))
-                im_belbee_mn_d = gpuarray.to_gpu(np.float32(belbee_mn[None, :, :].imag))
-                
-                re_besjac_d = gpuarray.to_gpu(np.float32(besjac[:, None, :].real))
-                im_besjac_d = gpuarray.to_gpu(np.float32(besjac[:, None, :].imag))
-            
+                re_belbee_pl_d = cu.gpuarray.to_gpu(np.float32(belbee_pl[None, :, :].real))
+                im_belbee_pl_d = cu.gpuarray.to_gpu(np.float32(belbee_pl[None, :, :].imag))
+                re_belbee_mn_d = cu.gpuarray.to_gpu(np.float32(belbee_mn[None, :, :].real))
+                im_belbee_mn_d = cu.gpuarray.to_gpu(np.float32(belbee_mn[None, :, :].imag))
+
+                re_besjac_d = cu.gpuarray.to_gpu(np.float32(besjac[:, None, :].real))
+                im_besjac_d = cu.gpuarray.to_gpu(np.float32(besjac[:, None, :].imag))
                 helper_function(re_besjac_d.gpudata, im_besjac_d.gpudata, re_belbee_pl_d.gpudata,
                                 im_belbee_pl_d.gpudata, re_dkp_d.gpudata, im_dkp_d.gpudata, re_dwr_d.gpudata, 
                                 im_dwr_d.gpudata, block=(cuda_blocksize, 1, 1), grid=(cuda_gridsize, 1))
@@ -398,16 +389,15 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     
     dkp = np.diff(k_parallel)
     if cu.use_gpu:
-        re_dkp_d = gpuarray.to_gpu(np.float32(dkp.real))
-        im_dkp_d = gpuarray.to_gpu(np.float32(dkp.imag))
+        re_dkp_d = cu.gpuarray.to_gpu(np.float32(dkp.real))
+        im_dkp_d = cu.gpuarray.to_gpu(np.float32(dkp.imag))
         kernel_source_code = cusrc.radial_lookup_assembly_code %(blocksize, len_rho, len_kp)
-        helper_function = SourceModule(kernel_source_code).get_function("helper")
+        helper_function = cu.SourceModule(kernel_source_code).get_function("helper")
         cuda_blocksize = 128
         cuda_gridsize = (len_rho + cuda_blocksize - 1) // cuda_blocksize
-    
-        re_dwr_d = gpuarray.to_gpu(np.zeros(len_rho, dtype=np.float32))
-        im_dwr_d = gpuarray.to_gpu(np.zeros(len_rho, dtype=np.float32))    
-    
+
+        re_dwr_d = cu.gpuarray.to_gpu(np.zeros(len_rho, dtype=np.float32))
+        im_dwr_d = cu.gpuarray.to_gpu(np.zeros(len_rho, dtype=np.float32))
     n1n2_combinations = [[] for dm in range(2*m_max+1)]
     for n1 in range(blocksize):
         m1 = m_list[n1]
@@ -437,12 +427,11 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
                 belbe += L[pol,1,1,:] * B_dag[pol,1,n1,:] * B[pol,1,n2,:]
             
             if cu.use_gpu:
-                re_belbe_d = gpuarray.to_gpu(np.float32(belbe[None, :].real))
-                im_belbe_d = gpuarray.to_gpu(np.float32(belbe[None, :].imag))
-                
-                re_besjac_d = gpuarray.to_gpu(np.float32(besjac.real))
-                im_besjac_d = gpuarray.to_gpu(np.float32(besjac.imag))
-            
+                re_belbe_d = cu.gpuarray.to_gpu(np.float32(belbe[None, :].real))
+                im_belbe_d = cu.gpuarray.to_gpu(np.float32(belbe[None, :].imag))
+
+                re_besjac_d = cu.gpuarray.to_gpu(np.float32(besjac.real))
+                im_besjac_d = cu.gpuarray.to_gpu(np.float32(besjac.imag))
                 helper_function(re_besjac_d.gpudata, im_besjac_d.gpudata, 
                                 re_belbe_d.gpudata, im_belbe_d.gpudata, 
                                 re_dkp_d.gpudata, im_dkp_d.gpudata, 

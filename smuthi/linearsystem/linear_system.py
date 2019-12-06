@@ -29,15 +29,8 @@ import smuthi.utility.cuda as cu
 import smuthi.linearsystem.particlecoupling.direct_coupling as dircoup
 import smuthi.linearsystem.particlecoupling.layer_mediated_coupling as laycoup
 import smuthi.linearsystem.particlecoupling.prepare_lookup as look
-try:
-    import pycuda.autoinit
-    import pycuda.driver as drv
-    from pycuda import gpuarray
-    from pycuda.compiler import SourceModule
-    import pycuda.cumath
-except:
-    pass
 import smuthi.linearsystem.linear_system_cuda as cusrc
+
 iter_num = 0
 
 
@@ -541,7 +534,7 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
                                                                min(self.rho_array), min(self.sum_z_array),
                                                                min(self.diff_z_array), self.resolution)
 
-        coupling_function = SourceModule(coupling_source).get_function("coupling_kernel")
+        coupling_function = cu.SourceModule(coupling_source).get_function("coupling_kernel")
 
         n_lookup_array = np.zeros(self.shape[0], dtype=np.uint32)
         m_particle_array = np.zeros(self.shape[0], dtype=np.float32)
@@ -573,15 +566,15 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
         im_lookup_mn = self.lookup_table_minus.imag.astype(dtype=np.float32)
 
         # transfer data to gpu
-        n_lookup_array_d = gpuarray.to_gpu(n_lookup_array)
-        m_particle_array_d = gpuarray.to_gpu(m_particle_array)
-        x_array_d = gpuarray.to_gpu(x_array)
-        y_array_d = gpuarray.to_gpu(y_array)
-        z_array_d = gpuarray.to_gpu(z_array)
-        re_lookup_pl_d = gpuarray.to_gpu(re_lookup_pl)
-        im_lookup_pl_d = gpuarray.to_gpu(im_lookup_pl)
-        re_lookup_mn_d = gpuarray.to_gpu(re_lookup_mn)
-        im_lookup_mn_d = gpuarray.to_gpu(im_lookup_mn)
+        n_lookup_array_d = cu.gpuarray.to_gpu(n_lookup_array)
+        m_particle_array_d = cu.gpuarray.to_gpu(m_particle_array)
+        x_array_d = cu.gpuarray.to_gpu(x_array)
+        y_array_d = cu.gpuarray.to_gpu(y_array)
+        z_array_d = cu.gpuarray.to_gpu(z_array)
+        re_lookup_pl_d = cu.gpuarray.to_gpu(re_lookup_pl)
+        im_lookup_pl_d = cu.gpuarray.to_gpu(im_lookup_pl)
+        re_lookup_mn_d = cu.gpuarray.to_gpu(re_lookup_mn)
+        im_lookup_mn_d = cu.gpuarray.to_gpu(im_lookup_mn)
 
         sys.stdout.write('done | elapsed: ' + str(int(time.time() - start_time)) + 's\n')
         sys.stdout.flush()
@@ -589,10 +582,10 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
         cuda_gridsize = (self.shape[0] + cuda_blocksize - 1) // cuda_blocksize
 
         def matvec(in_vec):
-            re_in_vec_d = gpuarray.to_gpu(np.float32(in_vec.real))
-            im_in_vec_d = gpuarray.to_gpu(np.float32(in_vec.imag))
-            re_result_d = gpuarray.zeros(in_vec.shape, dtype=np.float32)
-            im_result_d = gpuarray.zeros(in_vec.shape, dtype=np.float32)
+            re_in_vec_d = cu.gpuarray.to_gpu(np.float32(in_vec.real))
+            im_in_vec_d = cu.gpuarray.to_gpu(np.float32(in_vec.imag))
+            re_result_d = cu.gpuarray.zeros(in_vec.shape, dtype=np.float32)
+            im_result_d = cu.gpuarray.zeros(in_vec.shape, dtype=np.float32)
             coupling_function(n_lookup_array_d.gpudata, m_particle_array_d.gpudata, x_array_d.gpudata,
                               y_array_d.gpudata, z_array_d.gpudata, re_lookup_pl_d.gpudata, im_lookup_pl_d.gpudata,
                               re_lookup_mn_d.gpudata, im_lookup_mn_d.gpudata, re_in_vec_d.gpudata, im_in_vec_d.gpudata,
@@ -661,7 +654,7 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
             coupling_source = cusrc.cubic_radial_lookup_source % (self.blocksize, self.shape[0],
                                                                self.radial_distance_array.min(), resolution)
 
-        coupling_function = SourceModule(coupling_source).get_function("coupling_kernel")
+        coupling_function = cu.SourceModule(coupling_source).get_function("coupling_kernel")
 
         n_lookup_array = np.zeros(self.shape[0], dtype=np.uint32)
         m_particle_array = np.zeros(self.shape[0], dtype=np.float32)
@@ -691,12 +684,12 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
         im_lookup = self.lookup_table.imag.astype(np.float32)
 
         # transfer data to gpu
-        n_lookup_array_d = gpuarray.to_gpu(n_lookup_array)
-        m_particle_array_d = gpuarray.to_gpu(m_particle_array)
-        x_array_d = gpuarray.to_gpu(x_array)
-        y_array_d = gpuarray.to_gpu(y_array)
-        re_lookup_d = gpuarray.to_gpu(re_lookup)
-        im_lookup_d = gpuarray.to_gpu(im_lookup)
+        n_lookup_array_d = cu.gpuarray.to_gpu(n_lookup_array)
+        m_particle_array_d = cu.gpuarray.to_gpu(m_particle_array)
+        x_array_d = cu.gpuarray.to_gpu(x_array)
+        y_array_d = cu.gpuarray.to_gpu(y_array)
+        re_lookup_d = cu.gpuarray.to_gpu(re_lookup)
+        im_lookup_d = cu.gpuarray.to_gpu(im_lookup)
 
         sys.stdout.write('done | elapsed: ' + str(int(time.time() - start_time)) + 's\n')
         sys.stdout.flush()
@@ -704,10 +697,10 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
         cuda_gridsize = (self.shape[0] + cuda_blocksize - 1) // cuda_blocksize
 
         def matvec(in_vec):
-            re_in_vec_d = gpuarray.to_gpu(np.float32(in_vec.real))
-            im_in_vec_d = gpuarray.to_gpu(np.float32(in_vec.imag))
-            re_result_d = gpuarray.zeros(in_vec.shape, dtype=np.float32)
-            im_result_d = gpuarray.zeros(in_vec.shape, dtype=np.float32)
+            re_in_vec_d = cu.gpuarray.to_gpu(np.float32(in_vec.real))
+            im_in_vec_d = cu.gpuarray.to_gpu(np.float32(in_vec.imag))
+            re_result_d = cu.gpuarray.zeros(in_vec.shape, dtype=np.float32)
+            im_result_d = cu.gpuarray.zeros(in_vec.shape, dtype=np.float32)
             coupling_function(n_lookup_array_d.gpudata, m_particle_array_d.gpudata, x_array_d.gpudata,
                               y_array_d.gpudata,
                               re_lookup_d.gpudata, im_lookup_d.gpudata, re_in_vec_d.gpudata, im_in_vec_d.gpudata,

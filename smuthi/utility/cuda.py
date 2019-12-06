@@ -32,6 +32,10 @@ def enable_gpu(enable=True):
         from pycuda.compiler import SourceModule
         import pycuda.cumath
         pycuda_available = True
+
+        current_module = sys.modules[__name__]
+        current_module.gpuarray = gpuarray
+        current_module.SourceModule = SourceModule
     except ImportError:
         pycuda_available = False
 

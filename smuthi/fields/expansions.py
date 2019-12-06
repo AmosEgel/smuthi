@@ -10,15 +10,6 @@ import smuthi.utility.cuda as cu
 import copy
 import math
 
-try:
-    import pycuda.autoinit
-    import pycuda.driver as drv
-    from pycuda import gpuarray
-    from pycuda.compiler import SourceModule
-    import pycuda.cumath
-except:
-    pass
-
 
 class FieldExpansion:
     """Base class for field expansions."""
@@ -542,39 +533,39 @@ class PlaneWaveExpansion(FieldExpansion):
         
         if cu.use_gpu and xr.size and len(self.k_parallel) > 1:  # run calculations on gpu
             
-            re_k_d = gpuarray.to_gpu(np.array(self.k).real.astype(np.float32))
-            im_k_d = gpuarray.to_gpu(np.array(self.k).imag.astype(np.float32)) 
-            
-            re_kp_d = gpuarray.to_gpu(self.k_parallel.real.astype(np.float32))
-            im_kp_d = gpuarray.to_gpu(self.k_parallel.imag.astype(np.float32))
-            
-            re_kz_d = gpuarray.to_gpu(self.k_z().real.astype(np.float32))
-            im_kz_d = gpuarray.to_gpu(self.k_z().imag.astype(np.float32))
-            
-            alpha_d = gpuarray.to_gpu(self.azimuthal_angles.astype(np.float32))
-            
-            xr_d = gpuarray.to_gpu(xr.astype(np.float32))
-            yr_d = gpuarray.to_gpu(yr.astype(np.float32))
-            zr_d = gpuarray.to_gpu(zr.astype(np.float32))
-            
-            re_g_te_d = gpuarray.to_gpu(self.coefficients[0, :, :].real.astype(np.float32))
-            im_g_te_d = gpuarray.to_gpu(self.coefficients[0, :, :].imag.astype(np.float32))
-            re_g_tm_d = gpuarray.to_gpu(self.coefficients[1, :, :].real.astype(np.float32))
-            im_g_tm_d = gpuarray.to_gpu(self.coefficients[1, :, :].imag.astype(np.float32))
-            
-            re_e_x_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
-            im_e_x_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
-            re_e_y_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
-            im_e_y_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
-            re_e_z_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
-            im_e_z_d = gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
-            
-            kernel_source = cu_src.pwe_electric_field_evaluation_code%(xr.size, len(self.k_parallel), 
-                                                                   len(self.azimuthal_angles), (1/self.k).real, 
+
+            re_k_d = cu.gpuarray.to_gpu(np.array(self.k).real.astype(np.float32))
+            im_k_d = cu.gpuarray.to_gpu(np.array(self.k).imag.astype(np.float32))
+
+            re_kp_d = cu.gpuarray.to_gpu(self.k_parallel.real.astype(np.float32))
+            im_kp_d = cu.gpuarray.to_gpu(self.k_parallel.imag.astype(np.float32))
+
+            re_kz_d = cu.gpuarray.to_gpu(self.k_z().real.astype(np.float32))
+            im_kz_d = cu.gpuarray.to_gpu(self.k_z().imag.astype(np.float32))
+
+            alpha_d = cu.gpuarray.to_gpu(self.azimuthal_angles.astype(np.float32))
+
+            xr_d = cu.gpuarray.to_gpu(xr.astype(np.float32))
+            yr_d = cu.gpuarray.to_gpu(yr.astype(np.float32))
+            zr_d = cu.gpuarray.to_gpu(zr.astype(np.float32))
+
+            re_g_te_d = cu.gpuarray.to_gpu(self.coefficients[0, :, :].real.astype(np.float32))
+            im_g_te_d = cu.gpuarray.to_gpu(self.coefficients[0, :, :].imag.astype(np.float32))
+            re_g_tm_d = cu.gpuarray.to_gpu(self.coefficients[1, :, :].real.astype(np.float32))
+            im_g_tm_d = cu.gpuarray.to_gpu(self.coefficients[1, :, :].imag.astype(np.float32))
+
+            re_e_x_d = cu.gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+            im_e_x_d = cu.gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+            re_e_y_d = cu.gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+            im_e_y_d = cu.gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+            re_e_z_d = cu.gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+            im_e_z_d = cu.gpuarray.to_gpu(np.zeros(xr.shape, dtype=np.float32))
+
+            kernel_source = cu_src.pwe_electric_field_evaluation_code%(xr.size, len(self.k_parallel),
+                                                                   len(self.azimuthal_angles), (1/self.k).real,
                                                                    (1/self.k).imag)
-            
-            kernel_function = SourceModule(kernel_source).get_function("electric_field") 
-            
+
+            kernel_function = cu.SourceModule(kernel_source).get_function("electric_field")
             cuda_blocksize = 128
             cuda_gridsize = (xr.size + cuda_blocksize - 1) // cuda_blocksize
             
