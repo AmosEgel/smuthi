@@ -336,14 +336,22 @@ def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, t
             result[:, :, i] = layersystem_response_matrix(pol, layer_d, layer_n, kp, omega, fromlayer, tolayer, prec)
         return result
 
-    layer_d_above = [0] + layer_d[fromlayer:]
-    layer_n_above = [layer_n[fromlayer]] + layer_n[fromlayer:]
-    smat_above = layersystem_scattering_matrix(pol, layer_d_above, layer_n_above, kpar, omega)
-    layer_d_below = layer_d[: fromlayer] + [0]
-    layer_n_below = layer_n[: fromlayer] + [layer_n[fromlayer]]
-    smat_below = layersystem_scattering_matrix(pol, layer_d_below, layer_n_below, kpar, omega)
-    lmat = matrix_product(matrix_inverse(matrix_format([[1, -smat_below[0, 1]], [-smat_above[1, 0], 1]])),
-                          matrix_format([[0, smat_below[0, 1]], [smat_above[1, 0], 0]]))
+    if fromlayer == 0:  # bottom excitation
+        smat = layersystem_scattering_matrix(pol, layer_d, layer_n, kpar, omega)
+        lmat = matrix_format([[0, 0], [smat[1, 0], 0]])
+    elif fromlayer == len(layer_d)-1:  # top excitation
+        smat = layersystem_scattering_matrix(pol, layer_d, layer_n, kpar, omega)
+        lmat = matrix_format([[0, smat[0, 1]], [0, 0]])
+    else:  # excitation from inside
+        layer_d_above = [0] + layer_d[fromlayer:]
+        layer_n_above = [layer_n[fromlayer]] + layer_n[fromlayer:]
+        smat_above = layersystem_scattering_matrix(pol, layer_d_above, layer_n_above, kpar, omega)
+        layer_d_below = layer_d[: fromlayer] + [0]
+        layer_n_below = layer_n[: fromlayer] + [layer_n[fromlayer]]
+        smat_below = layersystem_scattering_matrix(pol, layer_d_below, layer_n_below, kpar, omega)
+        lmat = matrix_product(matrix_inverse(matrix_format([[1, -smat_below[0, 1]], [-smat_above[1, 0], 1]])),
+                              matrix_format([[0, smat_below[0, 1]], [smat_above[1, 0], 0]]))
+
     if tolayer > fromlayer:
         tmat_fromto = layersystem_transfer_matrix(pol, layer_d[fromlayer:tolayer + 1], layer_n[fromlayer:tolayer + 1],
                                                   kpar, omega)
