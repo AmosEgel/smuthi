@@ -318,8 +318,8 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
                     B = np.zeros(len_rho, dtype=complex)
                     for ld in range(max(abs(l1 - l2), abs(m1 - m2)), l1 + l2 + 1):  # if ld<abs(m1-m2) then P=0
                         a5, b5 = trf.ab5_coefficients(l2, m2, l1, m1, ld)
-                        A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
-                        B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
+                        A = A + a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
+                        B = B + b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                     for tau1 in range(2):
                         n1 = fldex.multi_to_single_index(tau1, l1, m1, l_max, m_max)
                         for tau2 in range(2):
