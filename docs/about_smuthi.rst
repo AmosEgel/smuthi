@@ -40,7 +40,7 @@ Range of applications
 
 Smuthi can be applied to any scattering problem in frequency domain involving
 
-  - a system of plane parallel layer interfaces separating an arbitrary number of metallic or dielectric layers.
+  - a system of plane parallel layer interfaces separating an arbitrary number of thin metallic or dielectric layers.
 
   - an arbitrary number of wavelength-scale scattering particles (currently available: spheres, spheroids, finite cylinders). The particles can be metallic or dielectric and rotated to an arbitrary orientation.
 
@@ -76,6 +76,14 @@ The following issues need to be considered when applying Smuthi:
     For larger particles, note that the number of multipole terms in the spherical wave expansion 
     grows with the particle size. For further details, see the 
     :doc:`hints for the selection of the multipole truncation order <simulation_guidelines>`.
+  - Particles in a single homogeneous medium (or in free space) can be treated 
+    by setting a trivial two layer system with the same refractive index.
+    However, Smuthi was not designed for that use case and we believe that 
+	there is better software for that case.
+  - Smuthi was designed for particles on a substrate or particles near or inside a thin-film system 
+    with layer thicknesses of up to a few wavelengths. 
+    Simulations involving thick layers might fail or return wrong results due to numerical instability.
+	Maybe a more stable algorithm for the layer system response does exist - help is welcome.
   - Smuthi does not provide error checking of user input, nor does it check if 
     numerical parameters specified by the user are sufficient for accurate 
     simulation results. It is thus required that the user develops some 
