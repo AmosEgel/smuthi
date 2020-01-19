@@ -17,7 +17,7 @@ No. Tutorial                             level           script       input file
 4   |ex4link|                             |intermed|      TBD          N/A
 4   Dielectric metalens (to be done)      |intermed|      TBD          TBD       
 5   Light extraction (to be done)         |intermed|      TBD          N/A       
-6   Numerical parameters (to be done)     |advanced|      TBD          N/A       
+6   |ex6link|                             |advanced|      TBD          N/A
 === ==================================  ============== ============  ===========
 
 .. |ex1script| replace:: :download:`download <../examples/tutorials/sphere_on_substrate/dielectric_sphere_on_substrate.py>`
@@ -27,6 +27,8 @@ No. Tutorial                             level           script       input file
 .. |ex1link| replace:: :doc:`Sphere on substrate <examples/sphere_on_substrate/discussion>`
 
 .. |ex4link| replace:: :doc:`Many spheres on substrate <examples/many_particles/discussion>`
+
+.. |ex6link| replace:: :doc:`Numerical parameters <examples/numerical_parameters/discussion>`
 
 .. |introd| raw:: html
 
