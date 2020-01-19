@@ -3,6 +3,7 @@
 
 import smuthi.linearsystem.linear_system as lsys
 import smuthi.fields.coordinates_and_contours as coord
+import smuthi.utility.automatic_parameter_selection as autoparam
 import sys
 import os
 import matplotlib.pyplot as plt
@@ -41,11 +42,23 @@ class Simulation:
         log_to_terminal(bool):  if true, the simulation progress will be displayed in the terminal
     """
 
-    def __init__(self, layer_system=None, particle_list=None, initial_field=None, post_processing=None,
-                 k_parallel='default', solver_type='LU', solver_tolerance=1e-4, store_coupling_matrix=True,
-                 coupling_matrix_lookup_resolution=None, coupling_matrix_interpolator_kind='linear',
-                 length_unit='length unit', input_file=None, output_dir='smuthi_output', save_after_run=False,
-                 log_to_file=False, log_to_terminal=True):
+    def __init__(self,
+                 layer_system=None,
+                 particle_list=None,
+                 initial_field=None,
+                 post_processing=None,
+                 k_parallel='default',
+                 solver_type='LU',
+                 solver_tolerance=1e-4,
+                 store_coupling_matrix=True,
+                 coupling_matrix_lookup_resolution=None,
+                 coupling_matrix_interpolator_kind='linear',
+                 length_unit='length unit',
+                 input_file=None,
+                 output_dir='smuthi_output',
+                 save_after_run=False,
+                 log_to_file=False,
+                 log_to_terminal=True):
 
         # initialize attributes
         self.layer_system = layer_system
@@ -70,7 +83,7 @@ class Simulation:
                             log_to_terminal=log_to_terminal)
         if input_file is not None and log_to_file:
             shutil.copyfile(input_file, self.output_dir + '/input.dat')
-    
+
     def __getstate__(self):
         """Return state values to be pickled."""
         return (self.layer_system, self.particle_list, self.initial_field, self.k_parallel, self.solver_type,
@@ -102,7 +115,6 @@ class Simulation:
 
     def initialize_linear_system(self):
         self.linear_system = lsys.LinearSystem(particle_list=self.particle_list,
-
                                                initial_field=self.initial_field,
                                                layer_system=self.layer_system, 
                                                k_parallel=self.k_parallel,
@@ -115,7 +127,10 @@ class Simulation:
     def run(self):
         """Start the simulation."""
         self.print_simulation_header()
-        
+
+        if type(self.k_parallel) == str and self.k_parallel == "default":
+            self.k_parallel = autoparam.default_sommerfeld_contour(self)
+
         # check if default contour exists, otherwise set a contour
         if coord.default_k_parallel is None:
             neff_resolution = 5e-3
