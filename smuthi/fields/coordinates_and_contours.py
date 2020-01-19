@@ -46,7 +46,7 @@ def complex_contour(vacuum_wavelength, neff_waypoints, neff_resolution):
 
 
 def set_default_k_parallel(vacuum_wavelength, neff_waypoints=None, 
-                           neff_resolution=1e-2, neff_max=None, neff_imag=0.05):
+                           neff_resolution=1e-2, neff_max=None, neff_imag=0.01):
     if neff_waypoints is None:
         neff_waypoints = (0, 0.8, 0.8-1j*neff_imag, neff_max-1j*neff_imag, neff_max)
     global default_k_parallel

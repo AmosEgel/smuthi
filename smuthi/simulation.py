@@ -3,7 +3,7 @@
 
 import smuthi.linearsystem.linear_system as lsys
 import smuthi.fields.coordinates_and_contours as coord
-import smuthi.utility.automatic_parameter_selection as autoparam
+#import smuthi.utility.automatic_parameter_selection as autoparam
 import sys
 import os
 import matplotlib.pyplot as plt
@@ -41,7 +41,6 @@ class Simulation:
         log_to_file(bool):      if true, the simulation log will be written to a log file
         log_to_terminal(bool):  if true, the simulation progress will be displayed in the terminal
     """
-
     def __init__(self,
                  layer_system=None,
                  particle_list=None,
@@ -77,12 +76,35 @@ class Simulation:
         # output
         timestamp = '{:%Y%m%d%H%M%S}'.format(datetime.datetime.now())
         self.output_dir = output_dir + '/' + timestamp
-        if not os.path.exists(self.output_dir) and log_to_file:
-            os.makedirs(self.output_dir)
-        sys.stdout = Logger(self.output_dir + '/smuthi.log', log_to_file=log_to_file,
-                            log_to_terminal=log_to_terminal)
+        self.log_to_terminal = log_to_terminal
+        self.log_to_file = log_to_file
+        self.log_filename = self.output_dir + '/' + 'smuthi.log'
+        self.set_logging()
+
         if input_file is not None and log_to_file:
             shutil.copyfile(input_file, self.output_dir + '/input.dat')
+
+    def set_logging(self, log_to_terminal=None, log_to_file=None, log_filename=None):
+        """Update logging behavior.
+
+        Args:
+            log_to_terminal (logical):  If true, print output to console.
+            log_to_file (logical):      If true, print output to file
+            log_filename (char):        If `log_to_file` is true, print output to a file with that name in the output
+                                        directory. If the file already exists, it will be appended.
+        """
+        if log_to_terminal is not None:
+            self.log_to_terminal = log_to_terminal
+        if log_to_file is not None:
+            self.log_to_file = log_to_file
+        if log_filename is not None:
+            self.log_filename = log_filename
+
+        if not os.path.exists(self.output_dir) and self.log_to_file:
+            os.makedirs(self.output_dir)
+        sys.stdout = Logger(log_filename=self.log_filename,
+                            log_to_file=self.log_to_file,
+                            log_to_terminal=self.log_to_terminal)
 
     def __getstate__(self):
         """Return state values to be pickled."""
@@ -128,8 +150,8 @@ class Simulation:
         """Start the simulation."""
         self.print_simulation_header()
 
-        if type(self.k_parallel) == str and self.k_parallel == "default":
-            self.k_parallel = autoparam.default_sommerfeld_contour(self)
+        #if type(self.k_parallel) == str and self.k_parallel == "default":
+        #    self.k_parallel = autoparam.default_sommerfeld_contour(self)
 
         # check if default contour exists, otherwise set a contour
         if coord.default_k_parallel is None:
@@ -173,7 +195,10 @@ class Simulation:
 
 class Logger(object):
     """Allows to prompt messages both to terminal and to log file simultaneously."""
-    def __init__(self, log_filename, log_to_file=True, log_to_terminal=True):
+    def __init__(self, log_filename, log_to_file=True, log_to_terminal=True, terminal=None):
+        if terminal is None:
+            self.terminal = sys.__stdout__
+
         if not log_to_terminal:
             f = open(os.devnull, 'w')
             self.terminal = f
