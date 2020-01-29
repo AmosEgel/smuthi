@@ -82,11 +82,20 @@ def taxsym_run():
     nfmds.initialize_binary()
     cwd = os.getcwd()
     os.chdir(nfmds.nfmds_folder + '/TMATSOURCES')
-    with open('../nfmds.log', 'w') as nfmds_log:
+    with open('../nfmds.log', 'a') as nfmds_log:
         if sys.platform.startswith('win'):
-            subprocess.call(['TAXSYM_SMUTHI.exe'], stdout=nfmds_log)
+            try:
+                subprocess.check_call('TAXSYM_SMUTHI.exe', stdout=nfmds_log, stderr=nfmds_log)
+            except subprocess.CalledProcessError as e:
+                raise Exception("The command " + e.cmd + " has failed with returncode " + str(e.returncode) + "."
+                                + "\nOutput: " + str(e.output)
+                                + "\nPossible reasons: "
+                                + "\n - missing gfortran installation?"
+                                + "\n - errorneous numerical TAXSYM input?"
+                                + "\n To learn more about the issue, browse to " + os.getcwd() + " and double-click the "
+                                + "TAXSYM_SMUTHI.exe")
         elif sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
-            subprocess.call(['./TAXSYM_SMUTHI.out'], stdout=nfmds_log)
+            subprocess.check_call(['./TAXSYM_SMUTHI.out'], stdout=nfmds_log, stderr=nfmds_log)
         else:
             raise AssertionError('Platform neither windows nor linux.')
     os.chdir(cwd)

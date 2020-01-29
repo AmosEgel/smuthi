@@ -20,16 +20,39 @@ class CustomInstallCommand(install):
     """Compile nfmds code."""
     def run(self):
         install.run(self)
+        # if Windows: try to install pywigxjpf now
+        if sys.platform.startswith('win'):
+            sys.stdout.write('Try to install pywigxjpf ... \n')
+            sys.stdout.flush()
+            try:
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "pywigxjpf"], stdout=none, stderr=none)
+            except Exception as e:
+                warnings.warn('\n*****************************************************\n'
+                              'pywigxjpf installation failed.\n'
+                              'If you want to benefit from fast Wigner3j calculations:\n'
+                              'Try to install manually by "pip install pywigxjpf".'
+                              '\n*****************************************************\n',
+                              UserWarning)                
+        
         # compile nfmds if not built on readthedocs
-        if ((sys.platform.startswith('linux') or sys.platform.startswith('darwin'))
-            and not os.environ.get('READTHEDOCS')):
+        if sys.platform.startswith('win'):
+            executable_ending = '.exe'
+        else:
+            executable_ending = '.out'
+            
+        if not os.environ.get('READTHEDOCS'):
             nfmds_sources_dirname = pkg_resources.resource_filename('smuthi.linearsystem.tmatrix.nfmds', 'NFM-DS')
+            sys.stdout.write('\nCompiling sources at ' + nfmds_sources_dirname + ' ...')
+            sys.stdout.flush()
             os.chdir(nfmds_sources_dirname + '/TMATSOURCES')
-            sys.stdout.write('Compiling sources at ' + nfmds_sources_dirname + ' ...')
+            
             sys.stdout.flush()
-            subprocess.call(['gfortran', 'TAXSYM_SMUTHI.f90', '-o', 'TAXSYM_SMUTHI.out'])
-            sys.stdout.write(' done.\n')
-            sys.stdout.flush()
+            try:
+                subprocess.check_call(['gfortran', 'TAXSYM_SMUTHI.f90', '-o', 'TAXSYM_SMUTHI' + executable_ending])
+                sys.stdout.write(' done.\n')
+                sys.stdout.flush()
+            except Exception as e:
+                warnings.warn('\n Compiling NFM-DS sources failed.\n', UserWarning)
 
 
 def read(fname):
@@ -46,14 +69,13 @@ def get_requirements():
                     'pyyaml',
                     'scipy',
                     'sympy',
-                    'tqdm',]
+                    'tqdm',
+                    'pycparser']
     if sys.platform.startswith('win'):
-        warnings.warn('\n****************************************************\n'
-                      'Due to reported issues, the installation of pywigxjpf is omitted on Windows machines.\n'
-                      'If you want to benefit from faster evaluation of Wigner-3j symbols,\n'
-                      'try to manually install that package, e.g. by "pip install pywigxjpf".'
-                      '\n****************************************************\n',                      
-                      UserWarning)
+        # skip pywigxjpf (to have it optional, if the user has no C compiler)
+        sys.stdout.write('Compiling from Windows machine. Skipping pywigxjpf for the moment. '
+                         'I will try to install it in post processing.\n')
+        sys.stdout.flush()
     else:
         requirements.append('pywigxjpf')
     return requirements

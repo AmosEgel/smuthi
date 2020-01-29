@@ -52,14 +52,23 @@ def initialize_binary():
     initialize_source()
     global binary_initialized
     if not binary_initialized:
-        if ((sys.platform.startswith('linux') or sys.platform.startswith('darwin'))
-            and not os.access(nfmds_folder + '/TMATSOURCES/TAXSYM_SMUTHI.out', os.X_OK)
+        if sys.platform.startswith('win'):
+            executable_ending = '.exe'
+        else:
+            executable_ending = '.out'
+        if (not os.access(nfmds_folder + '/TMATSOURCES/TAXSYM_SMUTHI' + executable_ending, os.X_OK)
             and not os.environ.get('READTHEDOCS')):
             cwd = os.getcwd()
             os.chdir(nfmds_folder + '/TMATSOURCES')
             sys.stdout.write('Compiling sources ...')
             sys.stdout.flush()
-            subprocess.call(['gfortran', 'TAXSYM_SMUTHI.f90', '-o', 'TAXSYM_SMUTHI.out'])
+            try:
+                subprocess.check_call(['gfortran', 'TAXSYM_SMUTHI.f90', '-o', 'TAXSYM_SMUTHI' + executable_ending])
+            except subprocess.CalledProcessError as e:
+                raise Exception("The command " + e.cmd + " has failed with returncode " + str(e.returncode) + "."
+                                + "\nOutput: " + str(e.output))
+            except FileNotFoundError:
+                raise Exception("The compilation of the NFM-DS sources failed. Do you have gfortran installed?")
             sys.stdout.write(' done.\n')
             sys.stdout.flush()
             os.chdir(cwd)
