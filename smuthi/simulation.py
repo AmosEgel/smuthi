@@ -87,7 +87,7 @@ class Simulation:
          coord.default_k_parallel, coord.default_polar_angles, coord.default_azimuthal_angles) = state
         
     def print_simulation_header(self):
-        smuthi.print_simulation_header()
+        smuthi.print_smuthi_header()
         sys.stdout.write("Starting simulation.\n")
         sys.stdout.flush()
 
