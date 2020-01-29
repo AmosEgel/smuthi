@@ -1,7 +1,7 @@
 Installation
 =============
 
-We **recommend to use Linux operating systems** to run Smuthi. It can run on Windows, but issues regarding dependencies or performance are more likely.
+We **recommend to use Linux operating systems** to run Smuthi. Otherwise, Smuthi can run on Windows, too, but issues regarding dependencies or performance are more likely.
 
 Installing Smuthi under Ubuntu (recommended)
 --------------------------------------------
@@ -63,12 +63,13 @@ GPU-acceleration (optional)
 	PyCuda support is recommended if you run heavy simulations with many particles. In addition, it can speed up certain post processing steps like the evaluation of the electric field on a grid of points, e.g. when you create images of the field distribution. 
 	For simple simiulations involving one particle on a substrate, you might well go without.
 
-If you want to benefit from fast simulations using your NVIDIA GPU, make sure that you have the NVIDIA CUDA toolkit installed.
-Then install Smuthi with the [cuda] option (Ubuntu)::
+If you want to benefit from fast simulations on the GPU, you need:
 
-  sudo pip3 install smuthi[cuda]	 
+* A CUDA-capable NVIDIA GPU
+* The `NVIDIA CUDA toolkit <https://developer.nvidia.com/cuda-toolkit>`_ installed
+* PyCuda installed
 
-If you have already installed Smuthi without the [cuda] option and want to enable simulations on the GPU, you can still install pycuda afterwards by::
+Under Ubuntu, install PyCuda simply by::
 
   sudo pip3 install pycuda
 
@@ -80,8 +81,8 @@ for the necessary steps to get it running.
 
 .. _local_install:
 
-Installing locally
-------------------
+Installing Smuthi locally
+-------------------------
 As an alternative to :code:`pip3 install smuthi` or :code:`pip install smuthi` (which download the latest release from the Python package index, PyPi), you can download the Smuthi project folder manually from `here <https://gitlab.com/AmosEgel/smuthi/tags>`_
 or git fork the `gitlab repository <https://gitlab.com/AmosEgel/smuthi.git>`_. Open a command prompt and change directory to the Smuthi
 project folder. Then, enter (Windows)::
@@ -107,7 +108,7 @@ NFM-DS
 ------
 The NFM-DS Fortran package by Doicu, Wriedt and Eremin is shipped together with Smuthi.
 Whenever you run a Smuthi simulation containing non-spherical particles,
-it will create a copy of NFM-DS package into a temporary folder and compile it.
+it will create a copy of the NFM-DS package in a temporary folder and compile it.
 
 To avoid these redundant NFM-DS copies
 (and to save the time needed to compile NFM-DS during each Smuthi simulation), 
