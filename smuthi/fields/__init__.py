@@ -21,8 +21,7 @@ except:
     sys.stdout.flush()
     from sympy.physics.wigner import wigner_3j
     def nb_wig3jj(jj_1, jj_2, jj_3, mm_1, mm_2, mm_3):
-        return wigner_3j(jj_1/2, jj_2/2, jj_3/2,
-                         mm_1/2, mm_2/2, mm_3/2)
+        return float(wigner_3j(jj_1/2, jj_2/2, jj_3/2, mm_1/2, mm_2/2, mm_3/2))
 
 
 def angular_frequency(vacuum_wavelength):
