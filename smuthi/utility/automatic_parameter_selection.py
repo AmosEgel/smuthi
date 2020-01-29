@@ -341,7 +341,7 @@ def converge_neff_max(simulation,
         with log.LoggerIndented():
             current_value = converge_multipole_cutoff(simulation=simulation,
                                                       detector=detector,
-                                                      tolerance=tolerance,
+                                                      tolerance=tolerance/2,  # otherwise, results flucutate by tolerance and convergence check is compromised
                                                       max_iter=max_iter)
     else:
         current_value = evaluate(simulation, detector)
