@@ -21,7 +21,7 @@ Smuthi relies on the following components:
 
 * Python 3.X with Pip
 * `gfortran` Fortran compiler
-* Some C-compiler, e.g. `gcc`
+* Optional: C-compiler, e.g. `gcc` 
 * Foreign function interface (FFI) libraries
 * If you want to use GPU-acceleration: The NVIDIA CUDA toolkit
 
@@ -41,8 +41,8 @@ Then install Smuthi from PyPi::
 
   sudo pip3 install smuthi
 
-GPU-acceleration
-~~~~~~~~~~~~~~~~
+GPU-acceleration (optional)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you want to benefit from fast simulations using your NVIDIA GPU, make sure that you have the NVIDIA CUDA toolkit installed.
 Then install Smuthi with the [cuda] option::
 
@@ -72,17 +72,15 @@ Also make sure to add the bin folder of your MinGW installation to the Windows P
 
 .. note:: If you skip the installation of `gfortran`, Smuthi will still work, but you might not be able to run simulations involving non-spherical particles.
 
-C compiler
-~~~~~~~~~~
-
-To benefit from fast evaluation of Wigner3j symbols through the wigxjpf package, you need a C compiler.
+C compiler (optional)
+~~~~~~~~~~~~~~~~~~~~~
+To benefit from faster evaluation of Wigner3j symbols through the pywigxjpf package, you need a C compiler.
 
 If you have Microsoft Visual Studio installed, `MS VC` is probably already there. Otherwise, open the Visual Studio setup and install the Visual C compiler. If you don't have Microsoft Visual Studio, see 
 `the Python Wiki <https://wiki.python.org/moin/WindowsCompilers>`_ 
 for further instructions.
 
-.. note:: If you skip the installation of a C compiler, Smuthi will still work, but you might not benefit from fast evaluation of Wigner3j symbols through the wigxjpf libary.
-
+.. note:: If you skip the installation of a C compiler, Smuthi will still work, but you might not benefit from fast evaluation of Wigner3j symbols through the wigxjpf libary. This can be an issue when your simulation involves large multipole degrees.
 
 Smuthi
 ~~~~~~
@@ -92,8 +90,8 @@ Open a command window and type::
 
 Depending on where pip will install the package, you might need administrator rights for that.
 
-GPU-acceleration
-~~~~~~~~~~~~~~~~
+GPU-acceleration (optional)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you want to benefit from fast simulations using your NVIDIA GPU, make sure that you have the NVIDIA CUDA toolkit installed.
 In addition, you need to install pycuda. Unfortunately, this is not as straightforward as under Linux.
 There exist prebuilt binaries on `Christoph Gohlke's homepage <https://www.lfd.uci.edu/~gohlke/pythonlibs/#pycuda>`_. See for example `these instructions <https://www.ibm.com/developerworks/community/blogs/jfp/entry/Installing_PyCUDA_On_Anaconda_For_Windows?lang=en>`_ for the necessary steps to get it running. 
@@ -123,7 +121,7 @@ or (Ubuntu)::
 This option allows to install a non-release version of Smuthi or to modify the source code and then run your custom version of Smuthi.
 
 NFM-DS
--------
+------
 The NFM-DS Fortran package by Doicu, Wriedt and Eremin is shipped together with Smuthi.
 Whenever you run a Smuthi simulation containing non-spherical particles,
 it will create a copy of NFM-DS package into a temporary folder and compile it.
