@@ -361,7 +361,7 @@ def ab5_coefficients(l1, m1, l2, m2, p):
     fac2a = (l1 * (l1 + 1) + l2 * (l2 + 1) - p * (p + 1)) * np.sqrt(2 * p + 1)
     fac2b = np.sqrt((l1 + l2 + 1 + p) * (l1 + l2 + 1 - p) * (p + l1 - l2) * (p - l1 + l2) * (2 * p + 1))
     # Note that arguments are in two_j = 2*j.
-    wig1 = nb_wig3jj (2*l1, 2*l2, 2*p, 2*m1, -m2*2, -(m1 - m2)*2)
+    wig1 = nb_wig3jj(2*l1, 2*l2, 2*p, 2*m1, -m2*2, -(m1 - m2)*2)
     wig2a = nb_wig3jj(2*l1, 2*l2, 2*p, 0, 0, 0)
     wig2b = nb_wig3jj(2*l1, 2*l2, 2*(p - 1), 0, 0, 0)
 
