@@ -1,50 +1,70 @@
 Installation
 =============
 
-For readers on a hurry
-----------------------
-Under Ubuntu, install Smuthi by::
-
-  sudo apt-get install libffi6 libffi-dev
-
-  sudo pip3 install smuthi
-
-That's it.
-
-Platforms
----------
 We **recommend to use Linux operating systems** to run Smuthi. It can run on Windows, but issues regarding dependencies or performance are more likely.
-
-Prerequisites
--------------
-Smuthi relies on the following components:
-
-* Python 3.X with Pip
-* `gfortran` Fortran compiler
-* Optional: C-compiler, e.g. `gcc` 
-* Foreign function interface (FFI) libraries
-* If you want to use GPU-acceleration: The NVIDIA CUDA toolkit
 
 Installing Smuthi under Ubuntu (recommended)
 --------------------------------------------
 `python3` with `pip3`, `gfortran` and `gcc` usually are shipped with the operating system.
 
-FFI
-~~~
 Make sure that the Foreign Function Interface library is available::
 
   sudo apt-get install libffi6 libffi-dev
 
-Smuthi
-~~~~~~
 Then install Smuthi from PyPi::
 
   sudo pip3 install smuthi
 
+or locally (see below section :ref:`local_install`).
+
+
+
+Installing Smuthi under Windows
+-------------------------------
+
+First make sure that Python 3 is installed on your computer. 
+You can install for example 
+`Anaconda <https://www.continuum.io/downloads>`_ 
+or `WinPython <https://winpython.github.io/>`_ 
+to get a full Python environment.
+
+Then, open a command window and type::
+
+    pip install smuthi
+
+Depending on where pip will install the package, you might need administrator rights for that.
+
+Alternatively, install locally (see below section :ref:`local_install`).
+
+
+gfortran under Windows (for NFM-DS, optional)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. note:: 
+	Smuthi comes with a precompiled NFM-DS executalbe for Windows. So, if you skip the installation of `gfortran`, you might still be able to use it. However, in some Windows versions, certain DLLs that are required to run the executable might be missing. 
+	In that case, Smuthi will throw an error indicating that `gfortran` is missing.
+
+Visit the `MinGW getting started page <http://mingw.org/wiki/Getting_Started>`_ and follow the instructions to install `gfortran`. 
+Also make sure to add the bin folder of your MinGW installation to the Windows PATH variable. See `Environment Settings` section of the `MinGW getting started page <http://mingw.org/wiki/Getting_Started>`_ for instructions.
+
+C compiler under Windows (for pywigxjpf, optional)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. note:: 
+	If you skip the installation of a C compiler, Smuthi will still work, but you might not benefit from fast evaluation of Wigner3j symbols through the wigxjpf libary. This can be an issue when your simulation involves large multipole degrees.
+
+To benefit from faster evaluation of Wigner3j symbols through the pywigxjpf package, you need a C compiler.
+If you have Microsoft Visual Studio installed, `MS VC` is probably already there. Otherwise, open the Visual Studio setup and install the Visual C compiler. If you don't have Microsoft Visual Studio, see 
+`the Python Wiki <https://wiki.python.org/moin/WindowsCompilers>`_ 
+for further instructions.
+
+
 GPU-acceleration (optional)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
+.. note:: 
+	PyCuda support is recommended if you run heavy simulations with many particles. In addition, it can speed up certain post processing steps like the evaluation of the electric field on a grid of points, e.g. when you create images of the field distribution. 
+	For simple simiulations involving one particle on a substrate, you might well go without.
+
 If you want to benefit from fast simulations using your NVIDIA GPU, make sure that you have the NVIDIA CUDA toolkit installed.
-Then install Smuthi with the [cuda] option::
+Then install Smuthi with the [cuda] option (Ubuntu)::
 
   sudo pip3 install smuthi[cuda]	 
 
@@ -52,51 +72,13 @@ If you have already installed Smuthi without the [cuda] option and want to enabl
 
   sudo pip3 install pycuda
 
-.. note:: PyCuda support is really only necessary if you run heavy simulations with many particles. In addition, it can speed up certain post processing steps like the evaluation of the electric field on a grid of points, e.g. when you create images of the field distribution. For simple simiulations involving one particle on a substrate, you might well go without.
+Under Windows, installing PyCuda this is not as straightforward as under Linux.
+There exist prebuilt binaries on `Christoph Gohlke's homepage <https://www.lfd.uci.edu/~gohlke/pythonlibs/#pycuda>`_. 
+See for example `these instructions <https://www.ibm.com/developerworks/community/blogs/jfp/entry/Installing_PyCUDA_On_Anaconda_For_Windows?lang=en>`_ 
+for the necessary steps to get it running. 
 
-Installing Smuthi under Windows
--------------------------------
 
-Python
-~~~~~~
-First make sure that Python 3 is installed on your computer. 
-You can install for example 
-`Anaconda <https://www.continuum.io/downloads>`_ 
-or `WinPython <https://winpython.github.io/>`_ 
-to get a full Python environment.
-
-gfortran
-~~~~~~~~
-Then, visit the `MinGW getting started page <http://mingw.org/wiki/Getting_Started>`_ and follow the instructions to install `gfortran`. 
-Also make sure to add the bin folder of your MinGW installation to the Windows PATH variable. See `Environment Settings` section of the `MinGW getting started page <http://mingw.org/wiki/Getting_Started>`_ for instructions.
-
-.. note:: If you skip the installation of `gfortran`, Smuthi will still work, but you might not be able to run simulations involving non-spherical particles.
-
-C compiler (optional)
-~~~~~~~~~~~~~~~~~~~~~
-To benefit from faster evaluation of Wigner3j symbols through the pywigxjpf package, you need a C compiler.
-
-If you have Microsoft Visual Studio installed, `MS VC` is probably already there. Otherwise, open the Visual Studio setup and install the Visual C compiler. If you don't have Microsoft Visual Studio, see 
-`the Python Wiki <https://wiki.python.org/moin/WindowsCompilers>`_ 
-for further instructions.
-
-.. note:: If you skip the installation of a C compiler, Smuthi will still work, but you might not benefit from fast evaluation of Wigner3j symbols through the wigxjpf libary. This can be an issue when your simulation involves large multipole degrees.
-
-Smuthi
-~~~~~~
-Open a command window and type::
-
-    pip install smuthi
-
-Depending on where pip will install the package, you might need administrator rights for that.
-
-GPU-acceleration (optional)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you want to benefit from fast simulations using your NVIDIA GPU, make sure that you have the NVIDIA CUDA toolkit installed.
-In addition, you need to install pycuda. Unfortunately, this is not as straightforward as under Linux.
-There exist prebuilt binaries on `Christoph Gohlke's homepage <https://www.lfd.uci.edu/~gohlke/pythonlibs/#pycuda>`_. See for example `these instructions <https://www.ibm.com/developerworks/community/blogs/jfp/entry/Installing_PyCUDA_On_Anaconda_For_Windows?lang=en>`_ for the necessary steps to get it running. 
-
-.. note:: PyCuda support is really only necessary if you run heavy simulations with many particles. In addition, it can speed up certain post processing steps like the evaluation of the electric field on a grid of points, e.g. when you create images of the field distribution. For simple simiulations involving one particle on a substrate, you might well go without.
+.. _local_install:
 
 Installing locally
 ------------------
@@ -116,9 +98,10 @@ If you plan to edit the Smuthi code, install in develop mode by (Windows)::
 
 or (Ubuntu)::
 
-   pip3 install -e .
+   sudo pip3 install -e .
 
 This option allows to install a non-release version of Smuthi or to modify the source code and then run your custom version of Smuthi.
+
 
 NFM-DS
 ------
