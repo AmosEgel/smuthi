@@ -16,5 +16,5 @@ def print_smuthi_header():
     sys.stdout.flush()
 
 
-if mpi_rank == 0:
-    print_smuthi_header()
+#if mpi_rank == 0:
+#    print_smuthi_header()
