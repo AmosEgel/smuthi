@@ -4,6 +4,7 @@
 import numpy as np
 import scipy.interpolate as interp
 import smuthi.postprocessing.scattered_field as sf
+import smuthi.postprocessing.internal_field as intf
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Ellipse, Rectangle
 from matplotlib.colors import LogNorm
@@ -28,7 +29,7 @@ def plot_layer_interfaces(dim1min, dim1max, layer_system):
 
 
 def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_particle_distance, 
-                   draw_circumscribing_sphere):
+                   draw_circumscribing_sphere, fill_particle=True):
     """Add circles, ellipses and rectangles to plot to display spheres, spheroids and cylinders.
 
     Args:
@@ -41,10 +42,16 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
         particle_list (list): List of smuthi.particles.Particle objects
         max_particle_distance (float):  Plot only particles that ar not further away from image plane
         draw_circumscribing_sphere (bool): If true (default), draw a circle indicating the circumscribing sphere of 
-                                           particles.        
+                                           particles.
+        fill_particle (bool):              If true, draw opaque particles.
     """
     
     ax = plt.gca()
+
+    if fill_particle:
+        particle_face_color = 'w'
+    else:
+        particle_face_color = 'none'
 
     if xmin == xmax:
         plane_coord = 0
@@ -65,7 +72,7 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
             continue
         
         if type(particle).__name__ == 'Sphere':
-            ax.add_patch(Circle((pos[draw_coord[0]], pos[draw_coord[1]]), particle.radius, facecolor='w', 
+            ax.add_patch(Circle((pos[draw_coord[0]], pos[draw_coord[1]]), particle.radius, facecolor=particle_face_color,
                                        edgecolor='k'))
         else:
             if not particle.euler_angles == [0, 0, 0]:
@@ -105,7 +112,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
                     outputdir='.', xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution_step=25, 
                     interpolate_step=None, interpolation_order = 1, dpi=None, k_parallel='default', 
                     azimuthal_angles='default', simulation=None, max_field=None, min_norm_field=None, 
-                    max_particle_distance=float('inf'), draw_circumscribing_sphere=True):
+                    max_particle_distance=float('inf'), draw_circumscribing_sphere=True, show_internal_field=False):
     """Plot the electric near field along a plane. To plot along the xy-plane, specify zmin=zmax and so on.
 
     Args:
@@ -154,7 +161,8 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         max_particle_distance (float):  Show particles that are closer than that distance to the image plane (length
                                         unit, default = inf).
         draw_circumscribing_sphere (bool): If true (default), draw a circle indicating the circumscribing sphere of 
-                                           particles.                    
+                                           particles.
+        show_internal_field (bool):     If true, compute also the field inside the particles (only for spheres).
     """
     sys.stdout.write("Compute near field ...\n")
     sys.stdout.flush()
@@ -196,9 +204,18 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
     
     e_x_init_raw, e_y_init_raw, e_z_init_raw = simulation.initial_field.electric_field(xarr, yarr, zarr,
                                                                                        simulation.layer_system)
+
+    if show_internal_field:
+        int_fld_exp = intf.internal_field_piecewise_expansion(vacuum_wavelength, simulation.particle_list,
+                                                              simulation.layer_system, k_parallel, azimuthal_angles)
+        e_x_int_raw, e_y_int_raw, e_z_int_raw = int_fld_exp.electric_field(xarr, yarr, zarr)
+
     if interpolate_step is None:
         e_x_scat, e_y_scat, e_z_scat = e_x_scat_raw, e_y_scat_raw, e_z_scat_raw
         e_x_init, e_y_init, e_z_init = e_x_init_raw, e_y_init_raw, e_z_init_raw
+        if show_internal_field:
+            e_x_int, e_y_int, e_z_int = e_x_int_raw, e_y_int_raw, e_z_int_raw
+
         dim1vecfine = dim1vec
         dim2vecfine = dim2vec
         interpolate_step = resolution_step
@@ -209,6 +226,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         dim1vecfine = np.linspace(dim1vec[0], dim1vec[-1], (dim1vec[-1] - dim1vec[0])/interpolate_step + 1, endpoint=True)
         dim2vecfine = np.linspace(dim2vec[0], dim2vec[-1], (dim2vec[-1] - dim2vec[0])/interpolate_step + 1, endpoint=True)
 
+        # interpolate scattered field
         real_ex_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_scat_raw.real, 
                                                               kx=interpolation_order, ky=interpolation_order)
         imag_ex_scat_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_scat_raw.imag, 
@@ -230,6 +248,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
         e_z_scat = (real_ez_scat_interpolant(dim2vecfine, dim1vecfine)
                     + 1j * imag_ez_scat_interpolant(dim2vecfine, dim1vecfine))
 
+        # interpolate initial field
         real_ex_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_init_raw.real, 
                                                               kx=interpolation_order, ky=interpolation_order)
         imag_ex_init_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_init_raw.imag, 
@@ -250,6 +269,29 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
                                                               kx=interpolation_order, ky=interpolation_order)
         e_z_init = (real_ez_init_interpolant(dim2vecfine, dim1vecfine)
                     + 1j * imag_ez_init_interpolant(dim2vecfine, dim1vecfine))
+
+        # interpolate internal field
+        if show_internal_field:
+            real_ex_int_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_int_raw.real,
+                                                                 kx=interpolation_order, ky=interpolation_order)
+            imag_ex_int_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_x_int_raw.imag,
+                                                                  kx=interpolation_order, ky=interpolation_order)
+            e_x_int = (real_ex_int_interpolant(dim2vecfine, dim1vecfine)
+                        + 1j * imag_ex_int_interpolant(dim2vecfine, dim1vecfine))
+
+            real_ey_int_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_int_raw.real,
+                                                                  kx=interpolation_order, ky=interpolation_order)
+            imag_ey_int_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_y_int_raw.imag,
+                                                                  kx=interpolation_order, ky=interpolation_order)
+            e_y_int = (real_ey_int_interpolant(dim2vecfine, dim1vecfine)
+                        + 1j * imag_ey_int_interpolant(dim2vecfine, dim1vecfine))
+
+            real_ez_int_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_int_raw.real,
+                                                                  kx=interpolation_order, ky=interpolation_order)
+            imag_ez_int_interpolant = interp.RectBivariateSpline(dim2vec, dim1vec, e_z_int_raw.imag,
+                                                                  kx=interpolation_order, ky=interpolation_order)
+            e_z_int = (real_ez_int_interpolant(dim2vecfine, dim1vecfine)
+                        + 1j * imag_ez_int_interpolant(dim2vecfine, dim1vecfine))
 
     if max_field is None:
         vmin = None
@@ -274,8 +316,16 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
             e_x, e_y, e_z = e_x_init, e_y_init, e_z_init
             field_type_string = 'initial electric field'
             filename = filename + '_init'
+        elif 'intern' in quantity:
+            if not show_internal_field:
+                raise Exception("show_internal_field flag needs to be set to true!")
+            e_x, e_y, e_z = e_x_int, e_y_int, e_z_int
+            field_type_string = 'internal electric field'
+            filename = filename + '_intern'
         else:
             e_x, e_y, e_z = e_x_scat + e_x_init, e_y_scat + e_y_init, e_z_scat + e_z_init
+            if show_internal_field:
+                e_x, e_y, e_z = e_x + e_x_int, e_y + e_y_int, e_z + e_z_int
             field_type_string = 'total electric field'
 
         if 'norm' in quantity:
@@ -333,7 +383,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
             plot_layer_interfaces(dim1vec[0], dim1vec[-1], simulation.layer_system)
 
         plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, simulation.particle_list, max_particle_distance, 
-                       draw_circumscribing_sphere)
+                       draw_circumscribing_sphere, not show_internal_field)
 
         plt.gca().set_aspect("equal")
 
@@ -363,7 +413,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
                     if not zmin == zmax:
                         plot_layer_interfaces(dim1vec[0], dim1vec[-1], simulation.layer_system)
                     plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, simulation.particle_list, max_particle_distance,
-                                   draw_circumscribing_sphere)
+                                   draw_circumscribing_sphere, not show_internal_field)
                     plt.gca().set_aspect("equal")
                     tempfig_filename = tempdir + '/temp_' + str(i_t) + '.png'
                     plt.savefig(tempfig_filename, dpi=dpi)

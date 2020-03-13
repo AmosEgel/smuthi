@@ -39,6 +39,39 @@ def mie_coefficient(tau, l, k_medium, k_particle, radius):
     return q
 
 
+def internal_mie_coefficient(tau, l, k_medium, k_particle, radius):
+    """Return the Mie coefficients to compute the internal field of a sphere.
+
+    Args:
+        tau         integer: spherical polarization, 0 for spherical TE and 1 for spherical TM
+        l           integer: l=1,... multipole degree (polar quantum number)
+        k_medium    float or complex: wavenumber in surrounding medium (inverse length unit)
+        k_particle  float or complex: wavenumber inside sphere (inverse length unit)
+        radius      float: radius of sphere (length unit)
+
+    Returns:
+        Internal Mie coefficients as complex
+    """
+    jlkr_medium = sf.spherical_bessel(l, k_medium * radius)
+    jlkr_particle = sf.spherical_bessel(l, k_particle * radius)
+    dxxj_medium = sf.dx_xj(l, k_medium * radius)
+    dxxj_particle = sf.dx_xj(l, k_particle * radius)
+
+    hlkr_medium = sf.spherical_hankel(l, k_medium * radius)
+    dxxh_medium = sf.dx_xh(l, k_medium * radius)
+
+    if tau == 0:
+        q = (jlkr_medium * dxxh_medium - hlkr_medium * dxxj_medium) / (jlkr_particle * dxxh_medium
+                                                                       - hlkr_medium * dxxj_particle)
+    elif tau == 1:
+        q = ((k_medium * k_particle * jlkr_medium * dxxh_medium - k_medium * k_particle * hlkr_medium * dxxj_medium) /
+             (k_particle ** 2 * jlkr_particle * dxxh_medium - k_medium ** 2 * hlkr_medium * dxxj_particle))
+    else:
+        raise ValueError('tau must be 0 (spherical TE) or 1 (spherical TM)')
+
+    return q
+
+
 def t_matrix_sphere(k_medium, k_particle, radius, l_max, m_max):
     """T-matrix of a spherical scattering object.
 
@@ -48,8 +81,6 @@ def t_matrix_sphere(k_medium, k_particle, radius, l_max, m_max):
         radius (float):                         Radius of sphere (length unit)
         l_max (int):                            Maximal multipole degree
         m_max (int):                            Maximal multipole order
-        blocksize (int):                        Total number of index combinations
-        multi_to_single_index_map (function):   A function that maps the SVWF indices (tau, l, m) to a single index
 
     Returns:
          T-matrix as ndarray
@@ -122,9 +153,6 @@ def rotate_t_matrix(T, l_max, m_max, euler_angles, wdsympy=False):
     if euler_angles == [0, 0, 0]:
         return T
     else:
-        blocksize = fldex.blocksize(l_max, m_max)
-        T_mat_rot = np.zeros([blocksize, blocksize], dtype=complex)
-
         # Doicu, Light Scattering by Systems of Particles, p. 70 (1.115)
         rot_mat_1 = trf.block_rotation_matrix_D_svwf(l_max, m_max, -euler_angles[2], -euler_angles[1],
                                                      -euler_angles[0], wdsympy)

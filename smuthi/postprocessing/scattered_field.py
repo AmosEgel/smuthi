@@ -47,6 +47,9 @@ def scattered_field_piecewise_expansion(vacuum_wavelength, particle_list, layer_
             pwe_up = pwe_up + add_up
             pwe_down = pwe_down + add_down
 
+            pwe_up.validity_conditions.append(particle.is_outside)
+            pwe_down.validity_conditions.append(particle.is_outside)
+
         # in bottom_layer, suppress upgoing waves, and in top layer, suppress downgoing waves
         if i > 0:
             sfld.expansion_list.append(pwe_up)
