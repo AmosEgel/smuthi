@@ -21,6 +21,7 @@ class InitialField:
     """Base class for initial field classes"""
     def __init__(self, vacuum_wavelength):
         self.vacuum_wavelength = vacuum_wavelength
+        self.validity_conditions = []
 
     def spherical_wave_expansion(self, particle, layer_system):
         """Virtual method to be overwritten."""
@@ -31,8 +32,9 @@ class InitialField:
         pass
 
     def piecewise_field_expansion(self, layer_system):
-        """Virtual method to be overwritten."""
-        pass
+        empty_pfe = fldex.PiecewiseFieldExpansion()
+        empty_pfe.validity_conditions += self.validity_conditions
+        return empty_pfe
 
     def angular_frequency(self):
         """Angular frequency.
@@ -94,7 +96,7 @@ class InitialPropagatingWave(InitialField):
         Returns:
             smuthi.field_expansion.PiecewiseWaveExpansion object
         """
-        pfe = fldex.PiecewiseFieldExpansion()
+        pfe = InitialField.piecewise_field_expansion(self, layer_system)
         for i in range(layer_system.number_of_layers()):
             pwe_up, pwe_down = self.plane_wave_expansion(layer_system, i)
             pfe.expansion_list.append(pwe_up)
@@ -393,7 +395,7 @@ class DipoleSource(InitialField):
         Returns:
             smuthi.field_expansion.PiecewiseWaveExpansion object
         """
-        pfe = fldex.PiecewiseFieldExpansion()
+        pfe = InitialField.piecewise_field_expansion(self, layer_system)
         if include_direct_field:
             pfe.expansion_list.append(self.outgoing_spherical_wave_expansion(layer_system))
         if include_layer_response:
@@ -653,7 +655,7 @@ class DipoleCollection(InitialField):
         Returns:
             smuthi.field_expansion.PiecewiseWaveExpansion object
         """
-        pfe = fldex.PiecewiseFieldExpansion()
+        pfe = InitialField.piecewise_field_expansion(self, layer_system)
         for dipole in self.dipole_list:
             pfe = pfe + dipole.piecewise_field_expansion(layer_system, include_direct_field=True)
 

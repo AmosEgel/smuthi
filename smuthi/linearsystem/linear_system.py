@@ -252,6 +252,8 @@ class LinearSystem:
                                                                     kind='outgoing', reference_point=particle.position,
                                                                     lower_z=loz, upper_z=upz)
             particle.scattered_field.coefficients = b[self.master_matrix.index_block(iS)]
+            particle.scattered_field.validity_conditions.append(particle.is_outside)
+            self.initial_field.validity_conditions.append(particle.is_outside)
 
 
 class SystemMatrix:

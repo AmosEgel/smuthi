@@ -13,9 +13,13 @@ import math
 
 class FieldExpansion:
     """Base class for field expansions."""
+
+    def __init__(self):
+        self.validity_conditions = []
+
     def valid(self, x, y, z):
         """Test if points are in definition range of the expansion. 
-        Virtual method to be overwritten in child classes.
+        Abstract method to be overwritten in child classes.
         
         Args:
             x (numpy.ndarray):    x-coordinates of query points
@@ -26,7 +30,10 @@ class FieldExpansion:
             numpy.ndarray of bool datatype indicating if points are inside 
             definition domain.
         """
-        pass
+        ret = np.ones(x.shape, dtype=bool)
+        for check in self.validity_conditions:
+            ret = np.logical_and(ret, check(x, y, z))
+        return ret
 
     def diverging(self, x, y, z):
         """Test if points are in domain where expansion could diverge. Virtual 
@@ -77,6 +84,7 @@ class PiecewiseFieldExpansion(FieldExpansion):
     :math:`D_i` is its domain of validity.
     """
     def __init__(self):
+        FieldExpansion.__init__(self)
         self.expansion_list = []
 
     def valid(self, x, y, z):
@@ -94,6 +102,9 @@ class PiecewiseFieldExpansion(FieldExpansion):
         vld = np.zeros(x.shape, dtype=bool)
         for fex in self.expansion_list:
             vld = np.logical_or(vld, fex.valid(x, y, z))
+
+        vld = np.logical_and(vld, FieldExpansion.valid(self, x, y, z))
+
         return vld
 
     def diverging(self, x, y, z):
@@ -129,9 +140,10 @@ class PiecewiseFieldExpansion(FieldExpansion):
         ex = np.zeros(x.shape, dtype=complex)
         ey = np.zeros(x.shape, dtype=complex)
         ez = np.zeros(x.shape, dtype=complex)
+        vld = self.valid(x, y, z)
         for fex in self.expansion_list:
             dex, dey, dez = fex.electric_field(x, y, z)
-            ex, ey, ez = ex + dex, ey + dey, ez + dez
+            ex[vld], ey[vld], ez[vld] = ex[vld] + dex[vld], ey[vld] + dey[vld], ez[vld] + dez[vld]
         return ex, ey, ez
 
     def compatible(self, other):
@@ -220,6 +232,7 @@ class SphericalWaveExpansion(FieldExpansion):
 
     def __init__(self, k, l_max, m_max=None, kind=None, reference_point=None, lower_z=-np.inf, upper_z=np.inf,
                  inner_r=0, outer_r=np.inf):
+        FieldExpansion.__init__(self)
         self.k = k
         self.l_max = l_max
         if m_max is not None:
@@ -246,7 +259,8 @@ class SphericalWaveExpansion(FieldExpansion):
             numpy.ndarray of bool datatype indicating if points are inside 
             definition domain.
         """
-        return np.logical_and(z >= self.lower_z, z < self.upper_z)
+        vld = np.logical_and(z >= self.lower_z, z < self.upper_z)
+        return np.logical_and(vld, FieldExpansion.valid(self, x, y, z))
 
     def diverging(self, x, y, z):
         """Test if points are in domain where expansion could diverge.
@@ -400,7 +414,7 @@ class PlaneWaveExpansion(FieldExpansion):
     """
     def __init__(self, k, k_parallel='default', azimuthal_angles='default', kind=None, reference_point=None, 
                  lower_z=-np.inf, upper_z=np.inf):
-
+        FieldExpansion.__init__(self)
         self.k = k
         if type(k_parallel) == str and k_parallel == 'default':
             k_parallel = coord.default_k_parallel
@@ -439,7 +453,9 @@ class PlaneWaveExpansion(FieldExpansion):
             numpy.ndarray of bool datatype indicating if points are inside 
             definition domain.
         """
-        return np.logical_and(z >= self.lower_z, z < self.upper_z)
+        vld = np.logical_and(z >= self.lower_z, z < self.upper_z)
+        vld_custom = FieldExpansion.valid(self, x, y, z)
+        return np.logical_and(vld, vld_custom)
 
     def diverging(self, x, y, z):
         """Test if points are in domain where expansion could diverge.
@@ -527,6 +543,7 @@ class PlaneWaveExpansion(FieldExpansion):
         ey = np.zeros(x.shape, dtype=complex)
         ez = np.zeros(x.shape, dtype=complex)
 
+        abc = self.valid(x, y, z)
         xr = x[self.valid(x, y, z)] - self.reference_point[0]
         yr = y[self.valid(x, y, z)] - self.reference_point[1]
         zr = z[self.valid(x, y, z)] - self.reference_point[2]

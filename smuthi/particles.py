@@ -43,6 +43,14 @@ class Particle:
     def circumscribing_sphere_radius(self):
         """Virtual method to be overwritten"""
         pass
+
+    def is_inside(self, x, y, z):
+        """Virtual method to be overwritten"""
+        pass
+
+    def is_outside(self, x, y, z):
+        """Virtual method to be overwritten"""
+        pass
     
     def automated_lmax_mmax_selection(self, vacuum_wavelength, ambient_medium,
                                       lmax_stop=20, max_rel_diff=1e-3):
@@ -127,6 +135,12 @@ class Sphere(Particle):
         
     def circumscribing_sphere_radius(self):
         return self.radius
+
+    def is_inside(self, x, y, z):
+        return (x-self.position[0])**2 + (y-self.position[1])**2 + (z-self.position[2])**2 <= self.radius**2
+
+    def is_outside(self, x, y, z):
+        return (x-self.position[0])**2 + (y-self.position[1])**2 + (z-self.position[2])**2 > self.radius**2
 
 
 class Spheroid(Particle):
