@@ -1,6 +1,7 @@
 import smuthi.initial_field as init
 import smuthi.particles as part
 import smuthi.layers as lay
+import smuthi.fields as flds
 import numpy as np
 
 
@@ -10,12 +11,17 @@ D1 = [1e7, 2e7, 3e7]
 rD2 = [-100, 100, -100]
 D2 = [-2e7, 3e7, 1e7]
 
-#waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 3]
-#neff_max = 3
-#neff_discr = 5e-3
+waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 3]
+neff_max = 3
+neff_discr = 5e-3
 
 # we avoid to use default_k_parallel, because there is some issue when running this test with nose2 ...
-kpar = coord.complex_contour(ld, waypoints, neff_discr)
+kpar = flds.reasonable_Sommerfeld_kpar_contour(
+    vacuum_wavelength=ld,
+    neff_waypoints=waypoints,
+    neff_resolution=neff_discr)
+
+
 
 # initialize particle object
 # first two spheres in top layer
@@ -30,8 +36,8 @@ part_list = [sphere1, sphere2, sphere3]
 lay_sys = lay.LayerSystem([0, 400, 0], [1, 2, 1.5])
 
 # initialize dipole object
-dipole1 = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D1, position=rD1, k_parallel=kpar)
-dipole2 = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D2, position=rD2, k_parallel=kpar)
+dipole1 = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D1, position=rD1, k_parallel_array=kpar)
+dipole2 = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D2, position=rD2, k_parallel_array=kpar)
 
 dipole_collection = init.DipoleCollection(vacuum_wavelength=ld, k_parallel_array=kpar)
 dipole_collection.append(dipole1)

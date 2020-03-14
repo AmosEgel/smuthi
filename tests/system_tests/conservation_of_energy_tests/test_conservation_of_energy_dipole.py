@@ -3,14 +3,25 @@ import smuthi.particles as part
 import smuthi.simulation as simul
 import smuthi.layers as lay
 import smuthi.postprocessing.far_field as ff
+import smuthi.fields as flds
 import sys
 
 
 ld = 550
 rD = [100, -100, 100]
 D = [1e7, 2e7, 3e7]
-#waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 4]
-#neff_discr = 2e-2
+waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 4]
+neff_discr = 2e-2
+
+flds.default_initial_field_k_parallel_array = flds.reasonable_Sommerfeld_kpar_contour(
+    vacuum_wavelength=ld,
+    neff_waypoints=waypoints,
+    neff_resolution=neff_discr)
+
+flds.default_Sommerfeld_k_parallel_array = flds.reasonable_Sommerfeld_kpar_contour(
+    vacuum_wavelength=ld,
+    neff_waypoints=waypoints,
+    neff_resolution=neff_discr)
 
 #coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr)
 

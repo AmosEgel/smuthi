@@ -7,6 +7,7 @@ import smuthi.layers as lay
 import smuthi.initial_field as init
 import smuthi.simulation as simul
 import smuthi.postprocessing.far_field as farf
+import smuthi.fields as flds
 
 
 # Parameter input ----------------------------
@@ -18,11 +19,14 @@ beam_amplitude = 1
 beam_neff_array = np.linspace(0, 2, 501, endpoint=False)
 beam_waist = 1000
 beam_focal_point = [200, 200, 200]
-#neff_waypoints = [0, 0.5, 0.8-0.01j, 2-0.01j, 2.5, 5]
-#neff_discr = 1e-2
+neff_waypoints = [0, 0.5, 0.8-0.01j, 2-0.01j, 2.5, 5]
+neff_discr = 1e-2
 # --------------------------------------------
 
-#coord.set_default_k_parallel(vacuum_wavelength, neff_waypoints, neff_discr)
+flds.default_Sommerfeld_k_parallel_array = flds.reasonable_Sommerfeld_kpar_contour(
+    vacuum_wavelength=vacuum_wavelength,
+    neff_waypoints=neff_waypoints,
+    neff_resolution=neff_discr)
 
 # initialize particle object
 sphere1 = part.Sphere(position=[100, 100, 150], refractive_index=2.4 + 0.0j, radius=110, l_max=4, m_max=4)
@@ -37,7 +41,7 @@ lay_sys = lay.LayerSystem([0, 400, 0], [2, 1.4, 2])
 init_fld = init.GaussianBeam(vacuum_wavelength=vacuum_wavelength, polar_angle=beam_polar_angle,
                              azimuthal_angle=beam_azimuthal_angle, polarization=beam_polarization,
                              amplitude=beam_amplitude, reference_point=beam_focal_point, beam_waist=beam_waist,
-                             k_parallel_array=beam_neff_array*coord.angular_frequency(vacuum_wavelength))
+                             k_parallel_array=beam_neff_array*flds.angular_frequency(vacuum_wavelength))
 
 # initialize simulation object
 simulation = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
