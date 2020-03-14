@@ -163,14 +163,16 @@ class Simulation:
         if smuthi.fields.default_initial_field_k_parallel_array is None:
             if type(self.initial_field).__name__ == 'GaussianBeam':
                 # in that case use only wavenumbers that propagate in the originating layer
-                originating_layer_number = 0
-                if self.initial_field.polar_angle >= np.pi / 2:
-                    originating_layer_number = len(self.layer_system.refractive_indices)
-                neff_max = self.layer_system.refractive_indices[originating_layer_number].real
+                if self.initial_field.polar_angle <= np.pi / 2:
+                    neff_max = self.layer_system.refractive_indices[0].real
+                else:
+                    neff_max = self.layer_system.refractive_indices[-1].real
+
                 smuthi.fields.default_initial_field_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
                     vacuum_wavelength=self.initial_field.vacuum_wavelength,
                     neff_imag=0,
                     neff_max=neff_max)
+
             else:
                 # case of dipoles etc ...
                 # use a similar contour as for Sommerfeld integrals

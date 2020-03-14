@@ -6,6 +6,7 @@ import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
 import smuthi.simulation as simul
+import smuthi.fields as flds
 
 
 class TestGMRES(unittest.TestCase):
@@ -38,7 +39,7 @@ class TestGMRES(unittest.TestCase):
         init_fld = init.GaussianBeam(vacuum_wavelength=vacuum_wavelength, polar_angle=beam_polar_angle,
                                      azimuthal_angle=beam_azimuthal_angle, polarization=beam_polarization,
                                      amplitude=beam_amplitude, reference_point=beam_focal_point, beam_waist=beam_waist,
-                                     k_parallel_array=beam_neff_array * coord.angular_frequency(vacuum_wavelength))
+                                     k_parallel_array=beam_neff_array * flds.angular_frequency(vacuum_wavelength))
 
         # initialize simulation object
         simulation_lu = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
