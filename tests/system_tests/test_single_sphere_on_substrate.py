@@ -22,10 +22,16 @@ plane_wave_azimuthal_angle = 0
 plane_wave_polarization = 0
 plane_wave_amplitude = 1
 lmax = 3
-#neff_waypoints = [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
-#neff_discr = 1e-3
+neff_waypoints = [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
+neff_discr = 1e-3
 
 # --------------------------------------------
+
+smuthi.fields.default_Sommerfeld_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
+    vacuum_wavelength=vacuum_wavelength,
+    neff_waypoints=neff_waypoints,
+    neff_resolution=neff_discr)
+
 
 # initialize particle object
 part1 = part.Sphere(position=[0, 0, distance_sphere_substrate + sphere_radius],
