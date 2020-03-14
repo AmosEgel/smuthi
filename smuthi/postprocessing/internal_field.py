@@ -51,5 +51,6 @@ def internal_field_piecewise_expansion(vacuum_wavelength, particle_list, layer_s
                         internal_field.coefficients[n] = particle.scattered_field.coefficients[n] * b_to_c
 
             intfld.expansion_list.append(internal_field)
+            particle.internal_field = internal_field
 
     return intfld
