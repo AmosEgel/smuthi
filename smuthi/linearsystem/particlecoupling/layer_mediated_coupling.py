@@ -4,8 +4,7 @@ coupling coefficients."""
 import numpy as np
 import scipy.special
 from numba import complex128, int64, jit
-import smuthi.fields.coordinates_and_contours as coord
-import smuthi.fields.expansions as fldex
+import smuthi.fields
 import smuthi.fields.transformations as trf
 import smuthi.layers as lay
 import smuthi.utility.math as sf
@@ -48,24 +47,24 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
         emitting_particle (smuthi.particles.Particle):      Particle that emits the scattered field
         layer_system (smuthi.layers.LayerSystem):           Stratified medium in which the coupling takes place
         k_parallel (numpy ndarray):                         In-plane wavenumbers for Sommerfeld integral
-                                                            If 'default', use smuthi.coordinates.default_k_parallel
+                                                            If 'default', use smuthi.fields.default_Sommerfeld_k_parallel_array
         show_integrand (bool):                              If True, the norm of the integrand is plotted.
 
     Returns:
         Layer mediated coupling matrix block as numpy array.
     """
     if type(k_parallel) == str and k_parallel == 'default':
-        k_parallel = coord.default_k_parallel
+        k_parallel = smuthi.fields.default_Sommerfeld_k_parallel_array
        
-    omega = coord.angular_frequency(vacuum_wavelength)
+    omega = smuthi.fields.angular_frequency(vacuum_wavelength)
 
     # index specs
     lmax1 = receiving_particle.l_max
     mmax1 = receiving_particle.m_max
     lmax2 = emitting_particle.l_max
     mmax2 = emitting_particle.m_max
-    blocksize1 = fldex.blocksize(lmax1, mmax1)
-    blocksize2 = fldex.blocksize(lmax2, mmax2)
+    blocksize1 = smuthi.fields.blocksize(lmax1, mmax1)
+    blocksize2 = smuthi.fields.blocksize(lmax2, mmax2)
 
     # cylindrical coordinates of relative position vectors
     rs1 = np.array(receiving_particle.position)
@@ -81,8 +80,8 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
     # wave numbers
     kis1 = omega * layer_system.refractive_indices[is1]
     kis2 = omega * layer_system.refractive_indices[is2]
-    kzis1 = coord.k_z(k_parallel=k_parallel, k=kis1)
-    kzis2 = coord.k_z(k_parallel=k_parallel, k=kis2)
+    kzis1 = smuthi.fields.k_z(k_parallel=k_parallel, k=kis1)
+    kzis2 = smuthi.fields.k_z(k_parallel=k_parallel, k=kis2)
 
     # phase factors
     ejkz = np.zeros((2, 2, len(k_parallel)), dtype=complex)  # indices are: particle, plus/minus, kpar_idx
@@ -115,7 +114,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
     for tau in range(2):
         for m in range(-mmax1, mmax1 + 1):
             for l in range(max(1, abs(m)), lmax1 + 1):
-                n = fldex.multi_to_single_index(tau, l, m, lmax1, mmax1)
+                n = smuthi.fields.multi_to_single_index(tau, l, m, lmax1, mmax1)
                 m_vec[0][n] = m
                 for iplmn in range(2):
                     for pol in range(2):
@@ -132,7 +131,7 @@ def layer_mediated_coupling_block(vacuum_wavelength, receiving_particle, emittin
     for tau in range(2):
         for m in range(-mmax2, mmax2 + 1):
             for l in range(max(1, abs(m)), lmax2 + 1):
-                n = fldex.multi_to_single_index(tau, l, m, lmax2, mmax2)
+                n = smuthi.fields.multi_to_single_index(tau, l, m, lmax2, mmax2)
                 m_vec[1][n] = m
                 for iplmn in range(2):
                     for pol in range(2):
@@ -174,14 +173,14 @@ def layer_mediated_coupling_matrix(vacuum_wavelength, particle_list, layer_syste
         particle_list (list of smuthi.particles.Particle obejcts:   Scattering particles
         layer_system (smuthi.layers.LayerSystem):                   The stratified medium
         k_parallel (numpy.ndarray or str):                          In-plane wavenumber for Sommerfeld integrals.
-                                                                    If 'default', smuthi.coordinates.default_k_parallel
+                                                                    If 'default', smuthi.fields.default_Sommerfeld_k_parallel_array
    
     Returns:
         Ensemble coupling matrix as numpy array.
     """
    
     # indices
-    blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in particle_list]
+    blocksizes = [smuthi.fields.blocksize(particle.l_max, particle.m_max) for particle in particle_list]
 
     # initialize result
     wr = np.zeros((sum(blocksizes), sum(blocksizes)), dtype=complex)

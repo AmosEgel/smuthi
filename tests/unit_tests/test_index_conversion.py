@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Test the index_conversion module"""
 import unittest
-import smuthi.fields.expansions as fldex
+import smuthi.fields as flds
 
 
 class TestIndexConversion(unittest.TestCase):
@@ -13,12 +13,12 @@ class TestIndexConversion(unittest.TestCase):
         for tau in range(2):
             for l in range(1, lmax + 1):
                 for m in range(-l, l + 1):
-                    idcs.append(fldex.multi_to_single_index(tau=tau, l=l, m=m, l_max=lmax, m_max=mmax))
+                    idcs.append(flds.multi_to_single_index(tau=tau, l=l, m=m, l_max=lmax, m_max=mmax))
                     count += 1
 
         self.assertEqual(idcs, list(range(len(idcs))))
 
-        ind_num = fldex.blocksize(lmax, mmax)
+        ind_num = flds.blocksize(lmax, mmax)
         self.assertEqual(count, ind_num)
 
         idcs = []
@@ -29,11 +29,11 @@ class TestIndexConversion(unittest.TestCase):
             for l in range(1, lmax + 1):
                 mlim = min(l, mmax)
                 for m in range(-mlim, mlim + 1):
-                    idcs.append(fldex.multi_to_single_index(tau=tau, l=l, m=m, l_max=lmax, m_max=mmax))
+                    idcs.append(flds.multi_to_single_index(tau=tau, l=l, m=m, l_max=lmax, m_max=mmax))
                     count += 1
         self.assertEqual(idcs, list(range(len(idcs))))
 
-        ind_num = fldex.blocksize(lmax, mmax)
+        ind_num = flds.blocksize(lmax, mmax)
         self.assertEqual(count, ind_num)
 
 

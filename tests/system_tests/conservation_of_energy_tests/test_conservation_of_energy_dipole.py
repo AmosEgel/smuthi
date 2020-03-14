@@ -1,6 +1,5 @@
 import smuthi.initial_field as init
 import smuthi.particles as part
-import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
 import smuthi.layers as lay
 import smuthi.postprocessing.far_field as ff
@@ -10,10 +9,10 @@ import sys
 ld = 550
 rD = [100, -100, 100]
 D = [1e7, 2e7, 3e7]
-waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 4]
-neff_discr = 2e-2
+#waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 4]
+#neff_discr = 2e-2
 
-coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr)
+#coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr)
 
 # initialize particle object
 sphere1 = part.Sphere(position=[200, 200, 300], refractive_index=2.4 + 0.0j, radius=110, l_max=3, m_max=3)

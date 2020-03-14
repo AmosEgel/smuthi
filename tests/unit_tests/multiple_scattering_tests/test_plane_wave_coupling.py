@@ -3,7 +3,6 @@ import numpy as np
 import smuthi.particles as part
 import smuthi.linearsystem.particlecoupling.direct_coupling as pacou
 import smuthi.layers as lay
-import smuthi.fields.coordinates_and_contours as coord
 
 import matplotlib.pyplot as plt
 
@@ -33,8 +32,8 @@ W = pacou.direct_coupling_block(vacuum_wavelength=wl, receiving_particle=spheroi
                                 layer_system=lay_sys)
 
 # plane wave coupling
-k_parallel = coord.complex_contour(vacuum_wavelength=wl, neff_waypoints=[0, 0.9, 0.9-0.1j, 1.1-0.1j, 1.1, 7], 
-                                   neff_resolution=1e-3)
+#k_parallel = coord.complex_contour(vacuum_wavelength=wl, neff_waypoints=[0, 0.9, 0.9-0.1j, 1.1-0.1j, 1.1, 7],
+#                                   neff_resolution=1e-3)
 W_pvwf = pacou.direct_coupling_block_pvwf_mediated(vacuum_wavelength=wl, receiving_particle=spheroid2,
                                                    emitting_particle=spheroid1, layer_system=lay_sys, 
                                                    k_parallel=k_parallel)

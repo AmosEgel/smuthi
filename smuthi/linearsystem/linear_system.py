@@ -22,9 +22,9 @@ import scipy.linalg
 import scipy.interpolate
 from tqdm import tqdm
 import warnings
+import smuthi.fields as flds
 import smuthi.linearsystem.tmatrix.t_matrix as tmt
 import smuthi.fields.expansions as fldex
-import smuthi.fields.coordinates_and_contours as coord
 import smuthi.utility.cuda as cu
 import smuthi.linearsystem.particlecoupling.direct_coupling as dircoup
 import smuthi.linearsystem.particlecoupling.layer_mediated_coupling as laycoup
@@ -41,7 +41,8 @@ class LinearSystem:
         particle_list (list):   List of smuthi.particles.Particle objects
         initial_field (smuthi.initial_field.InitialField):   Initial field object
         layer_system (smuthi.layers.LayerSystem):   Stratified medium
-        k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
+        k_parallel (numpy.ndarray or str): in-plane wavenumber.
+                                           If 'default', use smuthi.fields.default_Sommerfeld_k_parallel_array
         solver_type (str):  What solver to use? Options: 'LU' for LU factorization, 'gmres' for GMRES iterative solver
         store_coupling_matrix (bool):   If True (default), the coupling matrix is stored. Otherwise it is recomputed on
                                         the fly during each iteration of the solver.
@@ -246,7 +247,7 @@ class LinearSystem:
         for iS, particle in enumerate(self.particle_list):
             i_iS = self.layer_system.layer_number(particle.position[2])
             n_iS = self.layer_system.refractive_indices[i_iS]
-            k = coord.angular_frequency(self.initial_field.vacuum_wavelength) * n_iS
+            k = flds.angular_frequency(self.initial_field.vacuum_wavelength) * n_iS
             loz, upz = self.layer_system.lower_zlimit(i_iS), self.layer_system.upper_zlimit(i_iS)
             particle.scattered_field = fldex.SphericalWaveExpansion(k=k, l_max=particle.l_max, m_max=particle.m_max,
                                                                     kind='outgoing', reference_point=particle.position,
@@ -267,7 +268,7 @@ class SystemMatrix:
 
     def __init__(self, particle_list):
         self.particle_list = particle_list
-        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list]
+        blocksizes = [flds.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list]
         self.shape = (sum(blocksizes), sum(blocksizes))
 
     def index_block(self, i):
@@ -278,7 +279,7 @@ class SystemMatrix:
         Returns:
             indices that correspond to the coefficients for that particle
         """
-        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list[:(i + 1)]]
+        blocksizes = [flds.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list[:(i + 1)]]
         return range(sum(blocksizes[:i]), sum(blocksizes))
 
     def index(self, i, tau, l, m):
@@ -292,8 +293,8 @@ class SystemMatrix:
         Returns:
             Position in a system vector that corresponds to the :math:`(\tau, l, m)` coefficient of the i-th particle.
         """
-        blocksizes = [fldex.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list[:i]]
-        return sum(blocksizes) + fldex.multi_to_single_index(tau, l, m, self.particle_list[i].l_max,
+        blocksizes = [flds.blocksize(particle.l_max, particle.m_max) for particle in self.particle_list[:i]]
+        return sum(blocksizes) + flds.multi_to_single_index(tau, l, m, self.particle_list[i].l_max,
                                                              self.particle_list[i].m_max)
 
 
@@ -357,7 +358,8 @@ class CouplingMatrixExplicit(SystemMatrix):
         vacuum_wavelength (float):  Vacuum wavelength in length units
         particle_list (list):   List of smuthi.particles.Particle objects
         layer_system (smuthi.layers.LayerSystem):   Stratified medium
-        k_parallell (numpy.ndarray or str): In-plane wavenumber. If 'default', use smuthi.coordinates.default_k_parallel
+        k_parallell (numpy.ndarray or str): In-plane wavenumber.
+                                            If 'default', use smuthi.fields.default_Sommerfeld_k_parallel_array
     """
 
     def __init__(self, vacuum_wavelength, particle_list, layer_system, k_parallel='default'):
@@ -385,7 +387,8 @@ class CouplingMatrixVolumeLookup(SystemMatrix):
         vacuum_wavelength (float): vacuum wavelength in length units
         particle_list (list): list of sumthi.particles.Particle objects
         layer_system (smuthi.layers.LayerSystem): stratified medium
-        k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
+        k_parallel (numpy.ndarray or str): in-plane wavenumber.
+                                           If 'default', use smuthi.fields.default_Sommerfeld_k_parallel_array
         resolution (float or None): spatial resolution of the lookup in the radial direction
     """
 
@@ -398,7 +401,7 @@ class CouplingMatrixVolumeLookup(SystemMatrix):
 
         self.l_max = max([particle.l_max for particle in particle_list])
         self.m_max = max([particle.m_max for particle in particle_list])
-        self.blocksize = fldex.blocksize(self.l_max, self.m_max)
+        self.blocksize = flds.blocksize(self.l_max, self.m_max)
         self.resolution = resolution
         lkup = look.volumetric_coupling_lookup_table(vacuum_wavelength=vacuum_wavelength, particle_list=particle_list,
                                                      layer_system=layer_system, k_parallel=k_parallel,
@@ -415,7 +418,8 @@ class CouplingMatrixVolumeLookupCPU(CouplingMatrixVolumeLookup):
         vacuum_wavelength (float): vacuum wavelength in length units
         particle_list (list): list of sumthi.particles.Particle objects
         layer_system (smuthi.layers.LayerSystem): stratified medium
-        k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
+        k_parallel (numpy.ndarray or str): in-plane wavenumber.
+                                           If 'default', use smuthi.fields.default_Sommerfeld_k_parallel_array
         resolution (float or None): spatial resolution of the lookup in the radial direction
         interpolator_kind (str): 'linear' or 'cubic' interpolation
     """
@@ -451,7 +455,7 @@ class CouplingMatrixVolumeLookupCPU(CouplingMatrixVolumeLookup):
             for m in range(-particle.m_max, particle.m_max + 1):
                 for l in range(max(1, abs(m)), particle.l_max + 1):
                     for tau in range(2):
-                        n_lookup = fldex.multi_to_single_index(tau=tau, l=l, m=m, l_max=self.l_max, m_max=self.m_max)
+                        n_lookup = flds.multi_to_single_index(tau=tau, l=l, m=m, l_max=self.l_max, m_max=self.m_max)
                         self.system_vector_index_list[n_lookup].append(self.index(i, tau, l, m))
                         self.particle_number_list[n_lookup].append(i)
                         self.m_list[n_lookup] = m
@@ -508,7 +512,8 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
         vacuum_wavelength (float): vacuum wavelength in length units
         particle_list (list): list of sumthi.particles.Particle objects
         layer_system (smuthi.layers.LayerSystem): stratified medium
-        k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
+        k_parallel (numpy.ndarray or str): in-plane wavenumber.
+                                           If 'default', use smuthi.fields.default_Sommerfeld_k_parallel_array
         resolution (float or None): spatial resolution of the lookup in the radial direction
         cuda_blocksize (int): threads per block for cuda call
         interpolator_kind (str): 'linear' (default) or 'cubic' interpolation
@@ -549,10 +554,10 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
             for m in range(-particle.m_max, particle.m_max + 1):
                 for l in range(max(1, abs(m)), particle.l_max + 1):
                     for tau in range(2):
-                        i_taulm = fldex.multi_to_single_index(tau, l, m, particle.l_max, particle.m_max)
+                        i_taulm = flds.multi_to_single_index(tau, l, m, particle.l_max, particle.m_max)
                         idx = i_particle + i_taulm
 
-                        n_lookup_array[idx] = fldex.multi_to_single_index(tau, l, m, self.l_max, self.m_max)
+                        n_lookup_array[idx] = flds.multi_to_single_index(tau, l, m, self.l_max, self.m_max)
                         m_particle_array[idx] = m
 
                         # scale the x and y position to the lookup resolution:
@@ -560,7 +565,7 @@ class CouplingMatrixVolumeLookupCUDA(CouplingMatrixVolumeLookup):
                         y_array[idx] = particle.position[1]
                         z_array[idx] = particle.position[2]
 
-            i_particle += fldex.blocksize(particle.l_max, particle.m_max)
+            i_particle += flds.blocksize(particle.l_max, particle.m_max)
 
         re_lookup_pl = self.lookup_table_plus.real.astype(dtype=np.float32)
         im_lookup_pl = self.lookup_table_plus.imag.astype(dtype=np.float32)
@@ -605,7 +610,8 @@ class CouplingMatrixRadialLookup(SystemMatrix):
         vacuum_wavelength (float): vacuum wavelength in length units
         particle_list (list): list of sumthi.particles.Particle objects
         layer_system (smuthi.layers.LayerSystem): stratified medium
-        k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
+        k_parallel (numpy.ndarray or str): in-plane wavenumber.
+                                           If 'default', use smuthi.fields.default_Sommerfeld_k_parallel_array
         resolution (float or None): spatial resolution of the lookup in the radial direction
     """
 
@@ -617,7 +623,7 @@ class CouplingMatrixRadialLookup(SystemMatrix):
 
         self.l_max = max([particle.l_max for particle in particle_list])
         self.m_max = max([particle.m_max for particle in particle_list])
-        self.blocksize = fldex.blocksize(self.l_max, self.m_max)
+        self.blocksize = flds.blocksize(self.l_max, self.m_max)
         self.resolution = resolution
         self.lookup_table, self.radial_distance_array = look.radial_coupling_lookup_table(
             vacuum_wavelength=vacuum_wavelength, particle_list=particle_list, layer_system=layer_system,
@@ -631,7 +637,8 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
         vacuum_wavelength (float): vacuum wavelength in length units
         particle_list (list): list of sumthi.particles.Particle objects
         layer_system (smuthi.layers.LayerSystem): stratified medium
-        k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
+        k_parallel (numpy.ndarray or str): in-plane wavenumber.
+                                           If 'default', use smuthi.fields.default_Sommerfeld_k_parallel_array
         resolution (float or None): spatial resolution of the lookup in the radial direction
         cuda_blocksize (int): threads per block when calling CUDA kernel
     """
@@ -669,17 +676,17 @@ class CouplingMatrixRadialLookupCUDA(CouplingMatrixRadialLookup):
                 for l in range(max(1, abs(m)), particle.l_max + 1):
                     for tau in range(2):
                         # idx = self.index(i, tau, l, m)
-                        i_taulm = fldex.multi_to_single_index(tau, l, m, particle.l_max, particle.m_max)
+                        i_taulm = flds.multi_to_single_index(tau, l, m, particle.l_max, particle.m_max)
                         idx = i_particle + i_taulm
 
-                        n_lookup_array[idx] = fldex.multi_to_single_index(tau, l, m, self.l_max, self.m_max)
+                        n_lookup_array[idx] = flds.multi_to_single_index(tau, l, m, self.l_max, self.m_max)
                         m_particle_array[idx] = m
 
                         # scale the x and y position to the lookup resolution:
                         x_array[idx] = particle.position[0]
                         y_array[idx] = particle.position[1]
 
-            i_particle += fldex.blocksize(particle.l_max, particle.m_max)
+            i_particle += flds.blocksize(particle.l_max, particle.m_max)
 
         # lookup as numpy array in required shape
         re_lookup = self.lookup_table.real.astype(np.float32)
@@ -721,7 +728,8 @@ class CouplingMatrixRadialLookupCPU(CouplingMatrixRadialLookup):
         vacuum_wavelength (float): vacuum wavelength in length units
         particle_list (list): list of sumthi.particles.Particle objects
         layer_system (smuthi.layers.LayerSystem): stratified medium
-        k_parallel (numpy.ndarray or str): in-plane wavenumber. If 'default', use smuthi.coord.default_k_parallel
+        k_parallel (numpy.ndarray or str): in-plane wavenumber.
+                                           If 'default', use smuthi.fields.default_Sommerfeld_k_parallel_array
         resolution (float or None): spatial resolution of the lookup in the radial direction
         kind (str): interpolation order, e.g. 'linear' or 'cubic'
     """
@@ -752,7 +760,7 @@ class CouplingMatrixRadialLookupCPU(CouplingMatrixRadialLookup):
             for m in range(-particle.m_max, particle.m_max + 1):
                 for l in range(max(1, abs(m)), particle.l_max + 1):
                     for tau in range(2):
-                        n_lookup = fldex.multi_to_single_index(tau=tau, l=l, m=m, l_max=self.l_max, m_max=self.m_max)
+                        n_lookup = flds.multi_to_single_index(tau=tau, l=l, m=m, l_max=self.l_max, m_max=self.m_max)
                         self.system_vector_index_list[n_lookup].append(self.index(i, tau, l, m))
                         self.particle_number_list[n_lookup].append(i)
                         self.m_list[n_lookup] = m

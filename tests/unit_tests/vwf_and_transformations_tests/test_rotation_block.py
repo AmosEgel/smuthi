@@ -7,7 +7,6 @@ import smuthi.particles as part
 import smuthi.simulation as simul
 import smuthi.layers as lay
 import smuthi.initial_field as init
-import smuthi.fields.coordinates_and_contours as coord
 import smuthi.postprocessing.far_field as scf
 
 
@@ -62,13 +61,13 @@ def test_rotation():
 ld = 550
 rD = [0, 0, 200]
 rD2 = [0, 0, 200]
-waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 4]
-neff_discr = 2e-2
+#waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 4]
+#neff_discr = 2e-2
 
 polar_angle = 0.25 * np.pi
 azimuthal_angle = 0.425 * np.pi
 
-coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr)
+#coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr)
 
 
 # initialize particle objects

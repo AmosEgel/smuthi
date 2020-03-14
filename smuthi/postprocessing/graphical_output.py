@@ -110,7 +110,7 @@ def plot_particles(xmin, xmax, ymin, ymax, zmin, zmax, particle_list, max_partic
 
 def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, save_animations=False, save_data=False,
                     outputdir='.', xmin=0, xmax=0, ymin=0, ymax=0, zmin=0, zmax=0, resolution_step=25, 
-                    interpolate_step=None, interpolation_order = 1, dpi=None, k_parallel='default', 
+                    interpolate_step=None, interpolation_order=1, dpi=None, k_parallel='default',
                     azimuthal_angles='default', simulation=None, max_field=None, min_norm_field=None, 
                     max_particle_distance=float('inf'), draw_circumscribing_sphere=True, show_internal_field=False):
     """Plot the electric near field along a plane. To plot along the xy-plane, specify zmin=zmax and so on.
@@ -152,9 +152,9 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
                                      cubic spline interpolation.
         dpi (scalar):           Resolution of saved images in dots per inch   
         k_parallel (numpy.ndarray or str):         in-plane wavenumbers for the plane wave expansion
-                                                   if 'default', use smuthi.coordinates.default_k_parallel
+                                                   if 'default', use smuthi.fields.default_Sommerfeld_k_parallel_array
         azimuthal_angles (numpy.ndarray or str):   azimuthal angles for the plane wave expansion
-                                                   if 'default', use smuthi.coordinates.default_azimuthal_angles
+                                                   if 'default', use smuthi.fields.default_azimuthal_angles
         simulation (smuthi.simulation.Simulation):  Simulation object
         max_field (float):              If specified, truncate the color scale of the field plots at that value.
         min_norm_field (float):         If specified, truncate the color scale of the norm field plots below that value.
@@ -207,7 +207,7 @@ def show_near_field(quantities_to_plot=None, save_plots=False, show_plots=True, 
 
     if show_internal_field:
         int_fld_exp = intf.internal_field_piecewise_expansion(vacuum_wavelength, simulation.particle_list,
-                                                              simulation.layer_system, k_parallel, azimuthal_angles)
+                                                              simulation.layer_system)
         e_x_int_raw, e_y_int_raw, e_z_int_raw = int_fld_exp.electric_field(xarr, yarr, zarr)
 
     if interpolate_step is None:

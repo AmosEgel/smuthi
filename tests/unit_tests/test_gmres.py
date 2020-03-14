@@ -5,7 +5,6 @@ import numpy as np
 import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
-import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
 
 
@@ -20,11 +19,11 @@ class TestGMRES(unittest.TestCase):
         beam_neff_array = np.linspace(0, 2, 501, endpoint=False)
         beam_waist = 1000
         beam_focal_point = [200, 200, 200]
-        neff_waypoints = [0, 0.5, 0.8 - 0.01j, 2 - 0.01j, 2.5, 5]
-        neff_discr = 1e-2
+        #neff_waypoints = [0, 0.5, 0.8 - 0.01j, 2 - 0.01j, 2.5, 5]
+        #neff_discr = 1e-2
         # --------------------------------------------
 
-        coord.set_default_k_parallel(vacuum_wavelength, neff_waypoints, neff_discr)
+        #coord.set_default_k_parallel(vacuum_wavelength, neff_waypoints, neff_discr)
 
         # initialize particle object
         sphere1 = part.Sphere(position=[100, 100, 150], refractive_index=2.4 + 0.0j, radius=110, l_max=4, m_max=4)

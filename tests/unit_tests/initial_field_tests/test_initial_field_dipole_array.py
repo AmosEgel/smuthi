@@ -1,6 +1,5 @@
 import smuthi.initial_field as init
 import smuthi.particles as part
-import smuthi.fields.coordinates_and_contours as coord
 import smuthi.layers as lay
 import numpy as np
 
@@ -11,14 +10,9 @@ D1 = [1e7, 2e7, 3e7]
 rD2 = [-100, 100, -100]
 D2 = [-2e7, 3e7, 1e7]
 
-waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 3]
-neff_max = 3
-neff_discr = 5e-3
-
-
-#coord.set_default_k_parallel(vacuum_wavelength = ld, neff_resolution=neff_discr, neff_max=neff_max)
-#coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr, neff_max=neff_max)
-#coord.default_k_parallel = np.array([0, 0.5*2*np.pi/ld])
+#waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 3]
+#neff_max = 3
+#neff_discr = 5e-3
 
 # we avoid to use default_k_parallel, because there is some issue when running this test with nose2 ...
 kpar = coord.complex_contour(ld, waypoints, neff_discr)

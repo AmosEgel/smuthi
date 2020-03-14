@@ -6,12 +6,10 @@ import sys
 from tqdm import tqdm
 import numpy as np
 import scipy.special
-import smuthi.fields.expansions as fldex
+import smuthi.fields
 import smuthi.utility.math as sf
 import smuthi.utility.cuda as cu
-import smuthi.fields.vector_wave_functions as vwf
 import smuthi.fields.transformations as trf
-import smuthi.fields.coordinates_and_contours as coord
 import smuthi.layers as lay
 import smuthi.linearsystem.particlecoupling.prepare_lookup_cuda as cusrc
 
@@ -25,7 +23,7 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
         particle_list (list):       List of particle objects
         layer_system (smuthi.layers.LayerSystem):    Stratified medium
         k_parallel (numpy.ndarray or str):           In-plane wavenumber for Sommerfeld integrals.
-                                                     If 'default', smuthi.coordinates.default_k_parallel
+                                                     If 'default', smuthi.fields.default_Sommerfeld_k_parallel_array
         resolution (float): Spatial resolution of lookup table in length units. (default: vacuum_wavelength / 100)        
                             Smaller means more accurate but higher memory footprint 
                             
@@ -51,7 +49,7 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
 
     l_max = max([particle.l_max for particle in particle_list])
     m_max = max([particle.m_max for particle in particle_list])
-    blocksize = fldex.blocksize(l_max, m_max)
+    blocksize = smuthi.fields.blocksize(l_max, m_max)
     
     particle_x_array = np.array([particle.position[0] for particle in particle_list])
     particle_y_array = np.array([particle.position[1] for particle in particle_list])
@@ -109,9 +107,9 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
                         A += a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]   # remember that w = A.T
                         B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]   # remember that w = A.T
                     for tau1 in range(2):
-                        n1 = fldex.multi_to_single_index(tau1, l1, m1, l_max, m_max)
+                        n1 = smuthi.fields.multi_to_single_index(tau1, l1, m1, l_max, m_max)
                         for tau2 in range(2):
-                            n2 = fldex.multi_to_single_index(tau2, l2, m2, l_max, m_max)
+                            n2 = smuthi.fields.multi_to_single_index(tau2, l2, m2, l_max, m_max)
                             if tau1 == tau2:
                                 w[:, :, n1, n2] = A
                             else:
@@ -126,8 +124,8 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     sys.stdout.write('Layer mediated coupling   : ...')
     sys.stdout.flush()
     if type(k_parallel) == str and k_parallel == 'default':
-        k_parallel = coord.default_k_parallel
-    kz_is = coord.k_z(k_parallel=k_parallel, k=k_is)
+        k_parallel = smuthi.fields.default_Sommerfeld_k_parallel_array
+    kz_is = smuthi.fields.k_z(k_parallel=k_parallel, k=k_is)
     len_kp = len(k_parallel)
 
     # phase factors
@@ -141,7 +139,7 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     for pol in range(2):
         L[pol, :, :, :] = lay.layersystem_response_matrix(pol, layer_system.thicknesses,
                                                           layer_system.refractive_indices, k_parallel,
-                                                          coord.angular_frequency(vacuum_wavelength), i_s, i_s)
+                                                          smuthi.fields.angular_frequency(vacuum_wavelength), i_s, i_s)
    
     # transformation coefficients
     B_dag = np.zeros((2, 2, blocksize, len_kp), dtype=complex)  # pol, pl/mn, n, kp
@@ -155,7 +153,7 @@ def volumetric_coupling_lookup_table(vacuum_wavelength, particle_list, layer_sys
     for tau in range(2):
         for m in range(-m_max, m_max + 1):
             for l in range(max(1, abs(m)), l_max + 1):
-                n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
+                n = smuthi.fields.multi_to_single_index(tau, l, m, l_max, m_max)
                 m_list[n] = m
                 for pol in range(2):
                     B_dag[pol, 0, n, :] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,
@@ -253,7 +251,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
         particle_list (list):       List of particle objects
         layer_system (smuthi.layers.LayerSystem):    Stratified medium
         k_parallel (numpy.ndarray or str):           In-plane wavenumber for Sommerfeld integrals.
-                                                     If 'default', smuthi.coordinates.default_k_parallel
+                                                     If 'default', smuthi.fields.default_Sommerfeld_k_parallel_array
         resolution (float): Spatial resolution of lookup table in length units. (default: vacuum_wavelength / 100)       
                             Smaller means more accurate but higher memory footprint 
                             
@@ -276,7 +274,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
    
     l_max = max([particle.l_max for particle in particle_list])
     m_max = max([particle.m_max for particle in particle_list])
-    blocksize = fldex.blocksize(l_max, m_max)
+    blocksize = smuthi.fields.blocksize(l_max, m_max)
     
     x_array = np.array([particle.position[0] for particle in particle_list])
     y_array = np.array([particle.position[1] for particle in particle_list])
@@ -321,9 +319,9 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
                         A = A + a5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                         B = B + b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                     for tau1 in range(2):
-                        n1 = fldex.multi_to_single_index(tau1, l1, m1, l_max, m_max)
+                        n1 = smuthi.fields.multi_to_single_index(tau1, l1, m1, l_max, m_max)
                         for tau2 in range(2):
-                            n2 = fldex.multi_to_single_index(tau2, l2, m2, l_max, m_max)
+                            n2 = smuthi.fields.multi_to_single_index(tau2, l2, m2, l_max, m_max)
                             if tau1 == tau2:
                                 w[:, n1, n2] = A  # remember that w = A.T
                             else:
@@ -338,8 +336,9 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     sys.stdout.flush()
     
     if type(k_parallel) == str and k_parallel == 'default':
-        k_parallel = coord.default_k_parallel
-    kz_is = coord.k_z(k_parallel=k_parallel, k=k_is)
+        k_parallel = smuthi.fields.default_Sommerfeld_k_parallel_array
+
+    kz_is = smuthi.fields.k_z(k_parallel=k_parallel, k=k_is)
     len_kp = len(k_parallel)
 
     # phase factors
@@ -351,7 +350,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     for pol in range(2):
         L[pol,:,:,:] = lay.layersystem_response_matrix(pol, layer_system.thicknesses,
                                                        layer_system.refractive_indices, k_parallel,
-                                                       coord.angular_frequency(vacuum_wavelength), i_s, i_s)
+                                                       smuthi.fields.angular_frequency(vacuum_wavelength), i_s, i_s)
    
     # transformation coefficients
     B_dag = np.zeros((2, 2, blocksize, len_kp), dtype=complex)  # pol, pl/mn, n, kp
@@ -365,7 +364,7 @@ def radial_coupling_lookup_table(vacuum_wavelength, particle_list, layer_system,
     for tau in range(2):
         for m in range(-m_max, m_max + 1):
             for l in range(max(1, abs(m)), l_max + 1):
-                n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
+                n = smuthi.fields.multi_to_single_index(tau, l, m, l_max, m_max)
                 m_list[n] = m
                 for pol in range(2):
                     B_dag[pol,0,n,:] = trf.transformation_coefficients_vwf(tau, l, m, pol, pilm_list=pilm_pl,

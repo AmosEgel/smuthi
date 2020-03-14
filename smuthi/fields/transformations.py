@@ -2,9 +2,8 @@
 functions as well as of plane and spherical wave fex."""
 
 import numpy as np
-from smuthi.fields import nb_wig3jj
 import smuthi.fields.expansions as fex
-import smuthi.fields.coordinates_and_contours as coord
+import smuthi.fields as flds
 import smuthi.utility.math as mathfunc
 import smuthi.utility.memoizing as memo
 
@@ -124,20 +123,18 @@ def pwe_to_swe_conversion(pwe, l_max, m_max, reference_point):
                     an = np.trapz(np.trapz(ak_integrand, pwe.azimuthal_angles) * pwe.k_parallel, pwe.k_parallel) * 4
                 else:
                     an = ak_integrand * 4
-                swe.coefficients[fex.multi_to_single_index(tau, l, m, swe.l_max, swe.m_max)] = np.squeeze(an)
+                swe.coefficients[flds.multi_to_single_index(tau, l, m, swe.l_max, swe.m_max)] = np.squeeze(an)
     return swe
 
 
-def swe_to_pwe_conversion(swe, k_parallel='default', azimuthal_angles='default', layer_system=None, layer_number=None,
+def swe_to_pwe_conversion(swe, k_parallel, azimuthal_angles, layer_system=None, layer_number=None,
                           layer_system_mediated=False):
     """Convert SphericalWaveExpansion object to a PlaneWaveExpansion object.
 
     Args:
         swe (SphericalWaveExpansion):             Spherical wave expansion to be converted
         k_parallel (numpy array or str):          In-plane wavenumbers for the pwe object.
-                                                  If 'default', use smuthi.coordinates.default_k_parallel
         azimuthal_angles (numpy array or str):    Azimuthal angles for the pwe object
-                                                  If 'default', use smuthi.coordinates.default_azimuthal_angles
         layer_system (smuthi.layers.LayerSystem): Stratified medium in which the origin of the SWE is located
         layer_number (int):                       Layer number in which the PWE should be valid.
         layer_system_mediated (bool):             If True, the PWE refers to the layer system response of the SWE, 
@@ -147,13 +144,7 @@ def swe_to_pwe_conversion(swe, k_parallel='default', azimuthal_angles='default',
         Tuple of two PlaneWaveExpansion objects, first upgoing, second downgoing.
     """
     # todo: manage diverging swe
-    if type(k_parallel) == str and k_parallel == 'default':
-        k_parallel = coord.default_k_parallel
-    if type(azimuthal_angles) == str and azimuthal_angles == 'default':
-        azimuthal_angles = coord.default_azimuthal_angles
-    
-    if not hasattr(k_parallel, '__len__'):
-        k_parallel = np.array([k_parallel])
+    k_parallel = np.array(k_parallel, ndmin=1)
     
     i_swe = layer_system.layer_number(swe.reference_point[2])
     if layer_number is None and not layer_system_mediated:
@@ -162,11 +153,12 @@ def swe_to_pwe_conversion(swe, k_parallel='default', azimuthal_angles='default',
     lower_z_up = swe.reference_point[2]
     upper_z_up = layer_system.upper_zlimit(layer_number)
     pwe_up = fex.PlaneWaveExpansion(k=swe.k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, kind='upgoing',
-                                reference_point=reference_point, lower_z=lower_z_up, upper_z=upper_z_up)
+                                    reference_point=reference_point, lower_z=lower_z_up, upper_z=upper_z_up)
     lower_z_down = layer_system.lower_zlimit(layer_number)
     upper_z_down = swe.reference_point[2]
-    pwe_down = fex.PlaneWaveExpansion(k=swe.k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles, kind='downgoing',
-                                  reference_point=reference_point, lower_z=lower_z_down, upper_z=upper_z_down)
+    pwe_down = fex.PlaneWaveExpansion(k=swe.k, k_parallel=k_parallel, azimuthal_angles=azimuthal_angles,
+                                      kind='downgoing', reference_point=reference_point, lower_z=lower_z_down,
+                                      upper_z=upper_z_down)
 
     agrid = pwe_up.azimuthal_angle_grid()
     kpgrid = pwe_up.k_parallel_grid()
@@ -361,9 +353,9 @@ def ab5_coefficients(l1, m1, l2, m2, p):
     fac2a = (l1 * (l1 + 1) + l2 * (l2 + 1) - p * (p + 1)) * np.sqrt(2 * p + 1)
     fac2b = np.sqrt((l1 + l2 + 1 + p) * (l1 + l2 + 1 - p) * (p + l1 - l2) * (p - l1 + l2) * (2 * p + 1))
     # Note that arguments are in two_j = 2*j.
-    wig1 = nb_wig3jj(2*l1, 2*l2, 2*p, 2*m1, -m2*2, -(m1 - m2)*2)
-    wig2a = nb_wig3jj(2*l1, 2*l2, 2*p, 0, 0, 0)
-    wig2b = nb_wig3jj(2*l1, 2*l2, 2*(p - 1), 0, 0, 0)
+    wig1 = mathfunc.nb_wig3jj(2*l1, 2*l2, 2*p, 2*m1, -m2*2, -(m1 - m2)*2)
+    wig2a = mathfunc.nb_wig3jj(2*l1, 2*l2, 2*p, 0, 0, 0)
+    wig2b = mathfunc.nb_wig3jj(2*l1, 2*l2, 2*(p - 1), 0, 0, 0)
 
     a = jfac * fac1 * fac2a * wig1 * wig2a
     b = jfac * fac1 * fac2b * wig1 * wig2b
@@ -390,7 +382,7 @@ def block_rotation_matrix_D_svwf(l_max, m_max, alpha, beta, gamma, wdsympy=False
         rotation matrix of dimension [blocksize, blocksize]
     """
     
-    b_size = fex.blocksize(l_max, m_max)
+    b_size = flds.blocksize(l_max, m_max)
     rotation_matrix = np.zeros([b_size, b_size], dtype=complex)
     
     for l in range(l_max + 1):
@@ -399,8 +391,8 @@ def block_rotation_matrix_D_svwf(l_max, m_max, alpha, beta, gamma, wdsympy=False
             for m2 in range(-mstop, mstop + 1):
                 rotation_matrix_coefficient = mathfunc.wigner_D(l, m1, m2, alpha, beta, gamma, wdsympy)
                 for tau in range(2):
-                    n1 = fex.multi_to_single_index(tau, l, m1, l_max, m_max)
-                    n2 = fex.multi_to_single_index(tau, l, m2, l_max, m_max)
+                    n1 = flds.multi_to_single_index(tau, l, m1, l_max, m_max)
+                    n2 = flds.multi_to_single_index(tau, l, m2, l_max, m_max)
                     rotation_matrix[n1, n2] = rotation_matrix_coefficient
 
     return rotation_matrix

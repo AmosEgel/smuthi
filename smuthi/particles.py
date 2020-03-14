@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Provide class for the representation of scattering particles."""
 
-import smuthi.fields.expansions as fldex
+import smuthi.fields as flds
 import smuthi.linearsystem.tmatrix as tmt
 import numpy as np
 
@@ -70,8 +70,8 @@ class Particle:
             for tau in range(2):
                 for l in range(1, lmax_s + 1):
                     for m in range(np.max([-l, -mmax_s]), np.min([l, mmax_s]) + 1):        
-                        n_list_s[idx] = fldex.multi_to_single_index(tau, l, m, lmax_s, mmax_s) 
-                        n_list_l[idx] = fldex.multi_to_single_index(tau, l, m, lmax_l, mmax_l)                     
+                        n_list_s[idx] = flds.multi_to_single_index(tau, l, m, lmax_s, mmax_s)
+                        n_list_l[idx] = flds.multi_to_single_index(tau, l, m, lmax_l, mmax_l)
                         idx += 1                                
             row, column = np.meshgrid(n_list_s, n_list_s)
             row2, column2 = np.meshgrid(n_list_l, n_list_l)

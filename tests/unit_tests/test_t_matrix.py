@@ -3,9 +3,9 @@
 
 import unittest
 
+import smuthi.fields as flds
 import smuthi.linearsystem.tmatrix.t_matrix as tmt
 import smuthi.particles
-import smuthi.fields.expansions as fldex
 import numpy as np
 
 tau = 0
@@ -28,7 +28,7 @@ class TestTMatrix(unittest.TestCase):
 
     def testTmatrix(self):
         t = tmt.t_matrix_sphere(omega * n_medium, omega * n_particle, radius, lmax, mmax)
-        n = fldex.multi_to_single_index(tau, l, m, lmax, mmax)
+        n = flds.multi_to_single_index(tau, l, m, lmax, mmax)
         mie = tmt.mie_coefficient(tau, l, omega * n_medium, omega * n_particle, radius)
         assert t[n, n] == mie
 

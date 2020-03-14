@@ -6,9 +6,9 @@ import numpy as np
 import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
-import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
 import smuthi.postprocessing.far_field as farf
+import smuthi.fields as flds
 
 
 # Parameter input ----------------------------
@@ -23,7 +23,11 @@ neff_discr = 1e-3
 
 # --------------------------------------------
 
-coord.set_default_k_parallel(vacuum_wavelength, neff_waypoints, neff_discr)
+flds.default_Sommerfeld_k_parallel_array = flds.reasonable_Sommerfeld_kpar_contour(
+    vacuum_wavelength=vacuum_wavelength,
+    neff_waypoints=neff_waypoints,
+    neff_resolution=neff_discr)
+
 
 # initialize particle object
 part1 = part.Sphere(position=[100,100,150], refractive_index=2.4+0.0j, radius=120, l_max=lmax)

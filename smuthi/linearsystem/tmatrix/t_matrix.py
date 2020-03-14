@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import smuthi.fields as flds
 import smuthi.utility.math as sf
 import smuthi.linearsystem.tmatrix.nfmds.t_matrix_axsym as nftaxs
-import smuthi.fields.expansions as fldex
 import smuthi.fields.transformations as trf
 
 
@@ -85,11 +85,11 @@ def t_matrix_sphere(k_medium, k_particle, radius, l_max, m_max):
     Returns:
          T-matrix as ndarray
     """
-    t = np.zeros((fldex.blocksize(l_max, m_max), fldex.blocksize(l_max, m_max)), dtype=complex)
+    t = np.zeros((flds.blocksize(l_max, m_max), flds.blocksize(l_max, m_max)), dtype=complex)
     for tau in range(2):
         for m in range(-m_max, m_max + 1):
             for l in range(max(1, abs(m)), l_max + 1):
-                n = fldex.multi_to_single_index(tau, l, m, l_max, m_max)
+                n = flds.multi_to_single_index(tau, l, m, l_max, m_max)
                 t[n, n] = mie_coefficient(tau, l, k_medium, k_particle, radius)
     return t
 

@@ -2,7 +2,7 @@
 
 import os
 import numpy as np
-import smuthi.fields.coordinates_and_contours as coord
+import smuthi.fields as flds
 import smuthi.postprocessing.scattered_field as sf
 
 
@@ -23,9 +23,9 @@ class FarField:
 
     def __init__(self, polar_angles='default', azimuthal_angles='default', signal_type='intensity'):
         if type(polar_angles) == str and polar_angles == 'default':
-            polar_angles = coord.default_polar_angles
+            polar_angles = flds.default_polar_angles
         if type(azimuthal_angles) == str and azimuthal_angles == 'default':
-            azimuthal_angles = coord.default_azimuthal_angles
+            azimuthal_angles = flds.default_azimuthal_angles
         self.polar_angles = polar_angles
         self.azimuthal_angles = azimuthal_angles
 
@@ -184,7 +184,7 @@ def pwe_to_ff_conversion(vacuum_wavelength, plane_wave_expansion):
     Returns:
         A FarField object containing the far field intensity.
     """
-    omega = coord.angular_frequency(vacuum_wavelength)
+    omega = flds.angular_frequency(vacuum_wavelength)
     k = plane_wave_expansion.k
     kp = plane_wave_expansion.k_parallel
     if plane_wave_expansion.kind == 'upgoing':
@@ -196,7 +196,7 @@ def pwe_to_ff_conversion(vacuum_wavelength, plane_wave_expansion):
     if any(polar_angles.imag):
         raise ValueError('complex angles are not allowed')
     azimuthal_angles = plane_wave_expansion.azimuthal_angles
-    kkz2 = coord.k_z(k_parallel=kp, k=k) ** 2 * k
+    kkz2 = flds.k_z(k_parallel=kp, k=k) ** 2 * k
     intens = (2 * np.pi ** 2 / omega * kkz2[np.newaxis, :, np.newaxis]
               * abs(plane_wave_expansion.coefficients) ** 2).real
     srt_idcs = np.argsort(polar_angles)  # reversing order in case of downgoing
@@ -215,9 +215,9 @@ def total_far_field(initial_field, particle_list, layer_system, polar_angles='de
         particle_list (list):                       list of smuthi.Particle objects
         layer_system (smuthi.layers.LayerSystem):   represents the stratified medium
         polar_angles (numpy.ndarray or str):        polar angles values (radian). 
-                                                    if 'default', use smuthi.coordinates.default_polar_angles
+                                                    if 'default', use smuthi.fields.default_polar_angles
         azimuthal_angles (numpy.ndarray or str):    azimuthal angle values (radian)
-                                                    if 'default', use smuthi.coordinates.default_azimuthal_angles
+                                                    if 'default', use smuthi.fields.default_azimuthal_angles
 
     Returns:
         A tuple of three smuthi.field_expansion.FarField objects for total, initial and scattered far field. Mind that the scattered far field
@@ -229,9 +229,9 @@ def total_far_field(initial_field, particle_list, layer_system, polar_angles='de
     omega = initial_field.angular_frequency()
     vacuum_wavelength = initial_field.vacuum_wavelength
     if type(polar_angles) == str and polar_angles == 'default':
-        polar_angles = coord.default_polar_angles
+        polar_angles = flds.default_polar_angles
     if type(azimuthal_angles) == str and azimuthal_angles == 'default':
-        azimuthal_angles = coord.default_azimuthal_angles
+        azimuthal_angles = flds.default_azimuthal_angles
 
     if any(polar_angles.imag):
         raise ValueError("complex angles not allowed in far field")
@@ -306,18 +306,18 @@ def scattered_far_field(vacuum_wavelength, particle_list, layer_system, polar_an
         particle_list (list):                       list of smuthi.Particle objects
         layer_system (smuthi.layers.LayerSystem):   represents the stratified medium
         polar_angles (numpy.ndarray or str):        polar angles values (radian). 
-                                                    if 'default', use smuthi.coordinates.default_polar_angles
+                                                    if 'default', use smuthi.fields.default_polar_angles
         azimuthal_angles (numpy.ndarray or str):    azimuthal angle values (radian)
-                                                    if 'default', use smuthi.coordinates.default_azimuthal_angles
+                                                    if 'default', use smuthi.fields.default_azimuthal_angles
 
     Returns:
         A smuthi.field_expansion.FarField object of the scattered field.
     """
-    omega = coord.angular_frequency(vacuum_wavelength)
+    omega = flds.angular_frequency(vacuum_wavelength)
     if type(polar_angles) == str and polar_angles == 'default':
-        polar_angles = coord.default_polar_angles
+        polar_angles = flds.default_polar_angles
     if type(azimuthal_angles) == str and azimuthal_angles == 'default':
-        azimuthal_angles = coord.default_azimuthal_angles
+        azimuthal_angles = flds.default_azimuthal_angles
 
     if any(polar_angles.imag):
         raise ValueError("complex angles not allowed in far field")
@@ -365,9 +365,9 @@ def scattering_cross_section(initial_field, particle_list, layer_system, polar_a
         particle_list (list):                     scattering particles
         layer_system (smuthi.layers.LayerSystem): stratified medium
         polar_angles (numpy.ndarray or str):        polar angles values (radian). 
-                                                    if 'default', use smuthi.coordinates.default_polar_angles
+                                                    if 'default', use smuthi.fields.default_polar_angles
         azimuthal_angles (numpy.ndarray or str):    azimuthal angle values (radian)
-                                                    if 'default', use smuthi.coordinates.default_azimuthal_angles
+                                                    if 'default', use smuthi.fields.default_azimuthal_angles
 
     Returns:
         A tuple of smuthi.field_expansion.FarField objects, one for forward scattering (i.e., into the top hemisphere) and one for backward
@@ -378,7 +378,7 @@ def scattering_cross_section(initial_field, particle_list, layer_system, polar_a
 
     i_top = layer_system.number_of_layers() - 1
     vacuum_wavelength = initial_field.vacuum_wavelength
-    omega = coord.angular_frequency(vacuum_wavelength)
+    omega = flds.angular_frequency(vacuum_wavelength)
     k_bot = omega * layer_system.refractive_indices[0]
     k_top = omega * layer_system.refractive_indices[-1]
 
@@ -423,7 +423,7 @@ def extinction_cross_section(initial_field, particle_list, layer_system):
 
     i_top = layer_system.number_of_layers() - 1
     vacuum_wavelength = initial_field.vacuum_wavelength
-    omega = coord.angular_frequency(vacuum_wavelength)
+    omega = flds.angular_frequency(vacuum_wavelength)
     k_bot = omega * layer_system.refractive_indices[0]
     k_top = omega * layer_system.refractive_indices[-1]
 
@@ -464,7 +464,7 @@ def extinction_cross_section(initial_field, particle_list, layer_system):
 
     # bottom extinction
     _, pwe_init_bottom = initial_field.plane_wave_expansion(layer_system, 0)
-    kz_bot = coord.k_z(k_parallel=kappa_P, k=k_bot)
+    kz_bot = flds.k_z(k_parallel=kappa_P, k=k_bot)
     gRPbot =  np.squeeze(pwe_init_bottom.coefficients[pol_P])
     g_scat_bottom = np.squeeze(pwe_scat_bottom.coefficients[pol_P])
     P_bot_ext = 4 * np.pi ** 2 * kz_bot / omega * (gRPbot * np.conj(g_scat_bottom)).real
@@ -473,7 +473,7 @@ def extinction_cross_section(initial_field, particle_list, layer_system):
     # top extinction
     pwe_init_top, _ = initial_field.plane_wave_expansion(layer_system, i_top)
     gRPtop = np.squeeze(pwe_init_top.coefficients[pol_P])
-    kz_top = coord.k_z(k_parallel=kappa_P, k=k_top)
+    kz_top = flds.k_z(k_parallel=kappa_P, k=k_top)
     g_scat_top = np.squeeze(pwe_scat_top.coefficients[pol_P])
     P_top_ext = 4 * np.pi ** 2 * kz_top / omega * (gRPtop * np.conj(g_scat_top)).real
     top_extinction_cs = - P_top_ext / initial_intensity

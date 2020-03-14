@@ -2,7 +2,7 @@ import numpy as np
 import smuthi.initial_field as init
 import smuthi.layers
 import smuthi.particles
-import smuthi.fields.coordinates_and_contours as coord
+import smuthi.fields
 
 ld = 532
 A = 1
@@ -14,7 +14,7 @@ laysys = smuthi.layers.LayerSystem(thicknesses=[0, 0], refractive_indices=[1, 1]
 particle = smuthi.particles.Sphere(position=rS, l_max=3, m_max=3)
 particle_list = [particle]
 al_ar = np.linspace(0, 2*np.pi, 1000)
-kp_ar = np.linspace(0, 0.99999, 1000) * coord.angular_frequency(ld)
+kp_ar = np.linspace(0, 0.99999, 1000) * smuthi.fields.angular_frequency(ld)
 bw = 4000
 ref = [-100, 100, 200]
 gauss_beam = init.GaussianBeam(vacuum_wavelength=ld, polar_angle=beta, azimuthal_angle=alpha, polarization=pol,

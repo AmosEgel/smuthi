@@ -5,7 +5,6 @@ import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
 import smuthi.simulation as sim
-import smuthi.fields.coordinates_and_contours as coord
 import smuthi.postprocessing.internal_field as ifld
 
 
@@ -40,7 +39,8 @@ simulation_diel = sim.Simulation(layer_system=lay_sys_air, particle_list=[diel_s
 
 simulation_diel.run()
 
-intfld_diel = ifld.internal_field_piecewise_expansion(vacuum_wavelength=vacuum_wavelength, particle_list=[diel_sphere], layer_system=lay_sys_air)
+intfld_diel = ifld.internal_field_piecewise_expansion(vacuum_wavelength=vacuum_wavelength, particle_list=[diel_sphere],
+                                                      layer_system=lay_sys_air)
 E_diel = np.array(intfld_diel.electric_field(x, y, z))
 
 
@@ -50,7 +50,8 @@ simulation_metal = sim.Simulation(layer_system=lay_sys_water, particle_list=[met
 
 simulation_metal.run()
 
-intfld_metal = ifld.internal_field_piecewise_expansion(vacuum_wavelength=vacuum_wavelength, particle_list=[metal_sphere], layer_system=lay_sys_water)
+intfld_metal = ifld.internal_field_piecewise_expansion(vacuum_wavelength=vacuum_wavelength,
+                                                       particle_list=[metal_sphere], layer_system=lay_sys_water)
 E_metal = np.array(intfld_metal.electric_field(x, y, z))
 
 

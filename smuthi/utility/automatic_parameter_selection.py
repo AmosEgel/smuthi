@@ -2,6 +2,7 @@
 
 import sys
 import numpy as np
+import smuthi.fields as flds
 import smuthi.postprocessing.far_field as ff
 import smuthi.fields.coordinates_and_contours as coord
 from smuthi.fields import angular_frequency

@@ -5,7 +5,7 @@ object from them."""
 import yaml
 import smuthi.simulation
 import numpy as np
-import smuthi.fields.coordinates_and_contours as coord
+import smuthi.fields
 import smuthi.particles as part
 import smuthi.initial_field as init
 import smuthi.layers as lay
@@ -39,8 +39,9 @@ def read_input_yaml(filename):
     else:
         angle_factor = 1
     angle_resolution = input_data.get('angular resolution', np.pi / 180 / angle_factor) * angle_factor
-    coord.default_azimuthal_angles = np.arange(0, 2 * np.pi + angle_resolution / 2, angle_resolution)
-    coord.default_polar_angles = np.arange(0, np.pi + angle_resolution / 2, angle_resolution)
+
+    smuthi.fields.default_azimuthal_angles = np.arange(0, 2 * np.pi + angle_resolution / 2, angle_resolution)
+    smuthi.fields.default_polar_angles = np.arange(0, np.pi + angle_resolution / 2, angle_resolution)
     
     neff_resolution = float(input_data.get('n_effective resolution', 1e-2))
     neff_max = input_data.get('max n_effective')
@@ -48,8 +49,11 @@ def read_input_yaml(filename):
         ref_ind = [float(n) for n in input_data['layer system']['refractive indices']]
         neff_max = max(np.array(ref_ind).real) + 1
     neff_imag = float(input_data.get('n_effective imaginary deflection', 5e-2))
-    coord.set_default_k_parallel(vacuum_wavelength=wl, neff_resolution=neff_resolution, neff_max=neff_max, 
-                                 neff_imag=neff_imag)
+    smuthi.fields.default_Sommerfeld_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
+        vacuum_wavelength=wl,
+        neff_resolution=neff_resolution,
+        neff_max=neff_max,
+        neff_imag=neff_imag)
     
     # initialize simulation
     lookup_resolution = input_data.get('coupling matrix lookup resolution', None)

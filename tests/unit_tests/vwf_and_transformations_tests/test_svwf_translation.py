@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Check wether the translation of spherical wave works properly."""
 
+import smuthi.fields as flds
 import smuthi.fields.vector_wave_functions as vwf
 import smuthi.fields.transformations as trf
-import smuthi.fields.coordinates_and_contours as coord
 
 
 # Parameter input ----------------------------
@@ -24,7 +24,7 @@ l = 2
 m = -1
 # --------------------------------------------
 
-k = coord.angular_frequency(vacuum_wavelength) * surrounding_medium_refractive_index
+k = flds.angular_frequency(vacuum_wavelength) * surrounding_medium_refractive_index
 
 # outgoing wave
 Ex, Ey, Ez = vwf.spherical_vector_wave_function(rx + dx, ry + dy, rz + dz, k, 3, tau, l, m)

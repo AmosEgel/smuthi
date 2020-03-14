@@ -7,7 +7,7 @@ and can also be downloaded from
 https://scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds
 """
 
-import smuthi.fields.expansions as fldex
+import smuthi.fields as flds
 import smuthi.linearsystem.tmatrix.nfmds as nfmds
 import smuthi.utility.memoizing as memo
 import os
@@ -482,18 +482,18 @@ def taxsym_read_tmatrix(filename, l_max, m_max):
             t_nfmds[-1].append(complex(split_line[2 * i_entry]) + 1j * complex(split_line[2 * i_entry + 1]))
             column_index += 1
 
-    t_matrix = np.zeros((fldex.blocksize(l_max, m_max), fldex.blocksize(l_max, m_max)), dtype=complex)
+    t_matrix = np.zeros((flds.blocksize(l_max, m_max), flds.blocksize(l_max, m_max)), dtype=complex)
 
     for m in range(-m_max, m_max + 1):
         n_max_nfmds = n_rank - max(1, abs(m)) + 1
         for tau1 in range(2):
             for l1 in range(max(1, abs(m)), l_max + 1):
-                n1 = fldex.multi_to_single_index(tau=tau1, l=l1, m=m, l_max=l_max, m_max=m_max)
+                n1 = flds.multi_to_single_index(tau=tau1, l=l1, m=m, l_max=l_max, m_max=m_max)
                 l1_nfmds = l1 - max(1, abs(m))
                 n1_nfmds = 2 * n_rank * abs(m) + tau1 * n_max_nfmds + l1_nfmds
                 for tau2 in range(2):
                     for l2 in range(max(1, abs(m)), l_max + 1):
-                        n2 = fldex.multi_to_single_index(tau=tau2, l=l2, m=m, l_max=l_max, m_max=m_max)
+                        n2 = flds.multi_to_single_index(tau=tau2, l=l2, m=m, l_max=l_max, m_max=m_max)
                         l2_nfmds = l2 - max(1, abs(m))
                         n2_nfmds = tau2 * n_max_nfmds + l2_nfmds
                         if abs(m) <= m_rank:

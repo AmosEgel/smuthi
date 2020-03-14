@@ -5,7 +5,7 @@ import numpy as np
 import mpmath
 import smuthi.utility.memoizing as memo
 import smuthi.fields.expansions as fldex
-import smuthi.fields.coordinates_and_contours as coord
+import smuthi.fields as flds
 
 
 # global variables
@@ -175,7 +175,7 @@ class LayerSystem:
         Returns:
             wavenumber in that layer as float
         """
-        return self.refractive_indices[layer_number] * coord.angular_frequency(vacuum_wavelength=vacuum_wavelength)
+        return self.refractive_indices[layer_number] * flds.angular_frequency(vacuum_wavelength=vacuum_wavelength)
 
 
 def fresnel_r(pol, kz1, kz2, n1, n2):
@@ -315,7 +315,7 @@ def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, t
         pol (int):                          polarization(0=TE, 1=TM)
         layer_d (list):                     layer thicknesses
         layer_n (list):                     complex layer refractive indices
-        kpar (float or array like or str):  in-plane wavenumber. if 'default', use smuthi.coordinates.default_k_parallel
+        kpar (float or array like or str):  in-plane wavenumber.
         omega (float):                      angular frequency in units of c=1: omega=2*pi/lambda
         fromlayer (int):                    number of layer where the excitation is located
         tolayer (int):                      number of layer where the response is evaluated
@@ -326,9 +326,6 @@ def layersystem_response_matrix(pol, layer_d, layer_n, kpar, omega, fromlayer, t
     """
     if not prec == precision:
         set_precision(prec)
-    
-    if type(kpar) == str and kpar == 'default':
-        kpar = coord.default_k_parallel
     
     if hasattr(kpar, "__len__"):    # is kpar an array? then use recursive call to fill an 2 x 2 x N ndarray
         result = np.zeros((2, 2, len(kpar)), dtype=complex)

@@ -3,11 +3,11 @@
 
 import sys
 import numpy as np
+import smuthi.fields
 import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
 import smuthi.simulation as sim
-import smuthi.fields.coordinates_and_contours as coord
 
 
 # Parameter input ----------------------------
@@ -22,14 +22,10 @@ plane_wave_azimuthal_angle = 0
 plane_wave_polarization = 0
 plane_wave_amplitude = 1
 lmax = 3
-neff_waypoints = [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
-neff_discr = 1e-3
-farfield_neff_waypoints = [0, 1]
-farfield_neff_discr = 1e-2
+#neff_waypoints = [0, 0.5, 0.8-0.1j, 2-0.1j, 2.5, 4]
+#neff_discr = 1e-3
 
 # --------------------------------------------
-
-coord.set_default_k_parallel(vacuum_wavelength, neff_waypoints, neff_discr)
 
 # initialize particle object
 part1 = part.Sphere(position=[0, 0, distance_sphere_substrate + sphere_radius],

@@ -7,13 +7,11 @@ import smuthi.simulation
 import smuthi.initial_field
 import smuthi.layers
 import smuthi.particles
-import smuthi.coordinates
-import smuthi.cuda_sources
-import smuthi.scattered_field
-import smuthi.graphical_output
+import smuthi.postprocessing.graphical_output
+import smuthi.postprocessing.scattered_field
+import smuthi.utility.cuda
 
-
-smuthi.cuda_sources.enable_gpu()  # Enable GPU acceleration (if available)
+smuthi.utility.cuda.enable_gpu()  # Enable GPU acceleration (if available)
 
 # Initialize a plane wave object the initial field
 plane_wave = smuthi.initial_field.PlaneWave(vacuum_wavelength=550,
@@ -37,12 +35,6 @@ for x in range(-1500, 1501, 750):
                                                      # higher means more accurate but slower
         particle_grid.append(sphere)
 
-# Define contour for Sommerfeld integral
-smuthi.coordinates.set_default_k_parallel(vacuum_wavelength=plane_wave.vacuum_wavelength,
-                                          neff_resolution=5e-3,       # smaller value means more accurate but slower
-                                          neff_max=2)                 # should be larger than the highest refractive
-                                                                      # index of the layer system
-
 # Initialize and run simulation
 simulation = smuthi.simulation.Simulation(layer_system=three_layers,
                                           particle_list=particle_grid,
@@ -55,30 +47,31 @@ simulation = smuthi.simulation.Simulation(layer_system=three_layers,
 simulation.run()
 
 # Show the far field
-scattered_far_field = smuthi.scattered_field.scattered_far_field(vacuum_wavelength=plane_wave.vacuum_wavelength,
-                                                                 particle_list=simulation.particle_list,
-                                                                 layer_system=simulation.layer_system)
+scattered_far_field = smuthi.postprocessing.scattered_field.scattered_far_field(
+    vacuum_wavelength=plane_wave.vacuum_wavelength,
+    particle_list=simulation.particle_list,
+    layer_system=simulation.layer_system)
 
 output_directory = 'smuthi_output/smuthi_as_script'
 
-smuthi.graphical_output.show_far_field(far_field=scattered_far_field,
-                                       save_plots=True,
-                                       show_plots=False,
-                                       outputdir=output_directory+'/far_field_plots')
+smuthi.postprocessing.graphical_output.show_far_field(far_field=scattered_far_field,
+                                                       save_plots=True,
+                                                       show_plots=False,
+                                                       outputdir=output_directory+'/far_field_plots')
 
 # Show the near field
-smuthi.graphical_output.show_near_field(quantities_to_plot=['E_y', 'norm_E', 'E_scat_y', 'norm_E_scat'],
-                                        save_plots=True,
-                                        show_plots=False,
-                                        save_animations=True,
-                                        outputdir=output_directory+'/near_field_plots',
-                                        xmin=-1700,
-                                        xmax=1700,
-                                        ymin=10,
-                                        ymax=10,
-                                        zmin=-100,
-                                        zmax=2200,
-                                        resolution_step=100,
-                                        interpolate_step=20,
-                                        simulation=simulation,
-                                        max_field=1.5)
+smuthi.postprocessing.graphical_output.show_near_field(quantities_to_plot=['E_y', 'norm_E', 'E_scat_y', 'norm_E_scat'],
+                                                       save_plots=True,
+                                                       show_plots=False,
+                                                       save_animations=True,
+                                                       outputdir=output_directory+'/near_field_plots',
+                                                       xmin=-1700,
+                                                       xmax=1700,
+                                                       ymin=10,
+                                                       ymax=10,
+                                                       zmin=-100,
+                                                       zmax=2200,
+                                                       resolution_step=100,
+                                                       interpolate_step=20,
+                                                       simulation=simulation,
+                                                       max_field=1.5)

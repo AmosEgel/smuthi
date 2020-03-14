@@ -1,9 +1,9 @@
 import sys
 import smuthi.initial_field as init
 import smuthi.particles
-import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
 import smuthi.layers as lay
+import smuthi.fields as flds
 
 # Parameter input ----------------------------
 ld = 550
@@ -18,7 +18,11 @@ nS = 1.5
 RS = 100
 # --------------------------------------------
 
-coord.set_default_k_parallel(vacuum_wavelength=ld, neff_waypoints=waypoints, neff_resolution=neff_discr)
+flds.default_initial_field_k_parallel_array = flds.reasonable_Sommerfeld_kpar_contour(
+    vacuum_wavelength=ld,
+    neff_waypoints=waypoints,
+    neff_resolution=neff_discr)
+
 dipole = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D, position=rD)
 laysys = lay.LayerSystem(thicknesses=thick, refractive_indices=n)
 particle = smuthi.particles.Sphere(position=rS, l_max=3, m_max=3, refractive_index=nS, radius=RS)

@@ -2,12 +2,9 @@
 """Provide class to manage a simulation."""
 
 import smuthi.linearsystem.linear_system as lsys
-import smuthi.fields.coordinates_and_contours as coord
-#import smuthi.utility.automatic_parameter_selection as autoparam
+import smuthi.fields
 import sys
 import os
-import matplotlib.pyplot as plt
-import pkg_resources
 import datetime
 import time
 import shutil
@@ -24,8 +21,8 @@ class Simulation:
         particle_list (list):                                   list of smuthi.particles.Particle objects
         initial_field (smuthi.initial_field.InitialField):      initial field object
         post_processing (smuthi.post_processing.PostProcessing): object managing post processing tasks
-        k_parallel (numpy.ndarray or str):      in-plane wavenumber for Sommerfeld integrals. if 'default', keep what is
-                                                in smuthi.coordinates.default_k_parallel
+        k_parallel (numpy.ndarray or str):      in-plane wavenumber for Sommerfeld integrals. if 'default', use
+                                                smuthi.fields.default_Sommerfeld_k_parallel_array
         solver_type (str):                      What solver type to use? 
                                                 Options: 'LU' for LU factorization, 'gmres' for GMRES iterative solver
         coupling_matrix_lookup_resolution (float or None): If type float, compute particle coupling by interpolation of
@@ -112,14 +109,16 @@ class Simulation:
         return (self.layer_system, self.particle_list, self.initial_field, self.k_parallel, self.solver_type,
                 self.solver_tolerance, self.store_coupling_matrix, self.coupling_matrix_lookup_resolution, 
                 self.coupling_matrix_interpolator_kind, self.post_processing, self.length_unit, self.save_after_run,
-                coord.default_k_parallel, coord.default_polar_angles, coord.default_azimuthal_angles)
+                smuthi.fields.default_Sommerfeld_k_parallel_array, smuthi.fields.default_initial_field_k_parallel_array,
+                smuthi.fields.default_polar_angles, smuthi.fields.default_azimuthal_angles)
 
     def __setstate__(self, state):
         """Restore state from the unpickled state values."""
         (self.layer_system, self.particle_list, self.initial_field, self.k_parallel, self.solver_type,
          self.solver_tolerance, self.store_coupling_matrix, self.coupling_matrix_lookup_resolution,
          self.coupling_matrix_interpolator_kind, self.post_processing, self.length_unit, self.save_after_run,
-         coord.default_k_parallel, coord.default_polar_angles, coord.default_azimuthal_angles) = state
+         smuthi.fields.default_Sommerfeld_k_parallel_array, smuthi.fields.default_initial_field_k_parallel_array,
+         smuthi.fields.default_polar_angles, smuthi.fields.default_azimuthal_angles) = state
         
     def print_simulation_header(self):
         smuthi.print_smuthi_header()
@@ -155,15 +154,29 @@ class Simulation:
         #if type(self.k_parallel) == str and self.k_parallel == "default":
         #    self.k_parallel = autoparam.default_sommerfeld_contour(self)
 
-        # check if default contour exists, otherwise set a contour
-        if coord.default_k_parallel is None:
-            neff_resolution = 5e-3
-            neff_max = max(np.array(self.layer_system.refractive_indices).real) + 1
-            neff_imag = 1e-2
-            coord.set_default_k_parallel(vacuum_wavelength=self.initial_field.vacuum_wavelength, 
-                                         neff_resolution=neff_resolution, 
-                                         neff_max=neff_max, 
-                                         neff_imag=neff_imag)
+        # check if default contours exists, otherwise set them
+        if smuthi.fields.default_Sommerfeld_k_parallel_array is None:
+            smuthi.fields.default_Sommerfeld_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
+                vacuum_wavelength=self.initial_field.vacuum_wavelength,
+                layer_refractive_indices=self.layer_system.refractive_indices)
+
+        if smuthi.fields.default_initial_field_k_parallel_array is None:
+            if type(self.initial_field).__name__ == 'GaussianBeam':
+                # in that case use only wavenumbers that propagate in the originating layer
+                originating_layer_number = 0
+                if self.initial_field.polar_angle >= np.pi / 2:
+                    originating_layer_number = len(self.layer_system.refractive_indices)
+                neff_max = self.layer_system.refractive_indices[originating_layer_number].real
+                smuthi.fields.default_initial_field_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
+                    vacuum_wavelength=self.initial_field.vacuum_wavelength,
+                    neff_imag=0,
+                    neff_max=neff_max)
+            else:
+                # case of dipoles etc ...
+                # use a similar contour as for Sommerfeld integrals
+                smuthi.fields.default_initial_field_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
+                    vacuum_wavelength=self.initial_field.vacuum_wavelength,
+                    layer_refractive_indices=self.layer_system.refractive_indices)
 
         # prepare and solve linear system
         start = time.time()

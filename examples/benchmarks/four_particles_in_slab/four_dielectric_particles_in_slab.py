@@ -7,7 +7,6 @@
 
 import smuthi.initial_field as init
 import smuthi.particles as part
-import smuthi.fields.coordinates_and_contours as coord
 import smuthi.simulation as simul
 import smuthi.layers as lay
 import smuthi.postprocessing.scattered_field as sf
@@ -21,11 +20,6 @@ import os
 cu.enable_gpu()
 
 vacuum_wavelength = 550
-
-# Sommerfeld integral contour
-coord.set_default_k_parallel(vacuum_wavelength, 
-                             neff_resolution=1e-2, 
-                             neff_max=3)
 
 # Set the multipole truncation order
 # We invite the user to play with this parameter to see how it affects

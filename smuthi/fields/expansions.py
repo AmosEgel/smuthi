@@ -3,7 +3,7 @@
 spherical wave basis sets."""
 
 import numpy as np
-import smuthi.fields.coordinates_and_contours as coord
+import smuthi.fields
 import smuthi.fields.vector_wave_functions as vwf
 import smuthi.fields.expansions_cuda as cu_src
 import smuthi.utility.cuda as cu
@@ -239,7 +239,7 @@ class SphericalWaveExpansion(FieldExpansion):
             self.m_max = m_max
         else:
             self.m_max = l_max
-        self.coefficients = np.zeros(blocksize(self.l_max, self.m_max), dtype=complex)
+        self.coefficients = np.zeros(smuthi.fields.blocksize(self.l_max, self.m_max), dtype=complex)
         self.kind = kind  # 'regular' or 'outgoing'
         self.reference_point = reference_point
         self.lower_z = lower_z
@@ -294,7 +294,7 @@ class SphericalWaveExpansion(FieldExpansion):
         Returns:
             SWE coefficient
         """
-        n = multi_to_single_index(tau, l, m, self.l_max, self.m_max)
+        n = smuthi.fields.multi_to_single_index(tau, l, m, self.l_max, self.m_max)
         return self.coefficients[n]
     
     def electric_field(self, x, y, z):
@@ -397,10 +397,8 @@ class PlaneWaveExpansion(FieldExpansion):
     Args:
         k (float):                          wavenumber in layer where expansion is valid
         k_parallel (numpy ndarray):         array of in-plane wavenumbers (can be float or complex)
-                                            If 'default', use smuthi.coordinates.default_k_parallel
         azimuthal_angles (numpy ndarray):   :math:`\alpha`, from 0 to :math:`2\pi`
-                                            If 'default', use smuthi.coordinates.default_azimuthal_angles 
-        kind (str):                         'upgoing' for :math:`g^+` and 'downgoing' for :math:`g^-` type 
+        kind (str):                         'upgoing' for :math:`g^+` and 'downgoing' for :math:`g^-` type
                                             expansions 
         reference_point (list or tuple):    [x, y, z]-coordinates of point relative to which the plane waves are 
                                             defined.
@@ -412,23 +410,12 @@ class PlaneWaveExpansion(FieldExpansion):
         coefficients (numpy ndarray): coefficients[j, k, l] contains 
         :math:`g^\pm_{j}(\kappa_{k}, \alpha_{l})`
     """
-    def __init__(self, k, k_parallel='default', azimuthal_angles='default', kind=None, reference_point=None, 
-                 lower_z=-np.inf, upper_z=np.inf):
+    def __init__(self, k, k_parallel, azimuthal_angles, kind=None, reference_point=None, lower_z=-np.inf,
+                 upper_z=np.inf):
         FieldExpansion.__init__(self)
         self.k = k
-        if type(k_parallel) == str and k_parallel == 'default':
-            k_parallel = coord.default_k_parallel
-        if hasattr(k_parallel, '__len__'):
-            self.k_parallel = np.array(k_parallel)
-        else:
-            self.k_parallel = np.array([k_parallel])
-            
-        if type(azimuthal_angles) == str and azimuthal_angles == 'default':
-            azimuthal_angles = coord.default_azimuthal_angles
-        if hasattr(azimuthal_angles, '__len__'):
-            self.azimuthal_angles = np.array(azimuthal_angles)
-        else:
-            self.azimuthal_angles = np.array([azimuthal_angles])
+        self.k_parallel = np.array(k_parallel, ndmin=1)
+        self.azimuthal_angles = np.array(azimuthal_angles, ndmin=1)
         self.kind = kind  # 'upgoing' or 'downgoing'
         self.reference_point = reference_point
         self.lower_z = lower_z
@@ -483,18 +470,18 @@ class PlaneWaveExpansion(FieldExpansion):
 
     def k_z(self):
         if self.kind == 'upgoing':
-            kz = coord.k_z(k_parallel=self.k_parallel, k=self.k)
+            kz = smuthi.fields.k_z(k_parallel=self.k_parallel, k=self.k)
         elif self.kind == 'downgoing':
-            kz = -coord.k_z(k_parallel=self.k_parallel, k=self.k)
+            kz = -smuthi.fields.k_z(k_parallel=self.k_parallel, k=self.k)
         else:
             raise ValueError('pwe kind undefined')
         return kz
 
     def k_z_grid(self):
         if self.kind == 'upgoing':
-            kz = coord.k_z(k_parallel=self.k_parallel_grid(), k=self.k)
+            kz = smuthi.fields.k_z(k_parallel=self.k_parallel_grid(), k=self.k)
         elif self.kind == 'downgoing':
-            kz = -coord.k_z(k_parallel=self.k_parallel_grid(), k=self.k)
+            kz = -smuthi.fields.k_z(k_parallel=self.k_parallel_grid(), k=self.k)
         else:
             raise ValueError('pwe type undefined')
         return kz
@@ -651,73 +638,3 @@ class PlaneWaveExpansion(FieldExpansion):
             ez[self.valid(x, y, z)] = e_z_flat.reshape(xr.shape)
 
         return ex, ey, ez
-
-
-###############################################################################
-#                         SWE indexing                                        #
-###############################################################################
- 
-def multi_to_single_index(tau, l, m, l_max, m_max):
-    r"""Unique single index for the totality of indices characterizing a svwf expansion coefficient.
-
-    The mapping follows the scheme:
-
-    +-------------+-------------+-------------+------------+
-    |single index |    spherical wave expansion indices    |
-    +=============+=============+=============+============+
-    | :math:`n`   | :math:`\tau`| :math:`l`   | :math:`m`  |
-    +-------------+-------------+-------------+------------+
-    |     1       |     1       |      1      |   -1       |
-    +-------------+-------------+-------------+------------+
-    |     2       |     1       |      1      |    0       |
-    +-------------+-------------+-------------+------------+
-    |     3       |     1       |      1      |    1       |
-    +-------------+-------------+-------------+------------+
-    |     4       |     1       |      2      |   -2       |
-    +-------------+-------------+-------------+------------+
-    |     5       |     1       |      2      |   -1       |
-    +-------------+-------------+-------------+------------+
-    |     6       |     1       |      2      |    0       |
-    +-------------+-------------+-------------+------------+
-    |    ...      |    ...      |     ...     |   ...      |
-    +-------------+-------------+-------------+------------+
-    |    ...      |     1       |    l_max    |    m_max   |
-    +-------------+-------------+-------------+------------+
-    |    ...      |     2       |      1      |   -1       |
-    +-------------+-------------+-------------+------------+
-    |    ...      |    ...      |     ...     |   ...      |
-    +-------------+-------------+-------------+------------+
-
-    Args:
-        tau (int):      Polarization index :math:`\tau`(0=spherical TE, 1=spherical TM)
-        l (int):        Degree :math:`l` (1, ..., lmax)
-        m (int):        Order :math:`m` (-min(l,mmax),...,min(l,mmax))
-        l_max (int):    Maximal multipole degree
-        m_max (int):    Maximal multipole order
-
-    Returns:
-        single index (int) subsuming :math:`(\tau, l, m)`
-    """
-    # use:
-    # \sum_{l=1}^lmax (2\min(l,mmax)+1) = \sum_{l=1}^mmax (2l+1) + \sum_{l=mmax+1}^lmax (2mmax+1)
-    #                                   = 2*(1/2*mmax*(mmax+1))+mmax  +  (lmax-mmax)*(2*mmax+1)
-    #                                   = mmax*(mmax+2)               +  (lmax-mmax)*(2*mmax+1)
-    tau_blocksize = m_max * (m_max + 2) + (l_max - m_max) * (2 * m_max + 1)
-    n = tau * tau_blocksize
-    if (l - 1) <= m_max:
-        n += (l - 1) * (l - 1 + 2)
-    else:
-        n += m_max * (m_max + 2) + (l - 1 - m_max) * (2 * m_max + 1)
-    n += m + min(l, m_max)
-    return n
-
-
-def blocksize(l_max, m_max):
-    """Number of coefficients in outgoing or regular spherical wave expansion for a single particle.
-
-    Args:
-        l_max (int):    Maximal multipole degree
-        m_max (int):    Maximal multipole order
-    Returns:
-         Number of indices for one particle, which is the maximal index plus 1."""
-    return multi_to_single_index(tau=1, l=l_max, m=m_max, l_max=l_max, m_max=m_max) + 1

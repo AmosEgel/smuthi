@@ -5,16 +5,19 @@ import numpy as np
 from smuthi.linearsystem.particlecoupling.direct_coupling import direct_coupling_block
 from smuthi.linearsystem.particlecoupling.layer_mediated_coupling import layer_mediated_coupling_block
 import smuthi.layers as lay
-import smuthi.fields.coordinates_and_contours as coord
 import smuthi.particles as part
+import smuthi.fields as flds
 
-#idx.set_swe_specs(l_max=2)
 wl = 550
 
 part1 = part.Sphere(position=[100, -100, 200], refractive_index=1.7, radius=100, l_max=2, m_max=2)
 part2 = part.Sphere(position=[-100, 200, 300], refractive_index=1.7, radius=100, l_max=2, m_max=2)
 
-coord.set_default_k_parallel(wl, [0, 0.8, 0.8 - 0.1j, 2.1 - 0.1j, 2.1, 3], 2e-3)
+flds.default_Sommerfeld_k_parallel_array = flds.reasonable_Sommerfeld_kpar_contour(
+    vacuum_wavelength=wl,
+    neff_waypoints=[0, 0.8, 0.8 - 0.1j, 2.1 - 0.1j, 2.1, 3],
+    neff_resolution=2e-3)
+
 
 def test_wr_against_prototype():
     laysys_substrate = lay.LayerSystem(thicknesses=[0, 0], refractive_indices=[2 + 0.1j, 1])
@@ -66,7 +69,11 @@ def test_w_against_prototype():
 
 
 def test_w_against_wr():
-    coord.set_default_k_parallel(wl, [0, 0.8, 0.8 - 0.1j, 2.1 - 0.1j, 2.1, 7], 2e-3)
+    flds.default_Sommerfeld_k_parallel_array = flds.reasonable_Sommerfeld_kpar_contour(
+        vacuum_wavelength=wl,
+        neff_waypoints=[0, 0.8, 0.8 - 0.1j, 2.1 - 0.1j, 2.1, 7],
+        neff_resolution=2e-3)
+
     laysys_air_1 = lay.LayerSystem(thicknesses=[0, 0], refractive_indices=[1, 1])
     laysys_air_2 = lay.LayerSystem(thicknesses=[0, 250, 0], refractive_indices=[1, 1, 1])
 

@@ -2,8 +2,7 @@
 mediated) particle coupling coefficients."""
 
 import numpy as np
-import smuthi.fields.coordinates_and_contours as coord
-import smuthi.fields.expansions as fldex
+import smuthi.fields as flds
 import smuthi.fields.transformations as trf
 import smuthi.utility.math as sf
 import scipy.optimize
@@ -22,15 +21,15 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
     Returns:
         Direct coupling matrix block as numpy array.
     """
-    omega = coord.angular_frequency(vacuum_wavelength)
+    omega = flds.angular_frequency(vacuum_wavelength)
 
     # index specs
     lmax1 = receiving_particle.l_max
     mmax1 = receiving_particle.m_max
     lmax2 = emitting_particle.l_max
     mmax2 = emitting_particle.m_max
-    blocksize1 = fldex.blocksize(lmax1, mmax1)
-    blocksize2 = fldex.blocksize(lmax2, mmax2)
+    blocksize1 = flds.blocksize(lmax1, mmax1)
+    blocksize2 = flds.blocksize(lmax2, mmax2)
 
     # initialize result
     w = np.zeros((blocksize1, blocksize2), dtype=complex)
@@ -68,9 +67,9 @@ def direct_coupling_block(vacuum_wavelength, receiving_particle, emitting_partic
                             B += b5 * bessel_h[ld] * legendre[ld][abs(m1 - m2)]
                         A, B = eimph * A, eimph * B
                         for tau1 in range(2):
-                            n1 = fldex.multi_to_single_index(tau1, l1, m1, lmax1, mmax1)
+                            n1 = flds.multi_to_single_index(tau1, l1, m1, lmax1, mmax1)
                             for tau2 in range(2):
-                                n2 = fldex.multi_to_single_index(tau2, l2, m2, lmax2, mmax2)
+                                n2 = flds.multi_to_single_index(tau2, l2, m2, lmax2, mmax2)
                                 if tau1 == tau2:
                                     w[n1, n2] = A
                                 else:
@@ -91,7 +90,7 @@ def direct_coupling_matrix(vacuum_wavelength, particle_list, layer_system):
         Ensemble coupling matrix as numpy array.
     """
     # indices
-    blocksizes = [fldex.blocksize(particle.l_max, particle.m_max)
+    blocksizes = [flds.blocksize(particle.l_max, particle.m_max)
                   for particle in particle_list]
 
     # initialize result
@@ -261,8 +260,8 @@ def direct_coupling_block_pvwf_mediated(vacuum_wavelength, receiving_particle, e
     assert lmax2 == mmax2, 'PVWF coupling requires lmax == mmax for each particle.'
     lmax = max([lmax1, lmax2])
     m_max = max([mmax1, mmax2]) 
-    blocksize1 = fldex.blocksize(lmax1, mmax1)
-    blocksize2 = fldex.blocksize(lmax2, mmax2)
+    blocksize1 = flds.blocksize(lmax1, mmax1)
+    blocksize2 = flds.blocksize(lmax2, mmax2)
     
     n_medium = layer_system.refractive_indices[layer_system.layer_number(receiving_particle.position[2])]
       
@@ -286,9 +285,9 @@ def direct_coupling_block_pvwf_mediated(vacuum_wavelength, receiving_particle, e
     z21 = r21_rot[2]
     
     # wavenumbers
-    omega = coord.angular_frequency(vacuum_wavelength)
+    omega = flds.angular_frequency(vacuum_wavelength)
     k = omega * n_medium
-    kz = coord.k_z(k_parallel=k_parallel, vacuum_wavelength=vacuum_wavelength, refractive_index=n_medium)
+    kz = flds.k_z(k_parallel=k_parallel, vacuum_wavelength=vacuum_wavelength, refractive_index=n_medium)
     if z21 < 0:
         kz_var = -kz
     else:
@@ -317,9 +316,9 @@ def direct_coupling_block_pvwf_mediated(vacuum_wavelength, receiving_particle, e
             for l1 in range(max(1, abs(m1)), lmax1 + 1):
                 for l2 in range(max(1, abs(m2)), lmax2 + 1):
                     for tau1 in range(2):
-                        n1 = fldex.multi_to_single_index(tau1, l1, m1, lmax1, mmax1)
+                        n1 = flds.multi_to_single_index(tau1, l1, m1, lmax1, mmax1)
                         for tau2 in range(2):
-                            n2 = fldex.multi_to_single_index(tau2, l2, m2, lmax2, mmax2)
+                            n2 = flds.multi_to_single_index(tau2, l2, m2, lmax2, mmax2)
                             for pol in range(2):
                                 B_dag = trf.transformation_coefficients_vwf(tau1, l1, m1, pol, pilm_list=pilm_list,
                                                                         taulm_list=taulm_list, dagger=True)
