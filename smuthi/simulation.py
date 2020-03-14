@@ -21,9 +21,37 @@ class Simulation:
         particle_list (list):                                   list of smuthi.particles.Particle objects
         initial_field (smuthi.initial_field.InitialField):      initial field object
         post_processing (smuthi.post_processing.PostProcessing): object managing post processing tasks
-        k_parallel (numpy.ndarray or str):      in-plane wavenumber for Sommerfeld integrals. if 'default', use
-                                                smuthi.fields.default_Sommerfeld_k_parallel_array
-        solver_type (str):                      What solver type to use? 
+        k_parallel (numpy.ndarray or str):               in-plane wavenumber for Sommerfeld integrals and field
+                                                         expansions. if 'default', use
+                                                         smuthi.fields.default_Sommerfeld_k_parallel_array
+        neff_waypoints (list or ndarray):                Used to set default k_parallel arrays.
+                                                         Corner points through which the contour runs
+                                                         This quantity is dimensionless (effective
+                                                         refractive index, will be multiplied by vacuum
+                                                         wavenumber)
+                                                         If not provided, reasonable waypoints are estimated.
+        neff_imag (float):                               Used to set default k_parallel arrays.
+                                                         Extent of the contour into the negative imaginary direction
+                                                         (in terms of effective refractive index, n_eff=kappa/omega).
+                                                         Only needed when no neff_waypoints are provided
+        neff_max (float):                                Used to set default k_parallel arrays.
+                                                         Truncation value of contour (in terms of effective refractive
+                                                         index). Only needed when no neff_waypoints are
+                                                         provided
+        neff_max_offset (float):                         Used to set default k_parallel arrays.
+                                                         Use the last estimated singularity location plus this value
+                                                         (in terms of effective refractive index). Default=1
+                                                         Only needed when no `neff_waypoints` are provided
+                                                         and if no value for `neff_max` is specified.
+        neff_resolution(float):                          Used to set default k_parallel arrays.
+                                                         Resolution of contour, again in terms of effective refractive
+                                                         index
+        neff_minimal_branchpoint_distance (float):       Used to set default k_parallel arrays.
+                                                         Minimal distance that contour points shall have from
+                                                         branchpoint singularities (in terms of effective
+                                                         refractive index). This is only relevant if not deflected
+                                                         into imaginary. Default: One fifth of neff_resolution
+        solver_type (str):                      What solver type to use?
                                                 Options: 'LU' for LU factorization, 'gmres' for GMRES iterative solver
         coupling_matrix_lookup_resolution (float or None): If type float, compute particle coupling by interpolation of
                                                            a lookup table with that spacial resolution. If None
@@ -45,6 +73,12 @@ class Simulation:
                  initial_field=None,
                  post_processing=None,
                  k_parallel='default',
+                 neff_waypoints=None,
+                 neff_imag=1e-2,
+                 neff_max=None,
+                 neff_max_offset=1,
+                 neff_resolution=1e-2,
+                 neff_minimal_branchpoint_distance=None,
                  solver_type='LU',
                  solver_tolerance=1e-4,
                  store_coupling_matrix=True,
@@ -62,6 +96,12 @@ class Simulation:
         self.particle_list = particle_list
         self.initial_field = initial_field
         self.k_parallel = k_parallel
+        self.neff_waypoints = neff_waypoints
+        self.neff_imag = neff_imag
+        self.neff_max = neff_max
+        self.neff_max_offset = neff_max_offset
+        self.neff_resolution = neff_resolution
+        self.neff_minimal_branchpoint_distance = neff_minimal_branchpoint_distance
         self.solver_type = solver_type
         self.solver_tolerance = solver_tolerance
         self.store_coupling_matrix = store_coupling_matrix
@@ -147,38 +187,58 @@ class Simulation:
                                                coupling_matrix_lookup_resolution=self.coupling_matrix_lookup_resolution,
                                                interpolator_kind=self.coupling_matrix_interpolator_kind)
     
+    def set_default_Sommerfeld_contour(self):
+        """Set the default Sommerfeld k_parallel array"""
+
+        smuthi.fields.default_Sommerfeld_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
+            vacuum_wavelength=self.initial_field.vacuum_wavelength,
+            neff_waypoints=self.neff_waypoints,
+            layer_refractive_indices=self.layer_system.refractive_indices,
+            neff_imag=self.neff_imag,
+            neff_max=self.neff_max,
+            neff_max_offset=self.neff_max_offset,
+            neff_resolution=self.neff_resolution,
+            neff_minimal_branchpoint_distance=self.neff_minimal_branchpoint_distance)
+
+    def set_default_initial_field_contour(self):
+        """Set the default initial field k_parallel array"""
+
+        if type(self.initial_field).__name__ == 'GaussianBeam':
+            # in that case use only wavenumbers that propagate in the originating layer
+            if self.initial_field.polar_angle <= np.pi / 2:
+                neff_max = self.layer_system.refractive_indices[0].real
+            else:
+                neff_max = self.layer_system.refractive_indices[-1].real
+
+            smuthi.fields.default_initial_field_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
+                vacuum_wavelength=self.initial_field.vacuum_wavelength,
+                neff_imag=0,
+                neff_max=neff_max,
+                neff_resolution=self.neff_resolution,
+                neff_minimal_branchpoint_distance=self.neff_minimal_branchpoint_distance)
+        else:
+            # case of dipoles etc ...
+            # use a similar contour as for Sommerfeld integrals
+            smuthi.fields.default_initial_field_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
+                vacuum_wavelength=self.initial_field.vacuum_wavelength,
+                neff_waypoints=self.neff_waypoints,
+                layer_refractive_indices=self.layer_system.refractive_indices,
+                neff_imag=self.neff_imag,
+                neff_max=self.neff_max,
+                neff_max_offset=self.neff_max_offset,
+                neff_resolution=self.neff_resolution,
+                neff_minimal_branchpoint_distance=self.neff_minimal_branchpoint_distance)
+
     def run(self):
         """Start the simulation."""
         self.print_simulation_header()
 
-        #if type(self.k_parallel) == str and self.k_parallel == "default":
-        #    self.k_parallel = autoparam.default_sommerfeld_contour(self)
-
         # check if default contours exists, otherwise set them
         if smuthi.fields.default_Sommerfeld_k_parallel_array is None:
-            smuthi.fields.default_Sommerfeld_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
-                vacuum_wavelength=self.initial_field.vacuum_wavelength,
-                layer_refractive_indices=self.layer_system.refractive_indices)
+            self.set_default_Sommerfeld_contour()
 
         if smuthi.fields.default_initial_field_k_parallel_array is None:
-            if type(self.initial_field).__name__ == 'GaussianBeam':
-                # in that case use only wavenumbers that propagate in the originating layer
-                if self.initial_field.polar_angle <= np.pi / 2:
-                    neff_max = self.layer_system.refractive_indices[0].real
-                else:
-                    neff_max = self.layer_system.refractive_indices[-1].real
-
-                smuthi.fields.default_initial_field_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
-                    vacuum_wavelength=self.initial_field.vacuum_wavelength,
-                    neff_imag=0,
-                    neff_max=neff_max)
-
-            else:
-                # case of dipoles etc ...
-                # use a similar contour as for Sommerfeld integrals
-                smuthi.fields.default_initial_field_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
-                    vacuum_wavelength=self.initial_field.vacuum_wavelength,
-                    layer_refractive_indices=self.layer_system.refractive_indices)
+            self.set_default_initial_field_contour()
 
         # prepare and solve linear system
         start = time.time()

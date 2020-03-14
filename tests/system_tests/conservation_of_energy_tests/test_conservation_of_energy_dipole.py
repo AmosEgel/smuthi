@@ -3,27 +3,13 @@ import smuthi.particles as part
 import smuthi.simulation as simul
 import smuthi.layers as lay
 import smuthi.postprocessing.far_field as ff
-import smuthi.fields as flds
 import sys
-
 
 ld = 550
 rD = [100, -100, 100]
 D = [1e7, 2e7, 3e7]
 waypoints = [0, 0.8, 0.8-0.1j, 2.1-0.1j, 2.1, 4]
 neff_discr = 2e-2
-
-flds.default_initial_field_k_parallel_array = flds.reasonable_Sommerfeld_kpar_contour(
-    vacuum_wavelength=ld,
-    neff_waypoints=waypoints,
-    neff_resolution=neff_discr)
-
-flds.default_Sommerfeld_k_parallel_array = flds.reasonable_Sommerfeld_kpar_contour(
-    vacuum_wavelength=ld,
-    neff_waypoints=waypoints,
-    neff_resolution=neff_discr)
-
-#coord.set_default_k_parallel(vacuum_wavelength = ld, neff_waypoints=waypoints, neff_resolution=neff_discr)
 
 # initialize particle object
 sphere1 = part.Sphere(position=[200, 200, 300], refractive_index=2.4 + 0.0j, radius=110, l_max=3, m_max=3)
@@ -39,7 +25,8 @@ dipole = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D, position=rD)
 
 # run simulation
 simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole,
-                              log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
+                              log_to_terminal=(not sys.argv[0].endswith('nose2')),  # suppress output if called by nose
+                              neff_waypoints=waypoints, neff_resolution=neff_discr)
 simulation.run()
 
 power_hom = dipole.dissipated_power_homogeneous_background(layer_system=simulation.layer_system)

@@ -23,11 +23,6 @@ neff_waypoints = [0, 0.5, 0.8-0.01j, 2-0.01j, 2.5, 5]
 neff_discr = 1e-2
 # --------------------------------------------
 
-flds.default_Sommerfeld_k_parallel_array = flds.reasonable_Sommerfeld_kpar_contour(
-    vacuum_wavelength=vacuum_wavelength,
-    neff_waypoints=neff_waypoints,
-    neff_resolution=neff_discr)
-
 # initialize particle object
 sphere1 = part.Sphere(position=[100, 100, 150], refractive_index=2.4 + 0.0j, radius=110, l_max=4, m_max=4)
 sphere2 = part.Sphere(position=[-100, -100, 250], refractive_index=1.9 + 0.0j, radius=120, l_max=3, m_max=3)
@@ -45,7 +40,8 @@ init_fld = init.GaussianBeam(vacuum_wavelength=vacuum_wavelength, polar_angle=be
 
 # initialize simulation object
 simulation = simul.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                              log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
+                              log_to_terminal=(not sys.argv[0].endswith('nose2')),  # suppress output if called by nose
+                              neff_waypoints=neff_waypoints, neff_resolution=neff_discr)
 simulation.run()
 
 ttff, inff, scff = farf.total_far_field(initial_field=simulation.initial_field, particle_list=simulation.particle_list,

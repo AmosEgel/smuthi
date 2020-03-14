@@ -3,7 +3,6 @@
 
 import sys
 import numpy as np
-import smuthi.fields
 import smuthi.particles as part
 import smuthi.layers as lay
 import smuthi.initial_field as init
@@ -27,12 +26,6 @@ neff_discr = 1e-3
 
 # --------------------------------------------
 
-smuthi.fields.default_Sommerfeld_k_parallel_array = smuthi.fields.reasonable_Sommerfeld_kpar_contour(
-    vacuum_wavelength=vacuum_wavelength,
-    neff_waypoints=neff_waypoints,
-    neff_resolution=neff_discr)
-
-
 # initialize particle object
 part1 = part.Sphere(position=[0, 0, distance_sphere_substrate + sphere_radius],
                     refractive_index=sphere_refractive_index, radius=sphere_radius, l_max=lmax, m_max=lmax)
@@ -48,7 +41,8 @@ init_fld = init.PlaneWave(vacuum_wavelength=vacuum_wavelength, polar_angle=plane
 
 # simulation
 simulation = sim.Simulation(layer_system=lay_sys, particle_list=particle_list, initial_field=init_fld,
-                            log_to_terminal=(not sys.argv[0].endswith('nose2')))  # suppress output if called by nose
+                            log_to_terminal=(not sys.argv[0].endswith('nose2')),  # suppress output if called by nose
+                            neff_waypoints=neff_waypoints, neff_resolution=neff_discr)
 
 simulation.run()
 

@@ -30,8 +30,6 @@ flds.default_Sommerfeld_k_parallel_array = flds.reasonable_Sommerfeld_kpar_conto
     neff_waypoints=neff_waypoints,
     neff_resolution=neff_discr)
 
-
-
 # initialize particle object
 sphere1 = part.Sphere(position=[0, 0, 150], refractive_index=2.4 + 0.1j, radius=100, l_max=3, m_max=3)
 sphere2 = part.Sphere(position=[102, -100, 150], refractive_index=1.9 + 0.2j, radius=80, l_max=3, m_max=2)

@@ -44,6 +44,24 @@ class InitialField:
         """
         return smuthi.fields.angular_frequency(self.vacuum_wavelength)
 
+    def get_k_parallel_array(self):
+        """Get k_parallel array which is either the default array or the one stored in the object"""
+        if not hasattr(self, 'k_parallel_array'):
+            return smuthi.fields.default_initial_field_k_parallel_array
+        if type(self.k_parallel_array) == str and self.k_parallel_array == 'default':
+            return smuthi.fields.default_initial_field_k_parallel_array
+        else:
+            return self.k_parallel_array
+
+    def get_azimuthal_angles_array(self):
+        """Get azimuthal angles array which is either the default array or the one stored in the object"""
+        if not hasattr(self, 'azimuthal_angles_array'):
+            return smuthi.fields.default_azimuthal_angles
+        if type(self.azimuthal_angles_array) == str and self.azimuthal_angles_array == 'default':
+            return smuthi.fields.default_azimuthal_angles
+        else:
+            return self.azimuthal_angles_array
+
 
 class InitialPropagatingWave(InitialField):
     """Base class for plane waves and Gaussian beams
@@ -127,10 +145,6 @@ class GaussianBeam(InitialPropagatingWave):
         InitialPropagatingWave.__init__(self, vacuum_wavelength, polar_angle, azimuthal_angle, polarization, amplitude,
                                         reference_point)
         self.beam_waist = beam_waist
-        if type(k_parallel_array) == str and k_parallel_array == 'default':
-            k_parallel_array = smuthi.fields.default_initial_field_k_parallel_array
-        if type(azimuthal_angles_array) == str and azimuthal_angles_array == 'default':
-            azimuthal_angles_array = smuthi.fields.default_azimuthal_angles
         self.k_parallel_array = k_parallel_array
         self.azimuthal_angles_array = azimuthal_angles_array
         
@@ -150,9 +164,9 @@ class GaussianBeam(InitialPropagatingWave):
             component
         """            
         if k_parallel_array is None:
-            k_parallel_array = self.k_parallel_array
+            k_parallel_array = InitialField.get_k_parallel_array(self)
         if azimuthal_angles_array is None:
-            azimuthal_angles_array = self.azimuthal_angles_array
+            azimuthal_angles_array = InitialField.get_azimuthal_angles_array(self)
 
         if np.cos(self.polar_angle) > 0:
             iG = 0  # excitation layer number
@@ -315,10 +329,6 @@ class DipoleSource(InitialField):
         InitialField.__init__(self, vacuum_wavelength)
         self.dipole_moment = dipole_moment
         self.position = position
-        if type(k_parallel_array) == str and k_parallel_array == 'default':
-            k_parallel_array = smuthi.fields.default_initial_field_k_parallel_array
-        if type(azimuthal_angles_array) == str and azimuthal_angles_array == 'default':
-            azimuthal_angles_array = smuthi.fields.default_azimuthal_angles
         self.k_parallel_array = k_parallel_array
         self.azimuthal_angles_array = azimuthal_angles_array
 
@@ -377,7 +387,7 @@ class DipoleSource(InitialField):
                                            emitting_particle=virtual_particle, layer_system=layer_system)
         wr = laycoup.layer_mediated_coupling_block(vacuum_wavelength=self.vacuum_wavelength, receiving_particle=particle,
                                                    emitting_particle=virtual_particle, layer_system=layer_system,
-                                                   k_parallel=self.k_parallel_array)
+                                                   k_parallel=self.get_k_parallel_array())
         k = self.angular_frequency() * layer_system.refractive_indices[layer_system.layer_number(particle.position[2])]
         swe = fldex.SphericalWaveExpansion(k=k, l_max=particle.l_max, m_max=particle.m_max, kind='regular',
                                            reference_point=particle.position)
@@ -407,8 +417,8 @@ class DipoleSource(InitialField):
             for i in range(layer_system.number_of_layers()):
                 # layer response as plane wave expansions
                 pwe_up, pwe_down = trf.swe_to_pwe_conversion(swe=self.outgoing_spherical_wave_expansion(layer_system),
-                                                            k_parallel=self.k_parallel_array,
-                                                            azimuthal_angles=self.azimuthal_angles_array,
+                                                            k_parallel=self.get_k_parallel_array(),
+                                                            azimuthal_angles=self.get_azimuthal_angles_array(),
                                                             layer_system=layer_system, layer_number=i,
                                                             layer_system_mediated=True)
                 if i > 0:
@@ -514,7 +524,7 @@ class DipoleSource(InitialField):
                                                 receiving_particle=virtual_particle,
                                                 emitting_particle=particle,
                                                 layer_system=layer_system,
-                                                k_parallel=self.k_parallel_array)
+                                                k_parallel=self.get_k_parallel_array())
 
             scattered_field_swe.coefficients += np.dot(wd + wr, particle.scattered_field.coefficients)
 
@@ -553,7 +563,8 @@ class DipoleSource(InitialField):
             dissipated power as float
         """
         scat_fld_exp = sf.scattered_field_piecewise_expansion(self.vacuum_wavelength, particle_list, layer_system, 
-                                                              self.k_parallel_array, self.azimuthal_angles_array)
+                                                              self.get_k_parallel_array(),
+                                                              self.get_azimuthal_angles_array())
         e_x_scat, e_y_scat, e_z_scat = scat_fld_exp.electric_field(self.position[0], self.position[1], self.position[2])
         e_x_in, e_y_in, e_z_in = self.electric_field(x=self.position[0], y=self.position[1], z=self.position[2],
                                                      layer_system=layer_system, include_direct_field=False)
@@ -578,9 +589,9 @@ class DipoleSource(InitialField):
             component
         """
         if k_parallel_array is None:
-            k_parallel_array = self.k_parallel_array
+            k_parallel_array = self.get_k_parallel_array()
         if azimuthal_angles_array is None:
-            azimuthal_angles_array = self.azimuthal_angles_array
+            azimuthal_angles_array = self.get_azimuthal_angles_array()
 
         virtual_particle = part.Particle(position=self.position)
         virtual_particle.scattered_field = self.outgoing_spherical_wave_expansion(layer_system)
@@ -613,10 +624,6 @@ class DipoleCollection(InitialField):
         self.compute_swe_by_pwe = compute_swe_by_pwe
         self.compute_dissipated_power_by_pwe = compute_dissipated_power_by_pwe
 
-        if type(k_parallel_array) == str and k_parallel_array == 'default':
-            k_parallel_array = smuthi.fields.default_initial_field_k_parallel_array
-        if type(azimuthal_angles_array) == str and azimuthal_angles_array == 'default':
-            azimuthal_angles_array = smuthi.fields.default_azimuthal_angles
         self.k_parallel_array = k_parallel_array
         self.azimuthal_angles_array = azimuthal_angles_array        
 
@@ -862,9 +869,9 @@ class DipoleCollection(InitialField):
             component
         """
         if k_parallel_array is None:
-            k_parallel_array = self.k_parallel_array
+            k_parallel_array = self.get_k_parallel_array()
         if azimuthal_angles_array is None:
-            azimuthal_angles_array = self.azimuthal_angles_array        
+            azimuthal_angles_array = self.get_azimuthal_angles_array()
         
         virtual_particle_list = []
 
