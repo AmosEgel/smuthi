@@ -136,7 +136,7 @@ class PiecewiseFieldExpansion(FieldExpansion):
             Tuple of (E_x, E_y, E_z) numpy.ndarray objects with the Cartesian 
             coordinates of complex electric field.
         """
-        x, y, z = np.array(x), np.array(y), np.array(z)
+        x, y, z = np.array(x, ndmin=1), np.array(y, ndmin=1), np.array(z, ndmin=1)
         ex = np.zeros(x.shape, dtype=complex)
         ey = np.zeros(x.shape, dtype=complex)
         ez = np.zeros(x.shape, dtype=complex)
