@@ -1,6 +1,12 @@
 .. note:: This site is currently under construction.
 
 
+See :doc:`hints on units in Smuthi <units>`.
+
+See :doc:`hints on cross sections in Smuthi <cross_sections>`.
+
+See :doc:`literature <literature>`.
+
 Some unstructered notes:
 
 To simulate few or the only one particle on the surface you should
