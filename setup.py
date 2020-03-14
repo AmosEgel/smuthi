@@ -25,7 +25,7 @@ class CustomInstallCommand(install):
             sys.stdout.write('Try to install pywigxjpf ... \n')
             sys.stdout.flush()
             try:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", "pywigxjpf"], stdout=none, stderr=none)
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "pywigxjpf"], stdout=None, stderr=None)
             except Exception as e:
                 warnings.warn('\n*****************************************************\n'
                               'pywigxjpf installation failed.\n'
@@ -96,7 +96,8 @@ setup(
               'smuthi.linearsystem.particlecoupling',
               'smuthi.postprocessing',
               'smuthi.utility'],
-    cmdclass={'install': CustomInstallCommand},
+    cmdclass={'install': CustomInstallCommand,
+              'develop': CustomInstallCommand},
     package_data={'smuthi.linearsystem.tmatrix.nfmds': ['NFM-DS/*.txt', 'NFM-DS/TMATSOURCES/*', 'NFM-DS/TMATFILES/*',
                                                         'NFM-DS/INPUTFILES/*.dat', 'NFM-DS/OUTPUTFILES/*'],
                   'smuthi': ['_data/*']},
