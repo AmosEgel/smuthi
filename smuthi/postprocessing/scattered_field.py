@@ -64,6 +64,7 @@ def scattered_field_piecewise_expansion(vacuum_wavelength, particle_list, layer_
     # direct field ---------------------------------------------------------------------------------------------
     for particle in particle_list:
         sfld.expansion_list.append(particle.scattered_field)
+        sfld.validity_conditions.append(particle.is_outside)
 
     return sfld
 
