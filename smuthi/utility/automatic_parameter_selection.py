@@ -4,7 +4,6 @@ import sys
 import numpy as np
 import smuthi.fields as flds
 import smuthi.postprocessing.far_field as ff
-import smuthi.fields.coordinates_and_contours as coord
 from smuthi.fields import angular_frequency
 import smuthi.utility.logging as log
 
@@ -198,44 +197,9 @@ def converge_multipole_cutoff(simulation,
     return current_value
 
 
-def neff_waypoints(simulation, neff_imag=1e-2, neff_max=None, neff_max_offset=None):
-    """Construct a list of Sommerfeld integral contour waypoints with regard to possible waveguide mode and branchpoint
-    singularity locations.
-
-    Args:
-        simulation (smuthi.simulation.Simulation):      Simulation object
-        neff_imag (float):                              Extent of the contour into the negative imaginary direction
-                                                        (in terms of effective refractive index, n_eff=kappa/omega).
-        neff_max (float):                               Truncation value of contour (in terms of effective refractive
-                                                        index).
-        neff_max_offset (float):                        If no value for `neff_max` is specified, use the last estimated
-                                                        singularity location plus this value (in terms of effective
-                                                        refractive index).
-
-    Returns:
-        List of complex waypoint values.
-    """
-    min_waveguide_neff = max(0, min(np.array(simulation.layer_system.refractive_indices).real) - 0.1)
-    max_waveguide_neff = max(np.array(simulation.layer_system.refractive_indices).real) + 0.2
-    if neff_max is None:
-        if neff_max_offset is None:
-            raise ValueError("You need to specify either neff_max or neff_max_offset.")
-        else:
-            neff_max = max_waveguide_neff + neff_max_offset
-
-    waypoints = [0,
-                 min_waveguide_neff,
-                 min_waveguide_neff - 1j * neff_imag,
-                 max_waveguide_neff - 1j * neff_imag,
-                 max_waveguide_neff]
-    if neff_max > max_waveguide_neff:
-        waypoints.append(neff_max)
-    return waypoints
-
-
 def update_contour(simulation, neff_imag=5e-3, neff_max=None, neff_max_offset=0.5, neff_step=2e-3):
-    """Update the `k_parallel` attribute of the input simulation object with a newly constructed Sommerfeld integral
-    contour.
+    """Update the default `k_parallel` arrays in smuthi.fields with a newly constructed Sommerfeld integral
+    contours.
 
     Args:
         simulation (smuthi.simulation.Simulation):      Simulation object
@@ -248,52 +212,17 @@ def update_contour(simulation, neff_imag=5e-3, neff_max=None, neff_max_offset=0.
                                                         refractive index).
         neff_step (float):                              Discretization of the contour (in terms of eff. refractive
                                                         index).
+        update_default_contours (logical)               If true, overwrite the default contours in smuthi.fields module.
+                                                        Otherwise, overwrite simulation.k_parallel array
     """
-    waypoints = neff_waypoints(simulation, neff_imag, neff_max, neff_max_offset)
-    simulation.k_parallel = coord.complex_contour(simulation.initial_field.vacuum_wavelength, waypoints, neff_step)
-    branchpoint_correction(simulation, neff_step * 1e-2)
+    simulation.neff_imag = neff_imag
+    simulation.neff_max = neff_max
+    simulation.neff_max_offset = neff_max_offset
+    simulation.neff_resolution = neff_step
+    simulation.set_default_initial_field_contour()
+    simulation.set_default_Sommerfeld_contour()
 
-    waypoints = neff_waypoints(simulation=simulation,
-                               neff_imag=neff_imag,
-                               neff_max=neff_max,
-                               neff_max_offset=neff_max_offset)
-    simulation.k_parallel = coord.complex_contour(simulation.initial_field.vacuum_wavelength, waypoints, neff_step)
-    branchpoint_correction(simulation, neff_step * 1e-2)
-
-
-def branchpoint_correction(simulation, neff_minimal_branchpoint_distance):
-    """Check if a Sommerfeld integral contour contains possible branchpoint singularities and if so, replace them by
-    nearby non-singular locations.
-
-    Args:
-        simulation (smuthi.simulation.Simulation):      Simulation object
-        neff_minimal_branchpoint_distance (float):      Minimal distance that contour points shall have from
-                                                        branchpoint singularities (in terms of effective refractive
-                                                        index).
-    """
-
-    for n in simulation.layer_system.refractive_indices:
-        k = n * angular_frequency(simulation.initial_field.vacuum_wavelength)
-        min_k_distance = (angular_frequency(simulation.initial_field.vacuum_wavelength)
-                          * neff_minimal_branchpoint_distance)
-        while True:
-            branchpoint_indices = np.where(abs(simulation.k_parallel - k) < min_k_distance)[0]
-            if len(branchpoint_indices) == 0:
-                break
-            idx = branchpoint_indices[0]
-            # replace contour point by two points at the middle towards its left and right neighbors
-            if not idx == len(simulation.k_parallel) - 1:
-                simulation.k_parallel = np.insert(simulation.k_parallel,
-                                                  idx + 1,
-                                                  (simulation.k_parallel[idx] + simulation.k_parallel[idx+1]) / 2.0)
-                # make sure the new point is ok, otherwise remove
-                if abs(simulation.k_parallel[idx + 1] - k) < min_k_distance:
-                    simulation.k_parallel = np.delete(simulation.k_parallel, idx + 1)
-            if not idx == 0:
-                simulation.k_parallel[idx] = (simulation.k_parallel[idx-1] + simulation.k_parallel[idx]) / 2.0
-                # make sure the shifted point is ok, otherwise remove
-                if abs(simulation.k_parallel[idx] - k) < min_k_distance:
-                    simulation.k_parallel = np.delete(simulation.k_parallel, idx)
+    simulation.k_parallel = flds.default_Sommerfeld_k_parallel_array
 
 
 def converge_neff_max(simulation,
@@ -334,6 +263,13 @@ def converge_neff_max(simulation,
     log.write_blue("Searching suitable neff_max")
 
     update_contour(simulation=simulation, neff_imag=neff_imag, neff_max_offset=0, neff_step=neff_step)
+
+    simulation.k_parallel = flds.reasonable_Sommerfeld_kpar_contour(
+        vacuum_wavelength=simulation.initial_field.vacuum_wavelength,
+        layer_refractive_indices=simulation.layer_system.refractive_indices,
+        neff_imag=neff_imag,
+        neff_max_offset=0,
+        neff_resolution=neff_step)
 
     neff_max = simulation.k_parallel[-1] / angular_frequency(simulation.initial_field.vacuum_wavelength)
     print("Starting value: neff_max=%f"%neff_max.real)
