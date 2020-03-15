@@ -405,6 +405,29 @@ def scattering_cross_section(initial_field, particle_list, layer_system, polar_a
     return dscs
 
 
+def total_scattering_cross_section(initial_field, particle_list, layer_system, polar_angles='default',
+                                   azimuthal_angles='default'):
+    """Evaluate the total scattering cross section.
+
+    Args:
+        initial_field (smuthi.initial.PlaneWave): Initial Plane wave
+        particle_list (list):                     scattering particles
+        layer_system (smuthi.layers.LayerSystem): stratified medium
+        polar_angles (numpy.ndarray or str):        polar angles values (radian).
+                                                    if 'default', use smuthi.fields.default_polar_angles
+        azimuthal_angles (numpy.ndarray or str):    azimuthal angle values (radian)
+                                                    if 'default', use smuthi.fields.default_azimuthal_angles
+
+    Returns:
+        A tuple of smuthi.field_expansion.FarField objects, one for forward scattering (i.e., into the top hemisphere) and one for backward
+        scattering (bottom hemisphere).
+    """
+    dscs = scattering_cross_section(initial_field, particle_list, layer_system, polar_angles='default',
+                                    azimuthal_angles='default')
+    scs = dscs.integral()
+    return scs[0] + scs[1]
+
+
 def extinction_cross_section(initial_field, particle_list, layer_system):
     """Evaluate the extinction cross section.
 
