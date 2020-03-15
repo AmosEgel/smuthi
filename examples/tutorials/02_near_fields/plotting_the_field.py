@@ -26,7 +26,7 @@ smuthi.utility.cuda.enable_gpu()
 # between the first two layers defines the plane z=0.
 # Note that semi infinite layers have thickness 0!
 three_layers = smuthi.layers.LayerSystem(thicknesses=[0, 500, 0], 
-                                         refractive_indices=[1.52, 2.6, 1])
+                                         refractive_indices=[1.52, 1.75, 1])
 
 # Scattering particles, immersed in the titania layer
 sphere1 = smuthi.particles.Sphere(position=[-200, 0, 250],
@@ -61,7 +61,7 @@ simulation = smuthi.simulation.Simulation(layer_system=three_layers,
 simulation.run()
 
 # Create plots that visualize the electric nea field
-smuthi.postprocessing.graphical_output.show_near_field(quantities_to_plot=['E_y'],
+smuthi.postprocessing.graphical_output.show_near_field(quantities_to_plot=['norm(E)', 'E_y'],
                                                        save_plots=True,
                                                        show_plots=True,
                                                        save_animations=True,

@@ -12,7 +12,7 @@ Click on the respective tutorial names to view a brief discussion.
 No. Tutorial                             level           script    
 === ==================================  ============== ============
 1   |ex1link|                             |introd|      |ex1script|
-2   TIRS microscopy (to be done)          |intermed|      TBD      
+2   |ex2link|                             |introd|      |ex2script|
 3   Purcell effect (to be done)           |intermed|      TBD       
 4   |ex4link|                             |intermed|      TBD       
 4   Dielectric metalens (to be done)      |intermed|      TBD       
@@ -20,9 +20,14 @@ No. Tutorial                             level           script
 6   |ex6link|                             |advanced|      TBD       
 === ==================================  ============== ============ 
 
-.. |ex1script| replace:: :download:`download <../examples/tutorials/sphere_on_substrate/dielectric_sphere_on_substrate.py>`
+.. |ex1script| replace:: :download:`download <../examples/tutorials/01_sphere_on_substrate/dielectric_sphere_on_substrate.py>`
 
 .. |ex1link| replace:: :doc:`Sphere on substrate <examples/01_sphere_on_substrate/discussion>`
+
+.. |ex2script| replace:: :download:`download <../examples/tutorials/02_near_fields/plotting_the_field.py>`
+
+.. |ex2link| replace:: :doc:`Plotting the near field <examples/02_plotting_the_near_field/discussion>`
+
 
 .. |ex4link| replace:: :doc:`Many spheres on substrate <examples/many_particles/discussion>`
 
