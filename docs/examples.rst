@@ -22,14 +22,14 @@ No. Tutorial                             level           script
 
 .. |ex1script| replace:: :download:`download <../examples/tutorials/01_sphere_on_substrate/dielectric_sphere_on_substrate.py>`
 
-.. |ex1link| replace:: :doc:`Sphere on substrate <examples/01_sphere_on_substrate/discussion>`
+.. |ex1link| replace:: :doc:`Sphere on substrate: Setting up a simulation <examples/01_sphere_on_substrate/discussion>`
 
 .. |ex2script| replace:: :download:`download <../examples/tutorials/02_near_fields/plotting_the_field.py>`
 
-.. |ex2link| replace:: :doc:`Plotting the near field <examples/02_plotting_the_near_field/discussion>`
+.. |ex2link| replace:: :doc:`Three spheres in waveguide: Plotting the near field <examples/02_plotting_the_near_field/discussion>`
 
 
-.. |ex4link| replace:: :doc:`Many spheres on substrate <examples/many_particles/discussion>`
+.. |ex4link| replace:: :doc:`Many spheres on substrate: Solver settings <examples/many_particles/discussion>`
 
 .. |ex6link| replace:: :doc:`Numerical parameters <examples/numerical_parameters/discussion>`
 
