@@ -8,23 +8,21 @@ This section contains a number of exemplary simulation scripts to illustrate the
 Each tutorial is supposed to illustrate a certain aspect of the software.
 Click on the respective tutorial names to view a brief discussion.
 
-=== ==================================  ============== ============  =========== 
-No. Tutorial                             level           script       input file 
-=== ==================================  ============== ============  ===========
-1   |ex1link|                             |introd|      |ex1script|   |ex1input|       
-2   TIRS microscopy (to be done)          |intermed|      TBD          N/A       
-3   Purcell effect (to be done)           |intermed|      TBD          N/A
-4   |ex4link|                             |intermed|      TBD          N/A
-4   Dielectric metalens (to be done)      |intermed|      TBD          TBD       
-5   Light extraction (to be done)         |intermed|      TBD          N/A       
-6   |ex6link|                             |advanced|      TBD          N/A
-=== ==================================  ============== ============  ===========
+=== ==================================  ============== ============
+No. Tutorial                             level           script    
+=== ==================================  ============== ============
+1   |ex1link|                             |introd|      |ex1script|
+2   TIRS microscopy (to be done)          |intermed|      TBD      
+3   Purcell effect (to be done)           |intermed|      TBD       
+4   |ex4link|                             |intermed|      TBD       
+4   Dielectric metalens (to be done)      |intermed|      TBD       
+5   Light extraction (to be done)         |intermed|      TBD       
+6   |ex6link|                             |advanced|      TBD       
+=== ==================================  ============== ============ 
 
 .. |ex1script| replace:: :download:`download <../examples/tutorials/sphere_on_substrate/dielectric_sphere_on_substrate.py>`
 
-.. |ex1input| replace:: :download:`download <../examples/tutorials/sphere_on_substrate/dielectric_sphere_on_substrate.dat>`
-
-.. |ex1link| replace:: :doc:`Sphere on substrate <examples/sphere_on_substrate/discussion>`
+.. |ex1link| replace:: :doc:`Sphere on substrate <examples/01_sphere_on_substrate/discussion>`
 
 .. |ex4link| replace:: :doc:`Many spheres on substrate <examples/many_particles/discussion>`
 

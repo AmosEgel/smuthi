@@ -29,7 +29,8 @@ plane wave based particle coupling for non-spherical particles with overlapping 
 Konstantin Ladutenko (MPI support, numerous additions and improvements for a smooth user experience, correction of bugs)
 
 We thank Adrian Doicu, Thomas Wriedt and Yuri Eremin for allowing us to use their NFM-DS Fortran code, 
-and Ilia Rasskazov as well as Fabio Mangini for bug reports and useful comments.
+Ilia Rasskazov as well as Fabio Mangini for bug reports and useful comments 
+and Håkan T Johansson for making his pywigjxpf software availible through PyPi and also under Windows.
 
 For a guide how to install and use the software, see the `documentation <http://smuthi.readthedocs.io>`_.
 
@@ -39,6 +40,19 @@ The list is also a good place to ask for support from the developers or from exp
 To report a bug, you can also open an issue in Gitlab.
 
 Contributions are highly welcome! Please refer to the `contribution guidelines <https://gitlab.com/AmosEgel/smuthi/blob/master/CONTRIBUTING.rst>`_.
+
+What's new in version 10.0
+--------------------------
+A major bug that significantly slowed down Smuthi under Windows was fixed. 
+The module structure has undergone a major review (unfortunately, backwards compatibility cannot be granted and you might need to adapt some import statements in your scripts when updating to version 10.0). 
+For spheres, the calculation of internal fields (i.e., inside the particle) was implemented.
+A module for automatic selection of numerical parameters has been added (still in beta).
+For non-spherical particles, Smuthi now requires the GNU Fortran compiler also under Windows (MinGW). The use of the precompiled executable is deprecated.
+Pywigxjpf is now also available for Windows - however, the sympy fallback solution for the calculation of the Wigner3j symbols is still provided.
+Convenience functions for the definition of reasonable Sommerfeld contours have been added and can be managed through the simulation class (call to "set_default_k_parallel" no more necessary).
+Plenty of smaller changes and bug fixes. 
+Advanced logging. 
+
 
 What's new in version 0.9
 -------------------------

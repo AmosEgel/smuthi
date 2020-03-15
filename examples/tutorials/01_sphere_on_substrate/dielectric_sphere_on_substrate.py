@@ -1,10 +1,11 @@
 #*****************************************************************************#
-# This is a simple example script for Smuthi v0.8.6.                          #
-# It evaluates the differential scattering cross section of a glass sphere on #
-# a glass substrate, excited by a plane wave under normal incidence.          #
+# This is a simple example script for Smuthi v10.0.0                          #
+# It evaluates the total scattering cross section of a glass sphere on a      #
+# glass substrate, excited by a plane wave under normal incidence.            #
 #*****************************************************************************#
 
 import numpy as np
+import matplotlib.pyplot as plt
 import smuthi.simulation
 import smuthi.initial_field
 import smuthi.layers
@@ -23,7 +24,7 @@ two_layers = smuthi.layers.LayerSystem(thicknesses=[0, 0],
                                        refractive_indices=[1.52, 1])
 
 # Scattering particle
-sphere = smuthi.particles.Sphere(position=[0, 0, 100],   
+sphere = smuthi.particles.Sphere(position=[0, 0, 100],
                                  refractive_index=1.52,
                                  radius=100,
                                  l_max=3)
@@ -33,9 +34,9 @@ one_sphere = [sphere]
 
 # Initial field
 plane_wave = smuthi.initial_field.PlaneWave(vacuum_wavelength=550,
-                                            polar_angle=np.pi,  # from top
+                                            polar_angle=np.pi,    # from top
                                             azimuthal_angle=0,
-                                            polarization=0)  # 0=TE 1=TM
+                                            polarization=0)       # 0=TE 1=TM
 
 # Initialize and run simulation
 simulation = smuthi.simulation.Simulation(layer_system=two_layers,
@@ -43,12 +44,11 @@ simulation = smuthi.simulation.Simulation(layer_system=two_layers,
                                           initial_field=plane_wave)
 simulation.run()
 
-# Show differential scattering cross section
-dscs = smuthi.postprocessing.far_field.scattering_cross_section(initial_field=plane_wave,
-                                                                particle_list=one_sphere,
-                                                                layer_system=two_layers)
+# evaluate the scattering cross section
+scs = smuthi.postprocessing.far_field.total_scattering_cross_section(initial_field=plane_wave,
+                                                                     particle_list=one_sphere,
+                                                                     layer_system=two_layers)
 
-smuthi.postprocessing.graphical_output.show_far_field(dscs,
-                                       save_plots=True, 
-                                       show_plots=False, 
-                                       outputdir='output')
+print("\n****************************************************")
+print("Scattering cross section: %e µm^2"%(scs/1e6))
+print("****************************************************")
