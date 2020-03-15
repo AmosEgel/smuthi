@@ -27,6 +27,9 @@ dipole = init.DipoleSource(vacuum_wavelength=ld, dipole_moment=D, position=rD)
 simulation = simul.Simulation(layer_system=lay_sys, particle_list=part_list, initial_field=dipole,
                               log_to_terminal=(not sys.argv[0].endswith('nose2')),  # suppress output if called by nose
                               neff_waypoints=waypoints, neff_resolution=neff_discr)
+
+simulation.set_default_contours()
+
 simulation.run()
 
 power_hom = dipole.dissipated_power_homogeneous_background(layer_system=simulation.layer_system)
