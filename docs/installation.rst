@@ -57,6 +57,8 @@ If you have Microsoft Visual Studio installed, `MS VC` is probably already there
 for further instructions.
 
 
+.. _GPUAnchor:
+
 GPU-acceleration (optional)
 ---------------------------
 .. note:: 

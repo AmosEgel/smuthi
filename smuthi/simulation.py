@@ -229,6 +229,11 @@ class Simulation:
                 neff_resolution=self.neff_resolution,
                 neff_minimal_branchpoint_distance=self.neff_minimal_branchpoint_distance)
 
+    def set_default_contours(self):
+        """Set the default initial field k_parallel array and the default Sommerfeld k_parallel array"""
+        self.set_default_initial_field_contour()
+        self.set_default_Sommerfeld_contour()
+
     def run(self):
         """Start the simulation."""
         self.print_simulation_header()

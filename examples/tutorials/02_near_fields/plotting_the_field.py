@@ -11,7 +11,10 @@ import smuthi.initial_field
 import smuthi.layers
 import smuthi.particles
 import smuthi.postprocessing.graphical_output
+import smuthi.utility.cuda
 
+# try to enable GPU calculations
+smuthi.utility.cuda.enable_gpu()
 
 # In this file, all lengths are given in nanometers
 
@@ -23,7 +26,7 @@ import smuthi.postprocessing.graphical_output
 # between the first two layers defines the plane z=0.
 # Note that semi infinite layers have thickness 0!
 three_layers = smuthi.layers.LayerSystem(thicknesses=[0, 500, 0], 
-                                         refractive_indices=[1.52, 2.6, 1])
+                                         refractive_indices=[1.52, 1.75, 1])
 
 # Scattering particles, immersed in the titania layer
 sphere1 = smuthi.particles.Sphere(position=[-200, 0, 250],
@@ -36,13 +39,13 @@ sphere2 = smuthi.particles.Sphere(position=[0, 0, 250],
                                   radius=50,
                                   l_max=3)
 
-sphere3 = smuthi.particles.Sphere(position=[200, 200, 250],
+sphere3 = smuthi.particles.Sphere(position=[200, 0, 250],
                                   refractive_index=1+6j,    # metal sphere
                                   radius=80,
-                                  l_max=3)
+                                  l_max=4)
                                   
 
-# list of all scattering particles
+# List of all scattering particles
 three_spheres = [sphere1, sphere2, sphere3]
 
 # Initial field
@@ -57,20 +60,18 @@ simulation = smuthi.simulation.Simulation(layer_system=three_layers,
                                           initial_field=plane_wave)
 simulation.run()
 
-
-smuthi.postprocessing.graphical_output.show_near_field(quantities_to_plot=['E_y'],
+# Create plots that visualize the electric nea field
+smuthi.postprocessing.graphical_output.show_near_field(quantities_to_plot=['norm(E)', 'E_y'],
                                                        save_plots=True,
                                                        show_plots=True,
                                                        save_animations=True,
                                                        outputdir='./output',
-                                                       xmin=-500,
-                                                       xmax=500,
-                                                       zmin=-200,
-                                                       zmax=700,
-                                                       resolution_step=25,
+                                                       xmin=-600,
+                                                       xmax=600,
+                                                       zmin=-100,
+                                                       zmax=900,
+                                                       resolution_step=10,
                                                        simulation=simulation,
-                                                       max_field=None,
-                                                       min_norm_field=None,
                                                        show_internal_field=True)
 
 plt.show()
