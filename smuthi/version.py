@@ -1,8 +1,8 @@
-major = 0
-minor = 10
-micro = 0
+major = 1
+minor = 0
+micro = None
 
-pre_release = None
+pre_release = ".alpha"
 post_release = None
 dev_release = None
 

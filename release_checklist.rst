@@ -2,7 +2,7 @@ releasing a SMUTHI version
 ===========================
 
 - run nosetests
-- update version number and dependencies in setup.py
+- update version number and dependencies in version.py
 - update README.rst
 - update version number in docs/
 - update docs/input_files.rst

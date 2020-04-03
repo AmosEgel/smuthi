@@ -41,10 +41,10 @@ To report a bug, you can also open an issue in Gitlab.
 
 Contributions are highly welcome! Please refer to the `contribution guidelines <https://gitlab.com/AmosEgel/smuthi/blob/master/CONTRIBUTING.rst>`_.
 
-What's new in version 10.0
+What's new in version 1.0
 --------------------------
 A major bug that significantly slowed down Smuthi under Windows was fixed. 
-The module structure has undergone a major review (unfortunately, backwards compatibility cannot be granted and you might need to adapt some import statements in your scripts when updating to version 10.0). 
+The module structure has undergone a major review (unfortunately, backwards compatibility cannot be granted and you might need to adapt some import statements in your scripts when updating to version 1.0). 
 For spheres, the calculation of internal fields (i.e., inside the particle) was implemented.
 A module for automatic selection of numerical parameters has been added (still in beta).
 For non-spherical particles, Smuthi now requires the GNU Fortran compiler also under Windows (MinGW). The use of the precompiled executable is deprecated.
