@@ -1,4 +1,4 @@
-**Note: Smuthi's master repository is on `GitLab <https://gitlab.com/AmosEgel/smuthi>`_**
+**Note: Smuthi's master repository is on GitLab: https://gitlab.com/AmosEgel/smuthi**
 
 SMUTHI stands for 'scattering by multiple particles in thin-film systems'. The software allows to simulate light
 scattering by multiple particles near (or between) planar interfaces. It is based on the T-matrix method for the single
